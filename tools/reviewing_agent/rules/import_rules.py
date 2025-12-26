@@ -38,7 +38,7 @@ def check_import_boundaries(file_path: Path) -> list[Finding]:
         if layer in path_parts:
             for imp in imports:
                 for bad in forbidden:
-                    if imp.startswith(bad):
+                    if f".{bad}" in f".{imp}":
                         findings.append(
                             Finding(
                                 rule_id="R3",
@@ -52,7 +52,7 @@ def check_import_boundaries(file_path: Path) -> list[Finding]:
     if "domain" in path_parts:
         for imp in imports:
             for sdk in EXTERNAL_SDK_KEYWORDS:
-                if imp.startswith(sdk):
+                if f".{sdk}" in f".{imp}" or imp == sdk:
                     findings.append(
                         Finding(
                             rule_id="R3.1",

@@ -14,6 +14,9 @@ from rules.structure_rules import (
 from rules.import_rules import check_import_boundaries
 from rules.size_rules import check_file_size, check_function_size
 
+from reporters.github_pr import post_pr_comments
+
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 AGENTS_DIR = REPO_ROOT / "agents"
@@ -146,6 +149,8 @@ def main():
 
     findings = run_rules(changed_files)
     print_report(findings)
+    post_pr_comments(findings)
+
 
     print("🚦 Reviewing Agent finished (non-blocking)")
 
