@@ -4,11 +4,17 @@ import urllib.request
 import urllib.error
 from typing import List
 from rules.base import Finding
+from pathlib import Path
+
+
 
 
 def post_pr_comments(findings: List[Finding]) -> None:
     event_path = os.getenv("GITHUB_EVENT_PATH")
     token = os.getenv("GITHUB_TOKEN")
+
+    REPO_ROOT = Path(__file__).resolve().parents[3]
+
 
     if not event_path or not token:
         print("ℹ️ Not running in PR context or missing token")
@@ -39,6 +45,13 @@ def post_pr_comments(findings: List[Finding]) -> None:
         if not finding.file:
             continue
 
+        file_path = Path(finding.file)
+
+        try:
+            relative_path = file_path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+
         body = f"**{finding.severity} – {finding.rule_id}**\n\n{finding.message}"
         if finding.suggestion:
             body += f"\n\n💡 **Suggestion:** {finding.suggestion}"
@@ -46,7 +59,7 @@ def post_pr_comments(findings: List[Finding]) -> None:
         payload = {
             "body": body,
             "commit_id": commit_id,
-            "path": finding.file,
+            "path": str(relative_path),
             "side": "RIGHT",
         }
 
