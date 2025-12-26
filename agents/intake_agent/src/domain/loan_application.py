@@ -1,5 +1,5 @@
 
-from agents.intake_agent.src.adapters import ocr_adapter
+from agents.intake_agent.src.adapters.ocr_adapter import extract_text
 
 
-text = ocr_adapter.extract_text("image_data")
+text = extract_text("image_data")
