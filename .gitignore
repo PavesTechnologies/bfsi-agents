@@ -1,0 +1,75 @@
+# ================================
+# Python
+# ================================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# ================================
+# Poetry / Virtual Environments
+# ================================
+.venv/
+.env
+.env.*
+
+# Poetry cache (Windows/macOS/Linux)
+.pypoetry/
+poetry.toml
+
+# ================================
+# Test / Coverage
+# ================================
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ================================
+# Logs
+# ================================
+*.log
+logs/
+
+# ================================
+# OS / System
+# ================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ================================
+# IDEs / Editors
+# ================================
+.vscode/
+.idea/
+*.iml
+
+# ================================
+# Build / Dist
+# ================================
+build/
+dist/
+*.egg-info/
+
+# ================================
+# Terraform
+# ================================
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+
+# ================================
+# Docker
+# ================================
+**/docker-compose.override.yml
+
+# ================================
+# Secrets (absolute NO)
+# ================================
+*.pem
+*.key
+*.crt
+secrets/
