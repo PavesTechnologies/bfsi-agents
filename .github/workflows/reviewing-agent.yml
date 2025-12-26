@@ -1,0 +1,33 @@
+name: Reviewing Agent (Architecture Checks)
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "*"
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  reviewing-agent:
+    runs-on: ubuntu-latest
+    continue-on-error: true   # IMPORTANT: non-blocking
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Needed for git diff
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run Reviewing Agent
+        run: |
+          python tools/reviewing_agent/runner.py
