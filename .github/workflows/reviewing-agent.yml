@@ -3,10 +3,9 @@ name: Reviewing Agent (Architecture Checks)
 on:
   push:
     branches:
-      - main
-      - develop
-      - "*"
-  pull_request:
+      - "**"
+  pull_request_target:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
@@ -15,13 +14,14 @@ permissions:
 jobs:
   reviewing-agent:
     runs-on: ubuntu-latest
-    continue-on-error: true   # IMPORTANT: non-blocking
+    continue-on-error: true
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # Needed for git diff
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,5 +29,7 @@ jobs:
           python-version: "3.11"
 
       - name: Run Reviewing Agent
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python tools/reviewing_agent/runner.py

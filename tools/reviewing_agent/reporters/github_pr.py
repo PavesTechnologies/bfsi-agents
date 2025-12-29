@@ -4,11 +4,14 @@ import urllib.request
 import urllib.error
 from typing import List
 from rules.base import Finding
+from pathlib import Path
 
 
 def post_pr_comments(findings: List[Finding]) -> None:
     event_path = os.getenv("GITHUB_EVENT_PATH")
     token = os.getenv("GITHUB_TOKEN")
+
+    REPO_ROOT = Path(__file__).resolve().parents[3]
 
     if not event_path or not token:
         print("ℹ️ Not running in PR context or missing token")
@@ -22,7 +25,7 @@ def post_pr_comments(findings: List[Finding]) -> None:
         print("ℹ️ Not a pull request event")
         return
 
-    repo = event["repository"]["full_name"]
+    repo = event["repository"]["full_name"]   # owner/repo
     pr_number = pull_request["number"]
     commit_id = pull_request["head"]["sha"]
 
@@ -36,7 +39,14 @@ def post_pr_comments(findings: List[Finding]) -> None:
     }
 
     for finding in findings:
-        if not finding.file:
+        if not finding.file or not finding.line:
+            continue  # inline comments REQUIRE line numbers
+
+        file_path = Path(finding.file)
+
+        try:
+            relative_path = file_path.relative_to(REPO_ROOT)
+        except ValueError:
             continue
 
         body = f"**{finding.severity} – {finding.rule_id}**\n\n{finding.message}"
@@ -46,12 +56,10 @@ def post_pr_comments(findings: List[Finding]) -> None:
         payload = {
             "body": body,
             "commit_id": commit_id,
-            "path": finding.file,
+            "path": str(relative_path),
             "side": "RIGHT",
+            "line": finding.line,
         }
-
-        if finding.line:
-            payload["line"] = finding.line
 
         req = urllib.request.Request(
             api_url,
@@ -64,7 +72,4 @@ def post_pr_comments(findings: List[Finding]) -> None:
             with urllib.request.urlopen(req) as response:
                 response.read()
         except urllib.error.HTTPError as e:
-            print(
-                f"⚠️ Failed to post comment for {finding.file}: "
-                f"{e.code} {e.reason}"
-            )
+            print(f"⚠️ Failed to post comment: {e.code} {e.reason}")
