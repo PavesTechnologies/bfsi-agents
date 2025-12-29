@@ -29,7 +29,7 @@ def post_pr_comments(findings: List[Finding]) -> None:
     pr_number = pull_request["number"]
     commit_id = pull_request["head"]["sha"]
 
-    api_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
+    api_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/comments"
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -60,6 +60,9 @@ def post_pr_comments(findings: List[Finding]) -> None:
             "side": "RIGHT",
             "line": finding.line,
         }
+
+        print(f"📝 Adding comment to {finding.file}:{finding.line}: {finding.message}")
+        print(payload)
 
         req = urllib.request.Request(
             api_url,
