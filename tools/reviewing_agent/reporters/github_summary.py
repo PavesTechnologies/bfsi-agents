@@ -3,6 +3,20 @@ import json
 import urllib.request
 from typing import List
 from rules.base import Finding
+from pathlib import Path
+
+
+def to_repo_relative(path: str | None) -> str | None:
+    if not path:
+        return None
+
+    try:
+        file_path = Path(path)
+        repo_root = Path(__file__).resolve().parents[3]
+        return str(file_path.relative_to(repo_root))
+    except Exception:
+        return path
+
 
 
 def post_summary_comment(findings: List[Finding]) -> None:
