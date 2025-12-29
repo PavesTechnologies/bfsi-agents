@@ -38,6 +38,11 @@ def post_pr_comments(findings: List[Finding]) -> None:
         "User-Agent": "reviewing-agent",
     }
 
+    print(f"📝 Posting {len(findings)} PR comments to {repo} PR #{pr_number}")
+    for finding in findings:
+        print(f"  → {finding}")
+
+
     for finding in findings:
         if not finding.file or not finding.line:
             continue  # inline comments REQUIRE line numbers
