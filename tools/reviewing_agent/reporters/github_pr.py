@@ -29,8 +29,9 @@ def post_pr_comments(findings: List[Finding]) -> None:
     repo = event["repository"]["full_name"]
     pr_number = pull_request["number"]
     commit_id = pull_request["head"]["sha"]
+    owner = event["repository"]["owner"]["login"]
 
-    api_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/comments"
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}/comments"
 
     headers = {
         "Authorization": f"Bearer {token}",
