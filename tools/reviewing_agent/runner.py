@@ -15,6 +15,7 @@ from rules.import_rules import check_import_boundaries
 from rules.size_rules import check_file_size, check_function_size
 
 from reporters.github_pr import post_pr_comments
+from reporters.github_summary import post_summary_comment
 
 
 
@@ -149,7 +150,9 @@ def main():
 
     findings = run_rules(changed_files)
     print_report(findings)
-    post_pr_comments(findings)
+    post_pr_comments(findings)      # inline (best effort)
+    post_summary_comment(findings)  # ALWAYS visible
+
 
 
     print("🚦 Reviewing Agent finished (non-blocking)")

@@ -7,8 +7,6 @@ from rules.base import Finding
 from pathlib import Path
 
 
-
-
 def post_pr_comments(findings: List[Finding]) -> None:
     event_path = os.getenv("GITHUB_EVENT_PATH")
     token = os.getenv("GITHUB_TOKEN")
