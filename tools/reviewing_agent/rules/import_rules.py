@@ -10,7 +10,7 @@ FORBIDDEN_IMPORTS = {
 
 EXTERNAL_SDK_KEYWORDS = ["boto3", "requests", "httpx"]
 
-def extract_imports(file_path: Path) -> list[str]:
+def extract_imports(file_path: Path) -> list[tuple[str, int]]:
     try:
         tree = ast.parse(file_path.read_text())
     except SyntaxError:
@@ -21,10 +21,10 @@ def extract_imports(file_path: Path) -> list[str]:
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for name in node.names:
-                imports.append(name.name)
+                imports.append((name.name, node.lineno))
         elif isinstance(node, ast.ImportFrom):
             if node.module:
-                imports.append(node.module)
+                imports.append((node.module, node.lineno))
 
     return imports
 
@@ -36,7 +36,7 @@ def check_import_boundaries(file_path: Path) -> list[Finding]:
 
     for layer, forbidden in FORBIDDEN_IMPORTS.items():
         if layer in path_parts:
-            for imp in imports:
+            for imp, line in imports:
                 for bad in forbidden:
                     if f".{bad}" in f".{imp}":
                         findings.append(
@@ -45,21 +45,23 @@ def check_import_boundaries(file_path: Path) -> list[Finding]:
                                 severity="ERROR",
                                 message=f"Forbidden import '{imp}' in {layer} layer",
                                 file=str(file_path),
-                                suggestion=f"Remove dependency on '{bad}' from {layer}"
+                                line=line,
+                                suggestion=f"Remove dependency on '{bad}' from {layer}",
                             )
                         )
 
     if "domain" in path_parts:
-        for imp in imports:
+        for imp, line in imports:
             for sdk in EXTERNAL_SDK_KEYWORDS:
-                if f".{sdk}" in f".{imp}" or imp == sdk:
+                if imp == sdk or f".{sdk}" in f".{imp}":
                     findings.append(
                         Finding(
                             rule_id="R3.1",
                             severity="ERROR",
                             message=f"External SDK '{sdk}' imported in domain layer",
                             file=str(file_path),
-                            suggestion="Domain layer must be pure and side-effect free"
+                            line=line,
+                            suggestion="Domain layer must be pure and side-effect free",
                         )
                     )
 
