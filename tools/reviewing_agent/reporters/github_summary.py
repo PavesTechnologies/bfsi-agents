@@ -53,7 +53,7 @@ def post_summary_comment(findings: List[Finding]) -> None:
     for f in findings:
         body += f"- **{f.severity} {f.rule_id}**: {f.message}\n"
         if f.file:
-            body += f"  - File: `{f.file}`\n"
+            body += f"  - File: `{to_repo_relative(f.file)}`\n"
         if f.suggestion:
             body += f"  - 💡 {f.suggestion}\n"
 
