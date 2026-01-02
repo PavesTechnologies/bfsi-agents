@@ -1,10 +1,82 @@
 import os
 import json
 import urllib.request
-import urllib.error
 from typing import List
-from rules.base import Finding
+
 from pathlib import Path
+
+from domain.rules.base import Finding
+from core.config import REPO_ROOT
+
+
+def to_repo_relative(path: str | None) -> str | None:
+    if not path:
+        return None
+
+    try:
+        file_path = Path(path)
+        return str(file_path.relative_to(REPO_ROOT))
+    except Exception:
+        return path
+
+
+
+def post_summary_comment(
+    findings: List[Finding],
+    llm_insights: list | None = None,
+) -> None:
+    if not findings and not llm_insights:
+        return
+
+    event_path = os.getenv("GITHUB_EVENT_PATH")
+    token = os.getenv("GITHUB_TOKEN")
+
+    if not event_path or not token:
+        return
+
+    with open(event_path, "r", encoding="utf-8") as f:
+        event = json.load(f)
+
+    pr = event.get("pull_request")
+    if not pr:
+        return
+
+    repo = event["repository"]["full_name"]
+    pr_number = pr["number"]
+
+    url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "reviewing-agent",
+    }
+
+    body = "## 🤖 Reviewing Agent Findings\n\n"
+
+    # ---- Rule findings ----
+    if findings:
+        for f in findings:
+            body += f"- **{f.severity} {f.rule_id}**: {f.message}\n"
+            if f.file:
+                body += f"  - File: `{to_repo_relative(f.file)}`\n"
+            if f.suggestion:
+                body += f"  - 💡 {f.suggestion}\n"
+            body += "\n"
+
+    # ---- LLM insights ----
+    if llm_insights:
+        body += "\n---\n\n### 🧠 LLM Architectural Insights\n\n"
+        for insight in llm_insights:
+            body += f"- **{insight.rule_id}**\n"
+            body += f"  - File: `{to_repo_relative(insight.file)}`\n"
+            body += f"  - {insight.explanation}\n\n"
+
+    payload = json.dumps({"body": body}).encode("utf-8")
+
+    req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+    urllib.request.urlopen(req).read()
 
 
 def post_pr_comments(findings: List[Finding]) -> None:

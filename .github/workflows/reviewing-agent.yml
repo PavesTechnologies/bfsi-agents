@@ -31,5 +31,7 @@ jobs:
       - name: Run Reviewing Agent
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          ENABLE_LLM_REVIEW: "true"
         run: |
-          python tools/reviewing_agent/runner.py
+          python tools/reviewing_agent/main.py
