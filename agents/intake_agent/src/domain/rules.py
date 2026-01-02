@@ -1,13 +1,28 @@
+def process_application(data):
+    result = {}
 
-from adapters.ocr_adapter import extract_text
+    if data.get("a"):
+        if data["a"] > 10:
+            if data["a"] < 100:
+                result["a"] = data["a"] * 2
+            else:
+                result["a"] = data["a"] / 2
+        else:
+            result["a"] = 0
+    else:
+        result["a"] = None
 
+    if data.get("b"):
+        for x in data["b"]:
+            if x % 2 == 0:
+                result.setdefault("b", []).append(x * 2)
+            else:
+                result.setdefault("b", []).append(x + 1)
 
-def build_entity_from_file(file_path):
-    text = extract_text(file_path)
-    if not text:
-        raise ValueError("No text extracted")
+    if data.get("c"):
+        try:
+            result["c"] = int(data["c"])
+        except Exception:
+            result["c"] = 0
 
-    return {
-        "raw_text": text,
-        "length": len(text)
-    }
+    return result
