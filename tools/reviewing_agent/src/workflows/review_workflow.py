@@ -6,6 +6,7 @@ from domain.signals.aggregator import collect_signals
 from reporters.console_reporter import print_report, print_summary
 from services.review_service import run_llm_review
 from services.rule_engine import run_rules
+from services.signal_engine import filter_llm_eligible_signals
 
 
 def run_review_workflow():
@@ -20,6 +21,7 @@ def run_review_workflow():
 
     llm_insights = []
     signals = collect_signals(changed_files)
+    signals = filter_llm_eligible_signals(signals)
 
     if signals:
         llm_insights = run_llm_review(signals)

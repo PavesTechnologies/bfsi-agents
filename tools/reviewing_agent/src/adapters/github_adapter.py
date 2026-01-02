@@ -83,8 +83,6 @@ def post_pr_comments(findings: List[Finding]) -> None:
     event_path = os.getenv("GITHUB_EVENT_PATH")
     token = os.getenv("GITHUB_TOKEN")
 
-    REPO_ROOT = Path(__file__).resolve().parents[3]
-
     if not event_path or not token:
         print("ℹ️ Not running in PR context or missing token")
         return
