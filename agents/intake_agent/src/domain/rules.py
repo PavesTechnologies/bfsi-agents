@@ -1,4 +1,13 @@
-# from agents.intake_agent.src.adapters.ocr_adapter import extract_text #
-# from agents.intake_agent.src.adapters import ocr_adapter 
 
-# The extract_text function processes text by removing newline characters and trimming whitespace.
+from adapters.ocr_adapter import extract_text
+
+
+def build_entity_from_file(file_path):
+    text = extract_text(file_path)
+    if not text:
+        raise ValueError("No text extracted")
+
+    return {
+        "raw_text": text,
+        "length": len(text)
+    }

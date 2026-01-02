@@ -100,10 +100,6 @@ def review_with_llm(contexts: List[dict]) -> List[dict]:
 
         response = ask_llm(prompt)
 
-        # basic safety check
-        if not response.startswith("OBSERVATION:"):
-            continue
-
         insights.append(
             {
                 "file": ctx["file"],

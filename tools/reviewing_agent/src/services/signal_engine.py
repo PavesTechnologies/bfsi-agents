@@ -1,10 +1,17 @@
 from pathlib import Path
 from domain.signals.aggregator import collect_signals
 from domain.signals.models import Signal
+from core.config import REPO_ROOT
 
 
 def is_llm_eligible(file_path: str) -> bool:
-    path = file_path.replace("\\", "/")
+
+    try:
+        rel_path = Path(file_path).resolve().relative_to(REPO_ROOT)
+    except ValueError:
+        return False
+    
+    path = str(rel_path).replace("\\", "/")
 
     if not path.startswith("agents/"):
         return False
@@ -25,5 +32,5 @@ def should_trigger_llm(signals: list[Signal]) -> bool:
 
     return (
         "SENSITIVE_LAYER" in types
-        and ("LARGE_FUNCTION" in types or "HIGH_COMPLEXITY" in types)
+        or ("LARGE_FUNCTION" in types or "HIGH_COMPLEXITY" in types)
     )
