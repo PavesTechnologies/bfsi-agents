@@ -23,7 +23,7 @@ def to_repo_relative(path: str | None) -> str | None:
 
 def post_summary_comment(
     findings: List[Finding],
-    llm_insights: list | None = None,
+    llm_insights: List[dict] | None = None,
 ) -> None:
     if not findings and not llm_insights:
         return
@@ -69,9 +69,9 @@ def post_summary_comment(
     if llm_insights:
         body += "\n---\n\n### 🧠 LLM Architectural Insights\n\n"
         for insight in llm_insights:
-            body += f"  - File: `{to_repo_relative(insight.file)}`\n"
-            body += f"  - Layer: `{insight.layer}`\n"
-            body += f"  - {insight.text}\n\n"
+            body += f"  - File: `{to_repo_relative(insight["file"])}`\n"
+            body += f"  - Layer: `{insight["layer"]}`\n"
+            body += f"  - {insight['text']}\n\n"
 
     payload = json.dumps({"body": body}).encode("utf-8")
 
