@@ -67,11 +67,9 @@ def post_summary_comment(
 
     # ---- LLM insights ----
     if llm_insights:
-        body += "\n---\n\n### 🧠 LLM Architectural Insights\n\n"
+        body += "\n### LLM Suggestions\n\n"
         for insight in llm_insights:
-            body += f"  - File: `{to_repo_relative(insight["file"])}`\n"
-            body += f"  - Layer: `{insight["layer"]}`\n"
-            body += f"  - {insight['text']}\n\n"
+            body += f"- {insight['text'].strip()}\n"
 
     payload = json.dumps({"body": body}).encode("utf-8")
 
