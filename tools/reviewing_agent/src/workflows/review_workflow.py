@@ -10,7 +10,7 @@ from services.signal_engine import filter_llm_eligible_signals
 
 
 def run_review_workflow():
-    print("🚦 Reviewing Agent started")
+    print("Reviewing Agent started")
 
     changed_files = get_changed_files()
     if not changed_files:
@@ -33,4 +33,4 @@ def run_review_workflow():
         post_summary_comment(findings, llm_insights)
         post_pr_comments(findings)
 
-    print("🚦 Reviewing Agent finished (non-blocking)")
+    print("Reviewing Agent finished (non-blocking)")

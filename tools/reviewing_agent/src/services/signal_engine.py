@@ -4,15 +4,8 @@ from domain.signals.models import Signal
 from core.config import REPO_ROOT
 
 
-def is_llm_eligible(file_path: str) -> bool:
-
-    try:
-        rel_path = Path(file_path).resolve().relative_to(REPO_ROOT)
-    except ValueError:
-        return False
-    
-    path = str(rel_path).replace("\\", "/")
-
+def is_llm_eligible(path: str) -> bool:    
+    # print(f"Checking LLM eligibility for path: {path}")
     if not path.startswith("agents/"):
         return False
 

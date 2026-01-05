@@ -35,6 +35,6 @@ def get_changed_files() -> List[Path]:
     for line in result.stdout.splitlines():
         path = REPO_ROOT / line.strip()
         if path.exists():
-            files.append(path)
+            files.append(path.relative_to(REPO_ROOT))
 
     return files

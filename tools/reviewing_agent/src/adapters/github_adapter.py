@@ -1,25 +1,32 @@
 import os
 import json
 import urllib.request
+import urllib.error
 from typing import List
-
 from pathlib import Path
 
 from domain.rules.base import Finding
 from core.config import REPO_ROOT
 
 
-def to_repo_relative(path: str | None) -> str | None:
-    if not path:
-        return None
-
-    try:
-        file_path = Path(path)
-        return str(file_path.relative_to(REPO_ROOT))
-    except Exception:
-        return path
+# -----------------------------
+# Helpers
+# -----------------------------
 
 
+
+
+def render_llm_insight(file: str, insight: dict) -> str:
+    return (
+        f"- **{insight['issue']}**\n"
+        f"  - File: `{file}`\n"
+        f"  - Suggested change: {insight['action']}\n"
+    )
+
+
+# -----------------------------
+# Summary comment (PR-level)
+# -----------------------------
 
 def post_summary_comment(
     findings: List[Finding],
@@ -55,34 +62,42 @@ def post_summary_comment(
 
     body = "## 🤖 Reviewing Agent Findings\n\n"
 
-    # ---- Rule findings ----
+    # ---- Deterministic rule findings ----
     if findings:
         for f in findings:
             body += f"- **{f.severity} {f.rule_id}**: {f.message}\n"
             if f.file:
-                body += f"  - File: `{to_repo_relative(f.file)}`\n"
+                body += f"  - File: `{f.file}`\n"
             if f.suggestion:
                 body += f"  - 💡 {f.suggestion}\n"
             body += "\n"
 
-    # ---- LLM insights ----
+    # ---- LLM insights (controlled rendering) ----
     if llm_insights:
         body += "\n### LLM Suggestions\n\n"
         for insight in llm_insights:
-            body += f"- {insight['text'].strip()}\n"
+            body += render_llm_insight(insight["file"], insight)
+            body += "\n"
 
     payload = json.dumps({"body": body}).encode("utf-8")
 
     req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
-    urllib.request.urlopen(req).read()
+    try:
+        with urllib.request.urlopen(req) as response:
+            response.read()
+    except urllib.error.HTTPError:
+        pass  # Non-blocking by design
 
+
+# -----------------------------
+# Inline PR comments (best effort)
+# -----------------------------
 
 def post_pr_comments(findings: List[Finding]) -> None:
     event_path = os.getenv("GITHUB_EVENT_PATH")
     token = os.getenv("GITHUB_TOKEN")
 
     if not event_path or not token:
-        print("ℹ️ Not running in PR context or missing token")
         return
 
     with open(event_path, "r", encoding="utf-8") as f:
@@ -90,10 +105,9 @@ def post_pr_comments(findings: List[Finding]) -> None:
 
     pull_request = event.get("pull_request")
     if not pull_request:
-        print("ℹ️ Not a pull request event")
         return
 
-    repo = event["repository"]["full_name"]   # owner/repo
+    repo = event["repository"]["full_name"]
     pr_number = pull_request["number"]
     commit_id = pull_request["head"]["sha"]
 
@@ -106,21 +120,9 @@ def post_pr_comments(findings: List[Finding]) -> None:
         "User-Agent": "reviewing-agent",
     }
 
-    print(f"📝 Posting {len(findings)} PR comments to {repo} PR #{pr_number}")
-    for finding in findings:
-        print(f"  → {finding}")
-
-
     for finding in findings:
         if not finding.file or not finding.line:
             continue  # inline comments REQUIRE line numbers
-
-        file_path = Path(finding.file)
-
-        try:
-            relative_path = file_path.relative_to(REPO_ROOT)
-        except ValueError:
-            continue
 
         body = f"**{finding.severity} – {finding.rule_id}**\n\n{finding.message}"
         if finding.suggestion:
@@ -129,13 +131,10 @@ def post_pr_comments(findings: List[Finding]) -> None:
         payload = {
             "body": body,
             "commit_id": commit_id,
-            "path": str(relative_path),
+            "path": finding.file,
             "side": "RIGHT",
             "line": finding.line,
         }
-
-        print(f"📝 Adding comment to {finding.file}:{finding.line}: {finding.message}")
-        print(payload)
 
         req = urllib.request.Request(
             api_url,
@@ -147,5 +146,5 @@ def post_pr_comments(findings: List[Finding]) -> None:
         try:
             with urllib.request.urlopen(req) as response:
                 response.read()
-        except urllib.error.HTTPError as e:
-            print(f"⚠️ Failed to post comment: {e.code} {e.reason}")
+        except urllib.error.HTTPError:
+            pass  # Non-blocking
