@@ -122,7 +122,7 @@ TYPE2_XML_PROMPT = """
   <OUTPUT_CONTRACT>
     <FORMAT>PlainText</FORMAT>
     <STRUCTURE>
-      ISSUE: &lt;one precise sentence explaining violation and how the changed code violates it&gt;
+      ISSUE: &lt;one precise sentence why the changed code is bad&gt;
       ACTION: &lt;one concrete refactoring or move&gt;
     </STRUCTURE>
 
