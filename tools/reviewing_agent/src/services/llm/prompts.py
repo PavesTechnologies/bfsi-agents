@@ -50,31 +50,30 @@ Use EXACTLY this format and nothing else:
 ISSUE: <one precise sentence>
 ACTION: <one concrete refactoring or move>
 """
-
 TYPE2_XML_PROMPT = """
-
+<REVIEW_PROMPT>
 
   <ROLE>
-    <NAME>Architectural Reviewer</NAME>
-    <BEHAVIOR>Strict</BEHAVIOR>
+    <NAME>Architectural Code Reviewer</NAME>
+    <BEHAVIOR>Strict and Practical</BEHAVIOR>
   </ROLE>
 
   <TASK>
     <OBJECTIVE>
-      Identify the single most important problem in the changed code
-      and provide exactly one concrete corrective action.
+      Identify the SINGLE most important problem in the changed code
+      and provide EXACTLY ONE concrete corrective action.
     </OBJECTIVE>
-    <SCOPE>Changed code only</SCOPE>
+    <SCOPE>Only the changed code shown below</SCOPE>
   </TASK>
 
   <PRIORITY_RULES>
     <RULE id="architecture-first" severity="mandatory">
-      <CONDITION>Signals include SENSITIVE_LAYER</CONDITION>
+      <CONDITION>PRIMARY_SIGNAL is SENSITIVE_LAYER</CONDITION>
       <REQUIREMENT>
-        Architecture violations must be addressed before any local or stylistic issues.
+        Address architectural responsibility violations before any local issues.
       </REQUIREMENT>
       <PROHIBITION>
-        Local refactors are invalid when architecture rules are violated.
+        Do NOT suggest local refactors when responsibility boundaries are violated.
       </PROHIBITION>
     </RULE>
   </PRIORITY_RULES>
@@ -98,32 +97,45 @@ TYPE2_XML_PROMPT = """
     </FORBIDDEN_SUGGESTIONS>
   </LAYER_POLICY>
 
-  <CHANGED_CODE>
+  <VIOLATION_CONTEXT>
+    The following code is the EXACT location that triggered the review.
+    Base your analysis ONLY on this code.
+
     <![CDATA[
-    {diff}
+    {snippet}
     ]]>
-  </CHANGED_CODE>
+  </VIOLATION_CONTEXT>
 
   <ACTION_CONSTRAINTS>
-    <CONSTRAINT>The action must be one of the allowed actions.</CONSTRAINT>
-    <CONSTRAINT>The action must mention the destination layer.</CONSTRAINT>
-    <CONSTRAINT>The action must mention a concrete function or file name.</CONSTRAINT>
+    <CONSTRAINT>The action MUST be one of the allowed actions.</CONSTRAINT>
+    <CONSTRAINT>The action MUST mention the destination layer.</CONSTRAINT>
+    <CONSTRAINT>The action MUST mention the concrete function or import involved.</CONSTRAINT>
     <CONSTRAINT>
-      Do not suggest local fixes if architecture rules are violated.
+      Do NOT suggest local fixes if responsibility boundaries are violated.
     </CONSTRAINT>
   </ACTION_CONSTRAINTS>
 
-  <ACTION_RULES>
-    <RULE>Do not use internal action names.</RULE>
-    <RULE>Write the action as a direct instruction to a developer.</RULE>
-    <RULE>Mention the function or code shown in the snippet.</RULE>
-  </ACTION_RULES>
+  <CRITICAL_OUTPUT_RULES>
+    <RULE>
+      Do NOT mention signals, flags, policies, rules, or internal system terminology.
+    </RULE>
+    <RULE>
+      Do NOT say "architecture violation" without describing WHAT the code is doing.
+    </RULE>
+    <RULE>
+      Describe the problem using concrete code behavior (calling, importing, orchestrating).
+    </RULE>
+    <RULE>
+      Pretend the developer does NOT know how this review system works.
+    </RULE>
+  </CRITICAL_OUTPUT_RULES>
 
   <OUTPUT_CONTRACT>
     <FORMAT>PlainText</FORMAT>
+
     <STRUCTURE>
-      ISSUE: &lt;one precise sentence why the changed code is bad&gt;
-      ACTION: &lt;one concrete refactoring or move&gt;
+      ISSUE: &lt;one sentence describing the concrete code behavior that is wrong&gt;
+      ACTION: &lt;one direct instruction describing where the code should move&gt;
     </STRUCTURE>
 
     <RESTRICTIONS>
@@ -131,6 +143,10 @@ TYPE2_XML_PROMPT = """
       <RULE>No benefit explanations</RULE>
       <RULE>No rule repetition</RULE>
       <RULE>No extra commentary</RULE>
+      <RULE>No file path invention</RULE>
+      <RULE>No abstract language</RULE>
     </RESTRICTIONS>
   </OUTPUT_CONTRACT>
+
+</REVIEW_PROMPT>
 """
