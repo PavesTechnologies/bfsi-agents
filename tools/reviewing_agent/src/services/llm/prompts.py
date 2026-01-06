@@ -102,7 +102,7 @@ TYPE2_XML_PROMPT = """
     Base your analysis ONLY on this code.
 
     <![CDATA[
-    {snippet}
+    {diff}
     ]]>
   </VIOLATION_CONTEXT>
 
