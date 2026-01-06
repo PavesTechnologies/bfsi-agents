@@ -1,6 +1,6 @@
 
 from adapters.git_adapter import get_changed_files
-from adapters.github_adapter import post_pr_comments, post_summary_comment
+from adapters.github_adapter import post_inline_llm_comments, post_pr_comments, post_summary_comment
 from core.config import LOCAL_DEV
 from domain.signals.aggregator import collect_signals
 from reporters.console_reporter import print_report, print_summary
@@ -32,5 +32,7 @@ def run_review_workflow():
     else:
         post_summary_comment(findings, llm_insights)
         post_pr_comments(findings)
+        post_inline_llm_comments(llm_insights)
+
 
     print("Reviewing Agent finished (non-blocking)")

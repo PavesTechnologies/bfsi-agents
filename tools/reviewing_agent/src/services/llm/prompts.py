@@ -33,6 +33,11 @@ ACTION REQUIREMENTS:
 - The action MUST mention a concrete function or file name.
 - Do NOT suggest local fixes if architecture rules are violated.
 
+ACTION RULES:
+- Do NOT use internal action names (e.g., move_to_service).
+- Write the action as a direct instruction to a developer.
+- Mention the function or code shown in the snippet.
+
 OUTPUT RULES:
 - Do NOT use markdown.
 - Do NOT explain benefits.

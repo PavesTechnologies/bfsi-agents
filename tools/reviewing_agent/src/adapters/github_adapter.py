@@ -60,7 +60,7 @@ def post_summary_comment(
         "User-Agent": "reviewing-agent",
     }
 
-    body = "## 🤖 Reviewing Agent Findings\n\n"
+    body = "## Reviewing Agent Findings\n\n"
 
     # ---- Deterministic rule findings ----
     if findings:
@@ -148,3 +148,58 @@ def post_pr_comments(findings: List[Finding]) -> None:
                 response.read()
         except urllib.error.HTTPError:
             pass  # Non-blocking
+
+def post_inline_llm_comments(insights: list[dict]) -> None:
+    event_path = os.getenv("GITHUB_EVENT_PATH")
+    token = os.getenv("GITHUB_TOKEN")
+
+    if not event_path or not token or not insights:
+        return
+
+    event = json.loads(Path(event_path).read_text())
+    pr = event.get("pull_request")
+    if not pr:
+        return
+
+    repo = event["repository"]["full_name"]
+    pr_number = pr["number"]
+    commit_id = pr["head"]["sha"]
+
+    api_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/comments"
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "reviewing-agent",
+    }
+
+    for i in insights:
+        if not i.get("line"):
+            continue
+
+        body = (
+            f"🤖 Reviewing Agent\n\n"
+            f"Issue: {i['issue']}\n"
+            f"Suggested change: {i['action']}"
+        )
+
+        payload = {
+            "body": body,
+            "commit_id": commit_id,
+            "path": i["file"],
+            "side": "RIGHT",
+            "line": i["line"],
+        }
+
+        req = urllib.request.Request(
+            api_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
+
+        try:
+            urllib.request.urlopen(req).read()
+        except urllib.error.HTTPError:
+            pass  # best-effort only

@@ -88,42 +88,14 @@ def build_llm_context(signals: list[Signal]) -> list[dict]:
             {
                 "file": to_repo_relative(file),
                 "layer": layer,
-                "signals": [s.type for s in file_signals],
-                "functions": list(
-                    {s.function for s in file_signals if s.function}
-                ),
+                "signals": file_signals,
                 "diff": diff,
                 "architecture_contract": ARCHITECTURE_CONTRACT,
+                "primary_line": min(s.line for s in file_signals if s.line),
             }
         )
 
     return contexts
-
-
-# def review_with_llm(contexts: List[dict]) -> List[dict]:
-#     insights = []
-
-#     for ctx in contexts:
-#         prompt = TYPE2_PROMPT.format(
-#             architecture_contract=ctx["architecture_contract"],
-#             file=ctx["file"],
-#             layer=ctx["layer"],
-#             signals=", ".join(ctx["signals"]),
-#             diff=ctx["diff"][:3000],  # hard cap
-#         )
-
-#         response = ask_llm(prompt)
-
-#         insights.append(
-#             {
-#                 "file": ctx["file"],
-#                 "layer": ctx["layer"],
-#                 "signals": ctx["signals"],
-#                 "text": response.strip(),
-#             }
-#         )
-
-#     return insights
 
 
 def review_with_llm(contexts: List[dict]) -> List[dict]:
@@ -164,6 +136,8 @@ def review_with_llm(contexts: List[dict]) -> List[dict]:
                 "file": ctx["file"],
                 "issue": parsed["issue"],
                 "action": parsed["action"],
+                "line": ctx["primary_line"],
+
             }
         )
 
