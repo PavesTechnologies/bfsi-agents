@@ -1,11 +1,12 @@
+from utils.source import find_next_code_line
 from pathlib import Path
 from domain.signals.aggregator import collect_signals
-from domain.signals.models import Signal
+from domain.signals.models import SIGNAL_PRIORITY, Signal
+from core.config import REPO_ROOT
 
 
-def is_llm_eligible(file_path: str) -> bool:
-    path = file_path.replace("\\", "/")
-
+def is_llm_eligible(path: str) -> bool:    
+    # print(f"Checking LLM eligibility for path: {path}")
     if not path.startswith("agents/"):
         return False
 
@@ -25,5 +26,25 @@ def should_trigger_llm(signals: list[Signal]) -> bool:
 
     return (
         "SENSITIVE_LAYER" in types
-        and ("LARGE_FUNCTION" in types or "HIGH_COMPLEXITY" in types)
+        or ("LARGE_FUNCTION" in types or "HIGH_COMPLEXITY" in types)
     )
+
+
+def select_primary_signal(signals: list[Signal]) -> Signal | None:
+    if not signals:
+        return None
+
+    primary = min(
+        signals,
+        key=lambda s: (
+            SIGNAL_PRIORITY.get(s.type, 99),
+            s.line if s.line is not None else 10**9,
+        ),
+    )
+
+    if primary.line is not None:
+        normalized = find_next_code_line(primary.file, primary.line)
+        if normalized is not None:
+            primary.line = normalized
+
+    return primary

@@ -29,6 +29,7 @@ def detect_complex_functions(file_path: Path) -> list[Signal]:
                         type="HIGH_COMPLEXITY",
                         file=path,
                         function=node.name,
+                        line=node.lineno,
                         score=1,
                         reason=f"Function '{node.name}' has complexity score {complexity}",
                     )

@@ -1,7 +1,6 @@
 from typing import List
 import json
 from domain.rules.base import Finding
-from adapters.github_adapter import to_repo_relative
 
 
 def print_report(findings: List[Finding]) -> None:
@@ -29,12 +28,12 @@ def print_report(findings: List[Finding]) -> None:
     )
 
 def print_summary(findings, llm_insights):
-    print("\n=== Reviewing Agent Summary ===\n")
+    print("\n--- Reviewing Agent Summary ---\n")
 
     for f in findings:
         print(f"[{f.severity}] {f.rule_id}: {f.message}")
         if f.file:
-            print(f"  File: {to_repo_relative(f.file)}")
+            print(f"  File: {f.file}")
         if f.suggestion:
             print(f"  Suggestion: {f.suggestion}")
         print()

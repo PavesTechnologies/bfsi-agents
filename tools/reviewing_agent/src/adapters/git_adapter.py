@@ -35,6 +35,30 @@ def get_changed_files() -> List[Path]:
     for line in result.stdout.splitlines():
         path = REPO_ROOT / line.strip()
         if path.exists():
-            files.append(path)
+            files.append(path.relative_to(REPO_ROOT))
 
     return files
+
+
+import subprocess
+import re
+
+def get_first_changed_line(file_path: str) -> int | None:
+    try:
+        result = subprocess.run(
+            ["git", "diff", "-U0", "--", file_path],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        for line in result.stdout.splitlines():
+            # @@ -a,b +c,d @@
+            if line.startswith("@@"):
+                match = re.search(r"\+(\d+)", line)
+                if match:
+                    return int(match.group(1))
+    except Exception:
+        pass
+
+    return None

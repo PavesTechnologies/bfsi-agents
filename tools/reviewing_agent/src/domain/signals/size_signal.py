@@ -48,6 +48,7 @@ def detect_large_functions(file_path: Path) -> list[Signal]:
                         type="LARGE_FUNCTION",
                         file=path,
                         function=node.name,
+                        line=node.lineno,
                         score=1,
                         reason=f"Function '{node.name}' is {size} LOC (>{max_size})",
                     )
