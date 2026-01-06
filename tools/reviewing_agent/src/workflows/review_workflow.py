@@ -26,10 +26,9 @@ def run_review_workflow():
     if signals:
         llm_insights = run_llm_review(signals)
 
-    if LOCAL_DEV:
         # print_report(findings)
-        print_summary(findings, llm_insights)
-    else:
+    print_summary(findings, llm_insights)
+    if not LOCAL_DEV:
         post_summary_comment(findings, llm_insights)
         # post_pr_comments(findings)
         post_inline_llm_comments(llm_insights)
