@@ -5,8 +5,8 @@ from typing import List
 
 from adapters.llm_adapter import ask_llm
 from domain.signals.models import Signal
-from services.llm.prompts import TYPE2_PROMPT
-from services.signal_engine import should_trigger_llm
+from services.llm.prompts import TYPE2_PROMPT, TYPE2_XML_PROMPT
+from services.signal_engine import select_primary_signal, should_trigger_llm
 from services.layer_policy import LAYER_POLICIES, violates_layer_policy
 from core.config import REPO_ROOT
 
@@ -83,8 +83,7 @@ def build_llm_context(signals: list[Signal]) -> list[dict]:
     for file, file_signals in grouped.items():
         layer = detect_layer(file)
         diff = get_diff_snippet(file)
-        lines = [s.line for s in file_signals if s.line is not None]
-        primary_line = min(lines) if lines else None
+        primary_signal = select_primary_signal(file_signals)
 
         contexts.append(
             {
@@ -93,7 +92,8 @@ def build_llm_context(signals: list[Signal]) -> list[dict]:
                 "signals": file_signals,
                 "diff": diff,
                 "architecture_contract": ARCHITECTURE_CONTRACT,
-                "primary_line": primary_line,
+                "primary_line": primary_signal.line if primary_signal else None,
+                "primary_signal": primary_signal.type if primary_signal else None,
             }
         )
 
@@ -108,16 +108,35 @@ def review_with_llm(contexts: List[dict]) -> List[dict]:
 
         policy = LAYER_POLICIES[layer]
         
-        prompt = TYPE2_PROMPT.format(
-            architecture_contract=ctx["architecture_contract"],
-            file=ctx["file"],
-            layer=layer,
-            signals=ctx["signals"].__str__(),
-            diff=ctx["diff"][:3000],
-            allow_local_fixes=str(policy['allow_local_fixes']),
-            allowed_actions="\n  ".join(policy['allowed_actions']),
-            forbidden_suggestions="\n  ".join(policy['forbidden_suggestions']),
-        )
+        # prompt = TYPE2_PROMPT.format(
+        #     architecture_contract=ctx["architecture_contract"],
+        #     file=ctx["file"],
+        #     layer=layer,
+        #     signals=ctx["signals"].__str__(),
+        #     primary_signal=ctx["primary_signal"],
+        #     diff=ctx["diff"][:3000],
+        #     allow_local_fixes=str(policy['allow_local_fixes']),
+        #     allowed_actions="\n  ".join(policy['allowed_actions']),
+        #     forbidden_suggestions="\n  ".join(policy['forbidden_suggestions']),
+        # )
+
+        prompt = TYPE2_XML_PROMPT.format(
+        file=ctx["file"],
+        layer=layer,
+        primary_signal=ctx["primary_signal"],
+        signals=str(ctx["signals"]),
+        diff=ctx["diff"][:3000],
+        allow_local_fixes=str(policy["allow_local_fixes"]),
+        allowed_actions="\n".join(
+            f"      <ACTION>{a}</ACTION>" for a in policy["allowed_actions"]
+        ),
+        forbidden_suggestions="\n".join(
+            f"      <SUGGESTION>{s}</SUGGESTION>" for s in policy["forbidden_suggestions"]
+        ),
+    )
+
+
+
 
         # print(f"-----------------------------\nLLM Prompt for {ctx['file']}:\n{prompt}\n---\n")
 

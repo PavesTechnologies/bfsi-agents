@@ -31,7 +31,7 @@ def run_review_workflow():
         print_summary(findings, llm_insights)
     else:
         post_summary_comment(findings, llm_insights)
-        post_pr_comments(findings)
+        # post_pr_comments(findings)
         post_inline_llm_comments(llm_insights)
 
 
