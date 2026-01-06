@@ -83,6 +83,8 @@ def build_llm_context(signals: list[Signal]) -> list[dict]:
     for file, file_signals in grouped.items():
         layer = detect_layer(file)
         diff = get_diff_snippet(file)
+        lines = [s.line for s in file_signals if s.line is not None]
+        primary_line = min(lines) if lines else None
 
         contexts.append(
             {
@@ -91,7 +93,7 @@ def build_llm_context(signals: list[Signal]) -> list[dict]:
                 "signals": file_signals,
                 "diff": diff,
                 "architecture_contract": ARCHITECTURE_CONTRACT,
-                "primary_line": min(s.line for s in file_signals if s.line),
+                "primary_line": primary_line,
             }
         )
 
@@ -110,12 +112,14 @@ def review_with_llm(contexts: List[dict]) -> List[dict]:
             architecture_contract=ctx["architecture_contract"],
             file=ctx["file"],
             layer=layer,
-            signals=", ".join(ctx["signals"]),
+            signals=ctx["signals"].__str__(),
             diff=ctx["diff"][:3000],
             allow_local_fixes=str(policy['allow_local_fixes']),
             allowed_actions="\n  ".join(policy['allowed_actions']),
             forbidden_suggestions="\n  ".join(policy['forbidden_suggestions']),
         )
+
+        # print(f"-----------------------------\nLLM Prompt for {ctx['file']}:\n{prompt}\n---\n")
 
         raw = ask_llm(prompt)
 

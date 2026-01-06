@@ -15,3 +15,4 @@ class Signal:
     function: str | None
     score: int
     reason: str
+    line: int | None

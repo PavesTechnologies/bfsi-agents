@@ -16,6 +16,7 @@ def detect_sensitive_layer(file_path: Path) -> list[Signal]:
                     type="SENSITIVE_LAYER",
                     file=path,
                     function=None,
+                    line=1,
                     score=1,
                     reason=f"Change in sensitive layer ({layer.strip('/')})",
                 )
