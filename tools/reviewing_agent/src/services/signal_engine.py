@@ -6,8 +6,8 @@ from core.config import REPO_ROOT
 
 
 def is_llm_eligible(path: str) -> bool:    
-    # print(f"Checking LLM eligibility for path: {path}")
-    if not path.startswith("agents/"):
+    print(f"Checking LLM eligibility for path: {path}")
+    if not "/agents/" in path:
         return False
 
     return any(p in path for p in [
@@ -26,7 +26,8 @@ def should_trigger_llm(signals: list[Signal]) -> bool:
 
     return (
         "SENSITIVE_LAYER" in types
-        or ("LARGE_FUNCTION" in types or "HIGH_COMPLEXITY" in types)
+        or "LARGE_FUNCTION" in types 
+        or "HIGH_COMPLEXITY" in types
     )
 
 

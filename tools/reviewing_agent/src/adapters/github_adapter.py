@@ -7,6 +7,7 @@ from pathlib import Path
 
 from domain.rules.base import Finding
 from core.config import REPO_ROOT
+from services.review_service import to_repo_relative
 
 
 # -----------------------------
@@ -67,7 +68,7 @@ def post_summary_comment(
         for f in findings:
             body += f"- **{f.severity} {f.rule_id}**: {f.message}\n"
             if f.file:
-                body += f"  - File: `{f.file}`\n"
+                body += f"  - File: `{to_repo_relative(f.file)}`\n"
             if f.suggestion:
                 body += f"  - 💡 {f.suggestion}\n"
             body += "\n"
@@ -76,7 +77,7 @@ def post_summary_comment(
     if llm_insights:
         body += "\n### LLM Suggestions\n\n"
         for insight in llm_insights:
-            body += render_llm_insight(insight["file"], insight)
+            body += render_llm_insight(to_repo_relative(insight["file"]), insight)
             body += "\n"
 
     payload = json.dumps({"body": body}).encode("utf-8")
@@ -131,7 +132,7 @@ def post_pr_comments(findings: List[Finding]) -> None:
         payload = {
             "body": body,
             "commit_id": commit_id,
-            "path": finding.file,
+            "path": to_repo_relative(finding.file),
             "side": "RIGHT",
             "line": finding.line,
         }
@@ -187,7 +188,7 @@ def post_inline_llm_comments(insights: list[dict]) -> None:
         payload = {
             "body": body,
             "commit_id": commit_id,
-            "path": i["file"],
+            "path": to_repo_relative(i["file"]),
             "side": "RIGHT",
             "line": i["line"],
         }

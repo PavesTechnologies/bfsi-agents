@@ -26,3 +26,12 @@ def process_application(data):
             result["c"] = 0
 
     return result
+
+def building_entity_from_file(file_path):
+    text = file_path.read_text()
+    for line in text.splitlines():
+        cleaned_line = line
+        # Further processing to build entitys
+        cleaned_line.strip()
+
+    return cleaned_line

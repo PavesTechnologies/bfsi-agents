@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "reviewing-agent"
+version = "0.1.0"
+description = "GitHub reviewing agent with rule-based and LLM-based checks"
+authors = ["Agentic AI engineers"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+# LangGraph stack
+langgraph = "^0.2.0"
+langchain-core = "^0.3.0"
+
+requests = "^2.32.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

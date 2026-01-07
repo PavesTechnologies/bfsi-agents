@@ -1,6 +1,7 @@
 from typing import List
 import json
 from domain.rules.base import Finding
+from services.review_service import to_repo_relative
 
 
 def print_report(findings: List[Finding]) -> None:
@@ -33,7 +34,7 @@ def print_summary(findings, llm_insights):
     for f in findings:
         print(f"[{f.severity}] {f.rule_id}: {f.message}")
         if f.file:
-            print(f"  File: {f.file}")
+            print(f"  File: {to_repo_relative(f.file)}")
         if f.suggestion:
             print(f"  Suggestion: {f.suggestion}")
         print()
@@ -41,7 +42,7 @@ def print_summary(findings, llm_insights):
     if llm_insights:
         print("\n--- LLM Insights ---\n")
         for i in llm_insights:
-            print(f"File : {i['file']}")
+            print(f"File : {to_repo_relative(i['file'])}")
             print(json.dumps(i, indent=2))
             print()
 

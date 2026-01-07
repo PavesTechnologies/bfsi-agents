@@ -9,10 +9,6 @@ from core.config import REPO_ROOT
 
 
 def get_changed_files() -> List[Path]:
-    """
-    Returns a list of changed files compared to the base branch.
-    Works for both PRs and direct pushes.
-    """
     base_ref = os.getenv("GITHUB_BASE_REF")
 
     if base_ref:
@@ -26,6 +22,7 @@ def get_changed_files() -> List[Path]:
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
     except subprocess.CalledProcessError:
@@ -33,9 +30,9 @@ def get_changed_files() -> List[Path]:
 
     files = []
     for line in result.stdout.splitlines():
-        path = REPO_ROOT / line.strip()
-        if path.exists():
-            files.append(path.relative_to(REPO_ROOT))
+        abs_path = (REPO_ROOT / line.strip()).resolve()
+        if abs_path.exists() and abs_path.is_file():
+            files.append(abs_path)
 
     return files
 
@@ -46,9 +43,11 @@ import re
 def get_first_changed_line(file_path: str) -> int | None:
     try:
         result = subprocess.run(
-            ["git", "diff", "-U0", "--", file_path],
+            ["git", "diff", "-U0", "--", str(file_path)],
+            cwd=REPO_ROOT,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=False,
         )
 
