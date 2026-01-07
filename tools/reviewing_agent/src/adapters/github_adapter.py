@@ -190,7 +190,7 @@ def post_inline_llm_comments(insights: list[dict]) -> None:
         payload = {
             "body": body,
             "commit_id": commit_id,
-            "path": to_repo_relative(i["file"]),
+            "path": i["file"],
             "side": "RIGHT",
             "line": i["line"],
         }
