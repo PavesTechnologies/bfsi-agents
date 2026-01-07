@@ -176,7 +176,9 @@ def post_inline_llm_comments(insights: list[dict]) -> None:
     }
 
     for i in insights:
+
         if not i.get("line"):
+            print("Skipping LLM insight without line number")
             continue
 
         body = (
@@ -193,6 +195,8 @@ def post_inline_llm_comments(insights: list[dict]) -> None:
             "line": i["line"],
         }
 
+        print(f"Posting LLM inline comment to {api_url} for file {i['file']} at line {i['line']}")
+
         req = urllib.request.Request(
             api_url,
             data=json.dumps(payload).encode("utf-8"),
@@ -203,4 +207,5 @@ def post_inline_llm_comments(insights: list[dict]) -> None:
         try:
             urllib.request.urlopen(req).read()
         except urllib.error.HTTPError:
+            print(f"Failed to post LLM inline comment for file {i['file']} at line {i['line']}")
             pass  # best-effort only
