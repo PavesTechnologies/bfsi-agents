@@ -1,9 +1,6 @@
 name: Reviewing Agent (Architecture Checks)
 
 on:
-  push:
-    branches:
-      - "**"
   pull_request_target:
     types: [opened, synchronize, reopened]
 

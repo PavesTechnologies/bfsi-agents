@@ -191,7 +191,7 @@ def post_inline_llm_comments(insights: list[dict]) -> None:
             "body": body,
             "commit_id": commit_id,
             "path": i["file"],
-            "side": "RIGHT",
+            "side": "LEFT",
             "line": i["line"],
         }
 
