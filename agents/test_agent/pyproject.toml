@@ -1,9 +1,11 @@
 [tool.poetry]
-name = "intake-agent"
+name = "test-agent"
 version = "0.1.0"
-description = "intake_agent microservice"
+description = "test_agent microservice"
 authors = ["Agentic Platform Team"]
-package-mode = false
+
+[[tool.poetry.packages]]
+include = "src"
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -11,6 +13,11 @@ fastapi = "^0.110.0"
 uvicorn = "^0.29.0"
 langgraph = "^0.0.40"
 pydantic = "^2.6.0"
+
+[tool.poetry.scripts]
+dev = "src.cli:dev"
+prod = "src.cli:prod"
+test = "src.cli:test"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

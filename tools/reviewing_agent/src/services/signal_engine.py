@@ -26,8 +26,8 @@ def should_trigger_llm(signals: list[Signal]) -> bool:
 
     return (
         "SENSITIVE_LAYER" in types
-        or "LARGE_FUNCTION" in types 
-        or "HIGH_COMPLEXITY" in types
+        and ( "LARGE_FUNCTION" in types 
+        or "HIGH_COMPLEXITY" in types )
     )
 
 
