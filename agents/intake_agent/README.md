@@ -67,28 +67,17 @@ This creates an isolated virtual environment **for this agent only**.
 
 ---
 
-### Step 3: Activate the environment
+### Step 3: Run the agent
 ```bash
-poetry shell
-```
-
-or run commands without activating:
-```bash
-poetry run python src/main.py
+poetry run dev
 ```
 
 ---
 
-### Step 4: Start the agent (example)
-```bash
-poetry run uvicorn src.main:app --reload
-```
-
----
 
 ### Step 5: Run tests
 ```bash
-poetry run pytest
+poetry run test
 ```
 
 ---

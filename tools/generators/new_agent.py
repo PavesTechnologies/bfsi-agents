@@ -8,6 +8,7 @@ Example:
     python tools/generators/new_agent.py kyc_agent
 """
 
+from string import Template
 import sys
 import re
 import subprocess
@@ -15,6 +16,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 AGENTS_DIR = ROOT / "agents"
+TEMPLATES_DIR = Path(__file__).parent / "templates"
+
 
 # Directories that usually start empty → need .gitkeep
 EMPTY_DIRS = [
@@ -34,6 +37,7 @@ EMPTY_DIRS = [
 FILES_TO_CREATE = [
     "src/app.py",
     "src/main.py",
+    "src/__init__.py",
     "README.md",
     "pyproject.toml",
 ]
@@ -77,7 +81,9 @@ name = "{agent_name.replace('_', '-')}"
 version = "0.1.0"
 description = "{agent_name} microservice"
 authors = ["Agentic Platform Team"]
-package-mode = false
+
+[[tool.poetry.packages]]
+include = "src"
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -85,6 +91,11 @@ fastapi = "^0.110.0"
 uvicorn = "^0.29.0"
 langgraph = "^0.0.40"
 pydantic = "^2.6.0"
+
+[tool.poetry.scripts]
+dev = "src.cli:dev"
+prod = "src.cli:prod"
+test = "src.cli:test"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
@@ -145,10 +156,40 @@ def run_poetry_install(agent_path: Path):
             check=True,
         )
         print("poetry install completed")
+        return True
     except FileNotFoundError:
         print("Poetry not found. Skipping poetry install.")
+        return False
     except subprocess.CalledProcessError:
         print("poetry install failed. Fix manually.")
+        return False
+
+def populate_templates_recursively(agent_base: Path, context: dict):
+    """
+    Recursively walk templates/ and materialize them
+    into the new agent directory.
+
+    - Preserves folder structure
+    - Renders templates using str.format
+    - Never overwrites existing non-empty files
+    """
+
+    for template_path in TEMPLATES_DIR.rglob("*.tpl"):
+        relative_path = template_path.relative_to(TEMPLATES_DIR)
+
+        # Remove .tpl suffix
+        target_relative_path = relative_path.with_suffix("")
+
+        target_path = agent_base / target_relative_path
+
+        if target_path.exists() and target_path.stat().st_size > 0:
+            continue  # never overwrite user code
+
+        template = Template(template_path.read_text())
+        rendered = template.safe_substitute(**context)
+
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_text(rendered.strip() + "\n")
 
 
 def main():
@@ -167,15 +208,18 @@ def main():
 
     create_dirs_with_gitkeep(agent_path)
     create_files(agent_path)
+    populate_templates_recursively(agent_path / "src", {"agent_name": agent_name})
     write_poetry_config(agent_path, agent_name)
-    write_boilerplate(agent_path, agent_name)
+    # write_boilerplate(agent_path, agent_name)
 
     print(f"Agent structure created at agents/{agent_name}")
 
     # Optional: run poetry install
-    run_poetry_install(agent_path)
+    poetry_install_success = run_poetry_install(agent_path)
 
     print("Agent setup complete.")
+    if poetry_install_success:
+        print(f"Get started by running: \n cd agents/{agent_name} \n poetry run dev")
 
 
 if __name__ == "__main__":
