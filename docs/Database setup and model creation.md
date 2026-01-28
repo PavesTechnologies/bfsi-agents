@@ -79,3 +79,11 @@ If an invalid path is provided, the script will fall back to the default models.
 
 ⚠️ File not found: <provided path>
 ➡️ Falling back to default models.py
+
+Recommended Workflow
+
+- Generate models using sqlacodegen
+
+- Run fix_async_models.py
+
+- Verify models.py
