@@ -1,0 +1,238 @@
+bfsi-agents/
+├─ .github/
+│  └─ workflows/
+│     └─ reviewing-agent.yml
+├─ agents/
+│  ├─ intake_agent/
+│  │  ├─ infra/
+│  │  │  └─ .gitkeep
+│  │  ├─ src/
+│  │  │  ├─ adapters/
+│  │  │  │  ├─ llm/
+│  │  │  │  │  └─ openai_adapter.py
+│  │  │  │  └─ .gitkeep
+│  │  │  ├─ api/
+│  │  │  │  ├─ .gitkeep
+│  │  │  │  └─ routes.py
+│  │  │  ├─ core/
+│  │  │  │  └─ .gitkeep
+│  │  │  ├─ domain/
+│  │  │  │  ├─ prompts/
+│  │  │  │  │  └─ decision_prompt.py
+│  │  │  │  ├─ .gitkeep
+│  │  │  │  ├─ agent_context.py
+│  │  │  │  └─ decision_interpreter.py
+│  │  │  ├─ models/
+│  │  │  │  └─ .gitkeep
+│  │  │  ├─ repositories/
+│  │  │  │  └─ .gitkeep
+│  │  │  ├─ services/
+│  │  │  │  ├─ prompts/
+│  │  │  │  │  └─ prompt_builder.py
+│  │  │  │  ├─ .gitkeep
+│  │  │  │  ├─ decision_llm_service.py
+│  │  │  │  ├─ llm_response_parser.py
+│  │  │  │  └─ orchestrator.py
+│  │  │  ├─ utils/
+│  │  │  │  └─ .gitkeep
+│  │  │  ├─ workflows/
+│  │  │  │  ├─ .gitkeep
+│  │  │  │  ├─ decision_flow.py
+│  │  │  │  └─ state.py
+│  │  │  ├─ __init__.py
+│  │  │  ├─ app.py
+│  │  │  ├─ cli.py
+│  │  │  └─ main.py
+│  │  ├─ tests/
+│  │  │  └─ .gitkeep
+│  │  ├─ poetry.lock
+│  │  ├─ pyproject.toml
+│  │  └─ README.md
+│  ├─ test_agent/
+│  │  ├─ infra/
+│  │  │  └─ .gitkeep
+│  │  ├─ src/
+│  │  │  ├─ adapters/
+│  │  │  │  ├─ llm/
+│  │  │  │  │  └─ openai_adapter.py
+│  │  │  │  └─ .gitkeep
+│  │  │  ├─ api/
+│  │  │  │  ├─ .gitkeep
+│  │  │  │  └─ routes.py
+│  │  │  ├─ core/
+│  │  │  │  └─ .gitkeep
+│  │  │  ├─ domain/
+│  │  │  │  ├─ prompts/
+│  │  │  │  │  └─ decision_prompt.py
+│  │  │  │  ├─ .gitkeep
+│  │  │  │  ├─ agent_context.py
+│  │  │  │  └─ decision_interpreter.py
+│  │  │  ├─ models/
+│  │  │  │  └─ .gitkeep
+│  │  │  ├─ repositories/
+│  │  │  │  └─ .gitkeep
+│  │  │  ├─ services/
+│  │  │  │  ├─ prompts/
+│  │  │  │  │  └─ prompt_builder.py
+│  │  │  │  ├─ .gitkeep
+│  │  │  │  ├─ decision_llm_service.py
+│  │  │  │  ├─ llm_response_parser.py
+│  │  │  │  └─ orchestrator.py
+│  │  │  ├─ utils/
+│  │  │  │  └─ .gitkeep
+│  │  │  ├─ workflows/
+│  │  │  │  ├─ .gitkeep
+│  │  │  │  ├─ decision_flow.py
+│  │  │  │  └─ state.py
+│  │  │  ├─ __init__.py
+│  │  │  ├─ app.py
+│  │  │  ├─ cli.py
+│  │  │  └─ main.py
+│  │  ├─ tests/
+│  │  │  └─ .gitkeep
+│  │  ├─ poetry.lock
+│  │  ├─ pyproject.toml
+│  │  └─ README.md
+│  └─ underwrtting_agent/
+│     ├─ infra/
+│     │  └─ .gitkeep
+│     ├─ src/
+│     │  ├─ adapters/
+│     │  │  ├─ llm/
+│     │  │  │  └─ openai_adapter.py
+│     │  │  └─ .gitkeep
+│     │  ├─ api/
+│     │  │  ├─ .gitkeep
+│     │  │  └─ routes.py
+│     │  ├─ core/
+│     │  │  └─ .gitkeep
+│     │  ├─ domain/
+│     │  │  ├─ prompts/
+│     │  │  │  └─ decision_prompt.py
+│     │  │  ├─ .gitkeep
+│     │  │  ├─ agent_context.py
+│     │  │  └─ decision_interpreter.py
+│     │  ├─ models/
+│     │  │  └─ .gitkeep
+│     │  ├─ repositories/
+│     │  │  └─ .gitkeep
+│     │  ├─ services/
+│     │  │  ├─ prompts/
+│     │  │  │  └─ prompt_builder.py
+│     │  │  ├─ .gitkeep
+│     │  │  ├─ decision_llm_service.py
+│     │  │  ├─ llm_response_parser.py
+│     │  │  └─ orchestrator.py
+│     │  ├─ utils/
+│     │  │  └─ .gitkeep
+│     │  ├─ workflows/
+│     │  │  ├─ .gitkeep
+│     │  │  ├─ decision_flow.py
+│     │  │  └─ state.py
+│     │  ├─ __init__.py
+│     │  ├─ app.py
+│     │  ├─ cli.py
+│     │  └─ main.py
+│     ├─ tests/
+│     │  └─ .gitkeep
+│     ├─ poetry.lock
+│     ├─ pyproject.toml
+│     └─ README.md
+├─ docs/
+│  ├─ architecture.md
+│  ├─ coding-standards.md
+│  ├─ development-setup.md
+│  ├─ poetry.md
+│  └─ repo-rules.md
+├─ infra/
+│  ├─ ci/
+│  │  ├─ agent-ci.yml
+│  │  └─ deploy.yml
+│  ├─ docker/
+│  │  └─ base-agent.Dockerfile
+│  └─ k8s/
+│     ├─ ingress.yaml
+│     └─ namespaces.yaml
+├─ shared/
+│  └─ README.md
+├─ tools/
+│  ├─ generators/
+│  │  ├─ templates/
+│  │  │  ├─ adapters/
+│  │  │  │  └─ llm/
+│  │  │  │     └─ openai_adapter.py.tpl
+│  │  │  ├─ api/
+│  │  │  │  └─ routes.py.tpl
+│  │  │  ├─ domain/
+│  │  │  │  ├─ prompts/
+│  │  │  │  │  └─ decision_prompt.py.tpl
+│  │  │  │  ├─ agent_context.py.tpl
+│  │  │  │  └─ decision_interpreter.py.tpl
+│  │  │  ├─ services/
+│  │  │  │  ├─ prompts/
+│  │  │  │  │  └─ prompt_builder.py.tpl
+│  │  │  │  ├─ decision_llm_service.py.tpl
+│  │  │  │  ├─ llm_response_parser.py.tpl
+│  │  │  │  └─ orchestrator.py.tpl
+│  │  │  ├─ workflows/
+│  │  │  │  ├─ decision_flow.py.tpl
+│  │  │  │  └─ state.py.tpl
+│  │  │  ├─ app.py.tpl
+│  │  │  ├─ cli.py.tpl
+│  │  │  └─ main.py.tpl
+│  │  └─ new_agent.py
+│  ├─ reviewing_agent/
+│  │  ├─ src/
+│  │  │  ├─ adapters/
+│  │  │  │  ├─ git_adapter.py
+│  │  │  │  ├─ github_adapter.py
+│  │  │  │  └─ llm_adapter.py
+│  │  │  ├─ core/
+│  │  │  │  └─ config.py
+│  │  │  ├─ domain/
+│  │  │  │  ├─ rules/
+│  │  │  │  │  ├─ base.py
+│  │  │  │  │  ├─ import_rules.py
+│  │  │  │  │  ├─ naming_rules.py
+│  │  │  │  │  ├─ size_rules.py
+│  │  │  │  │  └─ structure_rules.py
+│  │  │  │  └─ signals/
+│  │  │  │     ├─ __init__.py
+│  │  │  │     ├─ aggregator.py
+│  │  │  │     ├─ complexity_signal.py
+│  │  │  │     ├─ cross_layer_signal.py
+│  │  │  │     ├─ layer_signal.py
+│  │  │  │     ├─ models.py
+│  │  │  │     └─ size_signal.py
+│  │  │  ├─ reporters/
+│  │  │  │  └─ console_reporter.py
+│  │  │  ├─ services/
+│  │  │  │  ├─ llm/
+│  │  │  │  │  ├─ parser.py
+│  │  │  │  │  ├─ prompt.xml
+│  │  │  │  │  └─ prompts.py
+│  │  │  │  ├─ layer_policy.py
+│  │  │  │  ├─ review_service.py
+│  │  │  │  ├─ rule_engine.py
+│  │  │  │  └─ signal_engine.py
+│  │  │  ├─ utils/
+│  │  │  │  └─ source.py
+│  │  │  ├─ workflows/
+│  │  │  │  ├─ debug.py
+│  │  │  │  ├─ guards.py
+│  │  │  │  ├─ initial_state.py
+│  │  │  │  ├─ nodes.py
+│  │  │  │  ├─ review_state.py
+│  │  │  │  └─ review_workflow.py
+│  │  │  └─ main.py
+│  │  ├─ poetry.lock
+│  │  ├─ pyproject.toml
+│  │  └─ README.md
+│  └─ scripts/
+│     ├─ build_agent.sh
+│     ├─ lint_all.sh
+│     └─ test_all.sh
+├─ .gitignore
+├─ file_tree.txt
+├─ Makefile
+└─ README.md
