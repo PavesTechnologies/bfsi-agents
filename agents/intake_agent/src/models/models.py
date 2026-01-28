@@ -3,11 +3,41 @@ import datetime
 import decimal
 import uuid
 
-from sqlalchemy import Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, Numeric, PrimaryKeyConstraint, String, Text, Uuid, text
+from sqlalchemy import Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, Uuid, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
     pass
+
+
+class AuditLogs(Base):
+    __tablename__ = 'audit_logs'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='audit_logs_pkey'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    action: Mapped[str] = mapped_column(String(20), nullable=False)
+    table_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    record_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    old_data: Mapped[Optional[dict]] = mapped_column(JSON)
+    new_data: Mapped[Optional[dict]] = mapped_column(JSON)
+    created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
+
+
+class IntakeIdempotency(Base):
+    __tablename__ = 'intake_idempotency'
+    __table_args__ = (
+        PrimaryKeyConstraint('request_id', name='intake_idempotency_pkey'),
+    )
+
+    request_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    app_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    response_payload: Mapped[Optional[dict]] = mapped_column(JSON)
+    created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), server_default=text('now()'))
+    updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), server_default=text('now()'))
 
 
 class LoanApplication(Base):

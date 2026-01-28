@@ -53,7 +53,7 @@ python .\tools\MYSQL\fix_async_models.py
 Option 2: Provide a relative or absolute path to models.py
 
 ```bash
-python .\tools\MYSQL\fix_async_models.py agents/intake_agent/src/models/model.py
+python .\tools\MYSQL\fix_async_models.py agents/intake_agent/src/models/models.py
  ```
 or
 ```bash
