@@ -1,27 +1,28 @@
-"""
-AUTO-GENERATED FILE.
-
-FastAPI application factory.
-
-Responsibilities:
-- create FastAPI app
-- register routers
-- configure middleware (later)
-
-Do NOT put business logic here.
-"""
-
 from fastapi import FastAPI
-from src.api.routes import router
+
+from agents.intake_agent.src.api.routes import router
+from agents.intake_agent.src.core.database import engine
+from agents.intake_agent.src.models.idempotency import Base
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(
-        title="intake_agent",
-        description="Agent microservice: intake_agent",
-        version="0.1.0",
-    )
+    app = FastAPI(title="Intake Agent")
 
+    # -------------------------
+    # ROUTES
+    # -------------------------
     app.include_router(router)
+
+    # -------------------------
+    # LIFECYCLE EVENTS
+    # -------------------------
+    @app.on_event("startup")
+    async def startup_event():
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        await engine.dispose()
 
     return app
