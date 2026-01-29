@@ -1,7 +1,7 @@
 from sqlalchemy import event, inspect
 from datetime import date, datetime
 
-from models.models import AuditLogs
+from src.models.models import AuditLogs
 
 SENSITIVE_FIELDS = {"ssn_encrypted", "itin_number"}
 

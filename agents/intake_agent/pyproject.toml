@@ -16,11 +16,8 @@ pydantic = "^2.6.0"
 sqlacodegen = "^3.2.0"
 psycopg2-binary = "^2.9.11"
 psycopg2 = "^2.9.11"
-<<<<<<< HEAD
 sqlalchemy = "^2.0.46"
-=======
 pydantic-settings = "^2.12.0"
->>>>>>> 0f73d93e2650bc197bfff60b1383bd354353ec6f
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"
