@@ -38,7 +38,7 @@ cd C:\Users\Ajaykumar.Bhukya\PycharmProjects\bfsi-agents
 Run the following command to generate `models.py`:
 
 ```bash
-sqlacodegen "postgresql+psycopg2://avnadmin:password@pg-22ef5b8a-ajaykumar.h.aivencloud.com:15549/defaultdb?sslmode=require" > models.py
+sqlacodegen postgresql+psycopg2://avnadmin:password@pg-22ef5b8a-ajaykumar.h.aivencloud.com:15549/defaultdb?sslmode=require > models.py
 ```
 
 ## Step 4: Fix Async Relationships in Models

@@ -10,6 +10,7 @@ from src.core.database import engine
 from src.models.idempotency import Base
 from src.api.v1.health import router as health_router
 from src.core.exceptions import BaseAgentException
+from src.api.v1.intake_routes import loan_intake_routes
 
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,8 @@ def create_app() -> FastAPI:
 
     app.include_router(router)
     app.include_router(health_router)
+    app.include_router(loan_intake_routes.router)
+    
 
     # -------------------------
     # LIFECYCLE EVENTS

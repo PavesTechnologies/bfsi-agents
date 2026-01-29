@@ -49,7 +49,7 @@ class LoanApplication(Base):
         PrimaryKeyConstraint('application_id', name='loan_application_pkey')
     )
 
-    application_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    application_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     loan_type: Mapped[str] = mapped_column(String(50), nullable=False)
     credit_type: Mapped[Optional[str]] = mapped_column(String(20))
     loan_purpose: Mapped[Optional[str]] = mapped_column(String(50))
@@ -73,7 +73,7 @@ class Applicant(Base):
         PrimaryKeyConstraint('applicant_id', name='applicant_pkey')
     )
 
-    applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -103,7 +103,7 @@ class Document(Base):
         PrimaryKeyConstraint('document_id', name='document_pkey')
     )
 
-    document_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    document_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     document_type: Mapped[Optional[str]] = mapped_column(String(50))
@@ -123,11 +123,11 @@ class Address(Base):
         PrimaryKeyConstraint('address_id', name='address_pkey')
     )
 
-    address_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    address_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     address_line1: Mapped[str] = mapped_column(String(255), nullable=False)
     city: Mapped[str] = mapped_column(String(100), nullable=False)
-    state: Mapped[str] = mapped_column(CHAR(2), nullable=False)
+    state: Mapped[str] = mapped_column(String(30), nullable=False)
     zip_code: Mapped[str] = mapped_column(String(10), nullable=False)
     address_type: Mapped[Optional[str]] = mapped_column(String(20))
     address_line2: Mapped[Optional[str]] = mapped_column(String(255))
@@ -150,7 +150,7 @@ class Asset(Base):
         PrimaryKeyConstraint('asset_id', name='asset_pkey')
     )
 
-    asset_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    asset_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     asset_type: Mapped[Optional[str]] = mapped_column(String(30))
     institution_name: Mapped[Optional[str]] = mapped_column(String(255))
@@ -169,7 +169,7 @@ class Employment(Base):
         PrimaryKeyConstraint('employment_id', name='employment_pkey')
     )
 
-    employment_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    employment_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     employment_type: Mapped[Optional[str]] = mapped_column(String(30))
     employment_status: Mapped[Optional[str]] = mapped_column(String(20))
@@ -195,7 +195,7 @@ class Income(Base):
         PrimaryKeyConstraint('income_id', name='income_pkey')
     )
 
-    income_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    income_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     income_type: Mapped[Optional[str]] = mapped_column(String(50))
     description: Mapped[Optional[str]] = mapped_column(Text)
@@ -216,7 +216,7 @@ class Liability(Base):
         PrimaryKeyConstraint('liability_id', name='liability_pkey')
     )
 
-    liability_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    liability_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     liability_type: Mapped[Optional[str]] = mapped_column(String(50))
     creditor_name: Mapped[Optional[str]] = mapped_column(String(255))
