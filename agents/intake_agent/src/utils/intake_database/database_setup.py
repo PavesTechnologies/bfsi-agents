@@ -71,7 +71,7 @@ async def test_connection():
         result = await conn.execute(text("SELECT 1"))
         print("DB OK →", result.scalar())
 
-if __name__ == "__main__":
-    asyncio.run(test_connection())
+# if __name__ == "__main__":
+#     asyncio.run(test_connection())
 
-print("Database initialized")
+# print("Database initialized")
