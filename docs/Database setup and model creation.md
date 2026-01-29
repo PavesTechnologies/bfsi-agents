@@ -88,4 +88,4 @@ Recommended Workflow
 
 - Verify models.py
 
-- Fix relationship
+- Fix relationship of the models
