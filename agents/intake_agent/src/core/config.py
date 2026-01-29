@@ -22,7 +22,7 @@ class Settings(BaseSettings):
         "env_file": ".env",
         "env_file_encoding": "utf-8",
         "populate_by_name": True,   # 👈 CRITICAL
-        # "extra": "forbid",          # 👈 keep strict
+        "extra": "ignore",          # 👈 keep strict
     }
 
 
