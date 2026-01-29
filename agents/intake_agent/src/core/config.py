@@ -1,13 +1,27 @@
-from dotenv import load_dotenv
-from pathlib import Path
-import os
+# src/core/config.py
 
-# Resolve path to agents/intake_agent/.env
-BASE_DIR = Path(__file__).resolve().parents[2]
-ENV_PATH = BASE_DIR / ".env"
+from functools import lru_cache
+from pydantic import Field, ValidationError
+from pydantic_settings import BaseSettings
 
-load_dotenv(dotenv_path=ENV_PATH)
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError(f"DATABASE_URL not set. Expected in {ENV_PATH}")
+class Settings(BaseSettings):
+    service_name: str = Field(..., alias="SERVICE_NAME")
+    env: str = Field(..., alias="ENV")
+    log_level: str = Field(..., alias="LOG_LEVEL")
+
+    model_config = {
+        "case_sensitive": True,
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "populate_by_name": True,   # 👈 CRITICAL
+        "extra": "forbid",          # 👈 keep strict
+    }
+
+
+@lru_cache
+def get_settings() -> Settings:
+    try:
+        return Settings()
+    except ValidationError as e:
+        raise RuntimeError(f"Invalid configuration: {e}") from e

@@ -1,28 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
-from src.services.orchestrator import run_agent
 from sqlalchemy.exc import IntegrityError
-from uuid import UUID
-from src.core.database import get_db
-
 from src.core.database import get_db
 from src.repositories.idempotency_repository import IdempotencyRepository
 from src.utils.hash import stable_payload_hash
 from src.models.schemas import IntakeRequest
+
+
+from src.core.exceptions import ConfigError
+
 router = APIRouter()
 
+router = APIRouter(prefix="/v1")
 
-class DecisionRequest(BaseModel):
-    input_text: str
+@router.get("/ping")
+def ping():
+    raise ConfigError("boom")
+    # return {"status": "ok"}
 
-
-@router.get("/")
-def greet():
-    return "Hello world!"
-
-@router.post("/decide")
-def decide(request: DecisionRequest):
-    return run_agent(request.input_text)
 @router.post("/v1/intake", status_code=202)
 async def intake(
     request: IntakeRequest,
