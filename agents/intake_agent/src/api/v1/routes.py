@@ -17,7 +17,7 @@ def ping():
     raise ConfigError("boom")
     # return {"status": "ok"}
 
-@router.post("/v1/intake", status_code=202)
+@router.post("/intake", status_code=202)
 async def intake(
     request: IntakeRequest,
     db=Depends(get_db)

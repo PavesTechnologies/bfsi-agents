@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     service_name: str = Field(..., alias="SERVICE_NAME")
     env: str = Field(..., alias="ENV")
     log_level: str = Field(..., alias="LOG_LEVEL")
+    database_url: str = Field(..., alias="DATABASE_URL")
 
     model_config = {
         "case_sensitive": True,

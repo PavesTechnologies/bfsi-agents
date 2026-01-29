@@ -55,16 +55,4 @@ def create_app() -> FastAPI:
     async def shutdown_event():
         await engine.dispose()
 
-    # -------------------------
-    # LIFECYCLE EVENTS
-    # -------------------------
-    @app.on_event("startup")
-    async def startup_event():
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
-    @app.on_event("shutdown")
-    async def shutdown_event():
-        await engine.dispose()
-
     return app
