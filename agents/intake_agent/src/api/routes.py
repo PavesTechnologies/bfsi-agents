@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from agents.intake_agent.src.services.orchestrator import run_agent
+from src.services.orchestrator import run_agent
 from sqlalchemy.exc import IntegrityError
 from uuid import UUID
-from agents.intake_agent.src.core.database import get_db
+from src.core.database import get_db
 
-from agents.intake_agent.src.core.database import get_db
-from agents.intake_agent.src.repositories.idempotency_repository import IdempotencyRepository
-from agents.intake_agent.src.utils.hash import stable_payload_hash
-from agents.intake_agent.src.models.schemas import IntakeRequest
+from src.core.database import get_db
+from src.repositories.idempotency_repository import IdempotencyRepository
+from src.utils.hash import stable_payload_hash
+from src.models.schemas import IntakeRequest
 router = APIRouter()
 
 

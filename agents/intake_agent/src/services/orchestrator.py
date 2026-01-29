@@ -2,7 +2,7 @@
 Workflow Orchestrator
 """
 
-from agents.intake_agent.src.workflows.decision_flow import build_graph
+from src.workflows.decision_flow import build_graph
 
 _graph = build_graph()
 
@@ -13,7 +13,7 @@ def run_agent(input_text: str) -> dict:
         "retries": 0,
     })
     return final_state["context"]
-from agents.intake_agent.src.repositories.idempotency_repository import IdempotencyRepository
+from src.repositories.idempotency_repository import IdempotencyRepository
 
 
 async def process_intake_job(

@@ -4,7 +4,7 @@ from sqlalchemy import select, update
 from uuid import UUID
 
 #from models.idempotency import IntakeIdempotency
-from agents.intake_agent.src.models.idempotency import IntakeIdempotency
+from src.models.idempotency import IntakeIdempotency
 
 
 class IdempotencyRepository:

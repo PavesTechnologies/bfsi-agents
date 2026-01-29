@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-from agents.intake_agent.src.api.routes import router
-from agents.intake_agent.src.core.database import engine
-from agents.intake_agent.src.models.idempotency import Base
+from src.api.routes import router
+from src.core.database import engine
+from src.models.idempotency import Base
 
 
 def create_app() -> FastAPI:

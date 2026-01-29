@@ -4,7 +4,7 @@ Decision Interpreter (Domain)
 Validates and interprets LLM output into domain truth.
 """
 
-from agents.intake_agent.src.domain.agent_context import Decision
+from src.domain.agent_context import Decision
 
 
 def interpret_decision(raw: dict) -> tuple[Decision, str]:
