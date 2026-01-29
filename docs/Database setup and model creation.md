@@ -87,3 +87,5 @@ Recommended Workflow
 - Run fix_async_models.py
 
 - Verify models.py
+
+- Fix relationship
