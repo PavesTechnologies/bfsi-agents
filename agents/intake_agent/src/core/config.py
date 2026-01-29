@@ -12,13 +12,20 @@ class Settings(BaseSettings):
     service_name: str = Field(..., alias="SERVICE_NAME")
     env: str = Field(..., alias="ENV")
     log_level: str = Field(..., alias="LOG_LEVEL")
+    DB_USER: str = Field(..., alias="DB_USER")
+    DB_PASSWORD: str = Field(..., alias="DB_PASSWORD")
+    DB_HOST: str = Field(..., alias="DB_HOST")
+    DB_PORT: int = Field(..., alias="DB_PORT")
+    DB_NAME: str = Field(..., alias="DB_NAME")
+    DB_DRIVER: str = Field(..., alias="DB_DRIVER")
+    database_url: str = Field(..., alias="DATABASE_URL")
 
     model_config = {
         "case_sensitive": True,
         "env_file": ".env",
         "env_file_encoding": "utf-8",
         "populate_by_name": True,   # 👈 CRITICAL
-        "extra": "forbid",          # 👈 keep strict
+        "extra": "ignore",          # 👈 keep strict
     }
 
 

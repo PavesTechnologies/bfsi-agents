@@ -1,25 +1,16 @@
-"""
-AUTO-GENERATED FILE.
-
-FastAPI application factory.
-
-Responsibilities:
-- create FastAPI app
-- register routers
-- configure middleware (later)
-
-Do NOT put business logic here.
-"""
-
 import uuid
 import logging
 from fastapi import FastAPI, Request
 
 from fastapi.responses import JSONResponse
 from src.core.logging import setup_logging, request_id_ctx
+
 from src.api.v1.routes import router
+from src.core.database import engine
+from src.models.idempotency import Base
 from src.api.v1.health import router as health_router
 from src.core.exceptions import BaseAgentException
+from src.api.v1.intake_routes import loan_intake_routes
 
 
 logger = logging.getLogger(__name__)
@@ -52,5 +43,19 @@ def create_app() -> FastAPI:
 
     app.include_router(router)
     app.include_router(health_router)
+    app.include_router(loan_intake_routes.router)
+    
+
+    # -------------------------
+    # LIFECYCLE EVENTS
+    # -------------------------
+    @app.on_event("startup")
+    async def startup_event():
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        await engine.dispose()
 
     return app
