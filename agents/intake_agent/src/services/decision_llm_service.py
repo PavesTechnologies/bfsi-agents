@@ -15,6 +15,7 @@ from src.services.llm_response_parser import parse_llm_response
 from src.adapters.llm.openai_adapter import call_llm
 
 
+
 def run_decision(context: AgentContext) -> AgentContext:
     prompt = build_prompt(context)
     raw_text = call_llm(prompt)
