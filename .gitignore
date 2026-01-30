@@ -73,3 +73,5 @@ terraform.tfstate.backup
 *.key
 *.crt
 secrets/
+
+poetry.lock

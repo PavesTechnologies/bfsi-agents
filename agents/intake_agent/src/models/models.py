@@ -3,7 +3,8 @@ import datetime
 import decimal
 import uuid
 
-from sqlalchemy import Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, Uuid, text
+from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
@@ -19,10 +20,25 @@ class AuditLogs(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     action: Mapped[str] = mapped_column(String(20), nullable=False)
     table_name: Mapped[str] = mapped_column(String(50), nullable=False)
-    record_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    record_id: Mapped[dict] = mapped_column(JSONB, nullable=False)
     old_data: Mapped[Optional[dict]] = mapped_column(JSON)
     new_data: Mapped[Optional[dict]] = mapped_column(JSON)
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
+
+
+class CallbackStatus(Base):
+    __tablename__ = 'callback_status'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='callback_status_pkey'),
+        UniqueConstraint('request_id', name='callback_status_request_id_key')
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    request_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    callback_url: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text('now()'))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text('now()'))
 
 
 class IntakeIdempotency(Base):
@@ -49,8 +65,9 @@ class LoanApplication(Base):
         PrimaryKeyConstraint('application_id', name='loan_application_pkey')
     )
 
-    application_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    application_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     loan_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
     credit_type: Mapped[Optional[str]] = mapped_column(String(20))
     loan_purpose: Mapped[Optional[str]] = mapped_column(String(50))
     requested_amount: Mapped[Optional[decimal.Decimal]] = mapped_column(Numeric(12, 2))
@@ -58,7 +75,6 @@ class LoanApplication(Base):
     preferred_payment_day: Mapped[Optional[int]] = mapped_column(Integer)
     origination_channel: Mapped[Optional[str]] = mapped_column(String(20))
     application_status: Mapped[Optional[str]] = mapped_column(String(30))
-    created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
     updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
 
     applicant: Mapped[list['Applicant']] = relationship('Applicant', back_populates='application', lazy="selectin")
@@ -70,10 +86,11 @@ class Applicant(Base):
     __table_args__ = (
         CheckConstraint("applicant_role::text = ANY (ARRAY['primary'::character varying, 'co_applicant'::character varying]::text[])", name='applicant_applicant_role_check'),
         ForeignKeyConstraint(['application_id'], ['loan_application.application_id'], ondelete='CASCADE', name='fk_applicant_application'),
-        PrimaryKeyConstraint('applicant_id', name='applicant_pkey')
+        PrimaryKeyConstraint('applicant_id', name='applicant_pkey'),
+        UniqueConstraint('email', name='uq_applicant_email')
     )
 
-    applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -103,7 +120,7 @@ class Document(Base):
         PrimaryKeyConstraint('document_id', name='document_pkey')
     )
 
-    document_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    document_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     document_type: Mapped[Optional[str]] = mapped_column(String(50))
@@ -123,11 +140,11 @@ class Address(Base):
         PrimaryKeyConstraint('address_id', name='address_pkey')
     )
 
-    address_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    address_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     address_line1: Mapped[str] = mapped_column(String(255), nullable=False)
     city: Mapped[str] = mapped_column(String(100), nullable=False)
-    state: Mapped[str] = mapped_column(CHAR(2), nullable=False)
+    state: Mapped[str] = mapped_column(String(30), nullable=False)
     zip_code: Mapped[str] = mapped_column(String(10), nullable=False)
     address_type: Mapped[Optional[str]] = mapped_column(String(20))
     address_line2: Mapped[Optional[str]] = mapped_column(String(255))
@@ -150,7 +167,7 @@ class Asset(Base):
         PrimaryKeyConstraint('asset_id', name='asset_pkey')
     )
 
-    asset_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    asset_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     asset_type: Mapped[Optional[str]] = mapped_column(String(30))
     institution_name: Mapped[Optional[str]] = mapped_column(String(255))
@@ -169,7 +186,7 @@ class Employment(Base):
         PrimaryKeyConstraint('employment_id', name='employment_pkey')
     )
 
-    employment_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    employment_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     employment_type: Mapped[Optional[str]] = mapped_column(String(30))
     employment_status: Mapped[Optional[str]] = mapped_column(String(20))
@@ -195,7 +212,7 @@ class Income(Base):
         PrimaryKeyConstraint('income_id', name='income_pkey')
     )
 
-    income_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    income_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     income_type: Mapped[Optional[str]] = mapped_column(String(50))
     description: Mapped[Optional[str]] = mapped_column(Text)
@@ -216,7 +233,7 @@ class Liability(Base):
         PrimaryKeyConstraint('liability_id', name='liability_pkey')
     )
 
-    liability_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    liability_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     liability_type: Mapped[Optional[str]] = mapped_column(String(50))
     creditor_name: Mapped[Optional[str]] = mapped_column(String(255))
