@@ -1,8 +1,11 @@
 # src/core/config.py
 
 from functools import lru_cache
+
+from click import Path
 from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings
+
 
 
 class Settings(BaseSettings):
