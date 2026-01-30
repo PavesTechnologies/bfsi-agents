@@ -2,13 +2,34 @@ from sqlalchemy import event, inspect
 from datetime import date, datetime
 
 from src.models.models import AuditLogs
+from uuid import UUID
+from decimal import Decimal
+from enum import Enum
+from sqlalchemy import bindparam
+from sqlalchemy.dialects.postgresql import JSONB
+
 
 SENSITIVE_FIELDS = {"ssn_encrypted", "itin_number"}
 
 
+
+
 def serialize(value):
+    if value is None:
+        return None
+
     if isinstance(value, (date, datetime)):
         return value.isoformat()
+
+    if isinstance(value, UUID):
+        return str(value)
+
+    if isinstance(value, Decimal):
+        return float(value)
+
+    if isinstance(value, Enum):
+        return value.value
+
     return value
 
 
@@ -36,19 +57,44 @@ def collect_model_data(target):
             data[key] = serialize(value)
 
     return data
+
+def get_primary_key_value(mapper, target):
+    pk_columns = mapper.primary_key
+
+    # Always return JSON-compatible object
+    return {
+        col.key: serialize(getattr(target, col.key))
+        for col in pk_columns
+    }
+
+
 def after_insert(mapper, connection, target):
+    if mapper.local_table.name == "audit_logs":
+        return
+
+    stmt = AuditLogs.__table__.insert().values(
+        action="CREATE",
+        table_name=mapper.local_table.name,
+        record_id=bindparam("record_id", type_=JSONB),
+        old_data=bindparam("old_data", type_=JSONB),
+        new_data=bindparam("new_data", type_=JSONB),
+    )
+
     connection.execute(
-        AuditLogs.__table__.insert().values(
-            action="CREATE",
-            table_name=mapper.local_table.name,
-            record_id=target.id,
-            old_data=None,
-            new_data=collect_model_data(target),
-        )
+        stmt,
+        {
+            "record_id": get_primary_key_value(mapper, target),
+            "old_data": None,
+            "new_data": collect_model_data(target),
+        }
     )
 
 
+
 def after_update(mapper, connection, target):
+    if mapper.local_table.name == "audit_logs":
+        return
+
     state = inspect(target)
     old_data, new_data = {}, {}
 
@@ -70,24 +116,40 @@ def after_update(mapper, connection, target):
     if not old_data:
         return
 
-    connection.execute(
-        AuditLogs.__table__.insert().values(
-            action="UPDATE",
-            table_name=mapper.local_table.name,
-            record_id=target.id,
-            old_data=old_data,
-            new_data=new_data,
-        )
+    stmt = AuditLogs.__table__.insert().values(
+        action="UPDATE",
+        table_name=mapper.local_table.name,
+        record_id=bindparam("record_id", type_=JSONB),
+        old_data=bindparam("old_data", type_=JSONB),
+        new_data=bindparam("new_data", type_=JSONB),
     )
 
+    connection.execute(
+        stmt,
+        {
+            "record_id": get_primary_key_value(mapper, target),
+            "old_data": old_data,
+            "new_data": new_data,
+        }
+    )
 
 def before_delete(mapper, connection, target):
+    if mapper.local_table.name == "audit_logs":
+        return
+
+    stmt = AuditLogs.__table__.insert().values(
+        action="DELETE",
+        table_name=mapper.local_table.name,
+        record_id=bindparam("record_id", type_=JSONB),
+        old_data=bindparam("old_data", type_=JSONB),
+        new_data=bindparam("new_data", type_=JSONB),
+    )
+
     connection.execute(
-        AuditLogs.__table__.insert().values(
-            action="DELETE",
-            table_name=mapper.local_table.name,
-            record_id=target.id,
-            old_data=collect_model_data(target),
-            new_data=None,
-        )
+        stmt,
+        {
+            "record_id": get_primary_key_value(mapper, target),
+            "old_data": collect_model_data(target),
+            "new_data": None,
+        }
     )
