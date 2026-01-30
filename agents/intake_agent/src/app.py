@@ -1,4 +1,3 @@
-import uuid
 import logging
 from fastapi import FastAPI, Request
 
@@ -11,9 +10,12 @@ from src.models.idempotency import Base
 from src.api.v1.health import router as health_router
 from src.core.exceptions import BaseAgentException
 from src.api.v1.intake_routes import loan_intake_routes
+from src.core.container import job_executor
+
 
 
 logger = logging.getLogger(__name__)
+
 
 def create_app() -> FastAPI:
     setup_logging()
@@ -39,8 +41,8 @@ def create_app() -> FastAPI:
                 "request_id": request_id_ctx.get(),
             },
         )
-
-
+    
+    
     app.include_router(router)
     app.include_router(health_router)
     app.include_router(loan_intake_routes.router)

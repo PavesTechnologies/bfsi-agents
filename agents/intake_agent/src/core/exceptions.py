@@ -18,3 +18,11 @@ class ConfigError(BaseAgentException):
 class AsyncExecutionError(BaseAgentException):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     error_code = "async_execution_error"
+
+class PayloadMismatchError(BaseAgentException):
+    status_code = status.HTTP_409_CONFLICT
+    error_code = "payload_mismatch"
+
+    def __init__(self, request_id):
+        message = f"Payload mismatch for request_id: {request_id}"
+        super().__init__(message)
