@@ -3,7 +3,8 @@ import datetime
 import decimal
 import uuid
 
-from sqlalchemy import Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, Uuid, text
+from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
@@ -19,10 +20,25 @@ class AuditLogs(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     action: Mapped[str] = mapped_column(String(20), nullable=False)
     table_name: Mapped[str] = mapped_column(String(50), nullable=False)
-    record_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    record_id: Mapped[dict] = mapped_column(JSONB, nullable=False)
     old_data: Mapped[Optional[dict]] = mapped_column(JSON)
     new_data: Mapped[Optional[dict]] = mapped_column(JSON)
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
+
+
+class CallbackStatus(Base):
+    __tablename__ = 'callback_status'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='callback_status_pkey'),
+        UniqueConstraint('request_id', name='callback_status_request_id_key')
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    request_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    callback_url: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text('now()'))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text('now()'))
 
 
 class IntakeIdempotency(Base):
@@ -51,6 +67,7 @@ class LoanApplication(Base):
 
     application_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     loan_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
     credit_type: Mapped[Optional[str]] = mapped_column(String(20))
     loan_purpose: Mapped[Optional[str]] = mapped_column(String(50))
     requested_amount: Mapped[Optional[decimal.Decimal]] = mapped_column(Numeric(12, 2))
@@ -58,7 +75,6 @@ class LoanApplication(Base):
     preferred_payment_day: Mapped[Optional[int]] = mapped_column(Integer)
     origination_channel: Mapped[Optional[str]] = mapped_column(String(20))
     application_status: Mapped[Optional[str]] = mapped_column(String(30))
-    created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
     updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
 
     applicant: Mapped[list['Applicant']] = relationship('Applicant', back_populates='application', lazy="selectin")
@@ -70,7 +86,8 @@ class Applicant(Base):
     __table_args__ = (
         CheckConstraint("applicant_role::text = ANY (ARRAY['primary'::character varying, 'co_applicant'::character varying]::text[])", name='applicant_applicant_role_check'),
         ForeignKeyConstraint(['application_id'], ['loan_application.application_id'], ondelete='CASCADE', name='fk_applicant_application'),
-        PrimaryKeyConstraint('applicant_id', name='applicant_pkey')
+        PrimaryKeyConstraint('applicant_id', name='applicant_pkey'),
+        UniqueConstraint('email', name='uq_applicant_email')
     )
 
     applicant_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
