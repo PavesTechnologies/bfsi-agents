@@ -8,3 +8,20 @@ class DatabaseClient:
 
 
 db_client = DatabaseClient()
+
+from fastapi import Header
+from typing import Optional
+from uuid import uuid4
+
+from src.core.logging import request_id_ctx
+
+
+async def get_request_id(
+    x_request_id: Optional[str] = Header(default=None, alias="X-Request-ID"),
+):
+
+    request_id = x_request_id or str(uuid4())
+
+    request_id_ctx.set(request_id)
+
+    return request_id

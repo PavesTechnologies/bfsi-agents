@@ -1,64 +1,53 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.exc import IntegrityError
+import logging
+from uuid import UUID, uuid4
+
+from fastapi import APIRouter, Depends, status
 from src.core.database import get_db
+from src.core.logging import request_id_ctx
+from src.repositories.callback_repository import CallbackRepository
 from src.repositories.idempotency_repository import IdempotencyRepository
-from src.utils.hash import stable_payload_hash
+from src.services.idempotency_guard import IdempotencyGuard
+from src.services.intake_service import IntakeService
 from src.models.schemas import IntakeRequest
+from src.core.deps import get_request_id
 
 
-from src.core.exceptions import ConfigError
+router = APIRouter(
+    prefix="/v1",
+    dependencies=[Depends(get_request_id)],
+)
 
-router = APIRouter()
+logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/v1")
 
 @router.get("/ping")
 def ping():
-    raise ConfigError("boom")
-    # return {"status": "ok"}
+    # Uncomment only for testing global exception handling
+    # raise ConfigError("boom")
+    return {"status": "ok"}
 
-@router.post("/intake", status_code=202)
+
+@router.post("/intake", status_code=status.HTTP_202_ACCEPTED)
 async def intake(
     request: IntakeRequest,
-    db=Depends(get_db)
+    db=Depends(get_db),
 ):
-    repo = IdempotencyRepository(db)
+    """
+    Intake entrypoint.
+    Responsibilities:
+    - Resolve request_id
+    - Wire dependencies
+    - Delegate to IntakeService
+    """
+    guard = IdempotencyGuard(
+        repo=IdempotencyRepository(db)
+    )
 
-    payload_hash = stable_payload_hash(request.payload)
+    service = IntakeService(guard , callback_repo=CallbackRepository(db))
 
-    existing = await repo.get(request.request_id)
-
-    if existing:
-        if existing.request_hash != payload_hash:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Payload mismatch for same request_id"
-            )
-
-        if existing.status == "COMPLETED":
-            return existing.response_payload
-
-        return {
-            "request_id": str(request.request_id),
-            "status": "accepted"
-        }
-
-    try:
-        await repo.create(
-            request_id=request.request_id,
-            app_id=request.app_id,
-            request_hash=payload_hash
-        )
-    except IntegrityError:
-        # Race condition fallback
-        return {
-            "request_id": str(request.request_id),
-            "status": "accepted"
-        }
-
-    # 🔹 enqueue async job here (next section)
-
-    return {
-        "request_id": str(request.request_id),
-        "status": "accepted"
-    }
+    return await service.intake(
+        request_id=request.request_id,
+        app_id=request.app_id,
+        payload=request.payload,
+        callback_url=request.callback_url,
+    )
