@@ -106,6 +106,7 @@ class LoanIntakeRequest(BaseModel):
     # ⚠️ optional at intake stage
     app_id: Optional[UUID] = None
     payload: Optional[Dict] = None
+    
     loan_type: str
     credit_type: CreditType
     loan_purpose: str
