@@ -2,10 +2,15 @@ from typing import Optional
 import datetime
 import decimal
 import uuid
-from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text,LargeBinary
+import enum
+
+
+from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text,LargeBinary,Enum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from src.utils.migration_database import Base   # <-- import Base
+
+
 
 class AuditLogs(Base):
     __tablename__ = 'audit_logs'
@@ -75,7 +80,7 @@ class LoanApplication(Base):
 
     applicant: Mapped[list['Applicant']] = relationship('Applicant', back_populates='application', lazy="selectin")
     document: Mapped[list['Document']] = relationship('Document', back_populates='application', lazy="selectin")
-    document: Mapped[list["PgsqlDocument"]] = relationship(
+    pgsql_documents: Mapped[list["PgsqlDocument"]] = relationship(
     "PgsqlDocument",
     back_populates="application",
     cascade="all, delete-orphan",
@@ -274,6 +279,10 @@ class PgsqlDocument(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
 
     application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    document_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
 
     file_name: Mapped[str] = mapped_column(String, nullable=False)
     mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
