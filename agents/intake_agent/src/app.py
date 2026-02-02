@@ -6,7 +6,7 @@ from src.core.logging import setup_logging, request_id_ctx
 
 from src.api.v1.routes import router
 from src.core.database import engine
-from src.models.idempotency import Base
+from src.models.models import Base
 from src.api.v1.health import router as health_router
 from src.core.exceptions import BaseAgentException
 from src.api.v1.intake_routes import loan_intake_routes
