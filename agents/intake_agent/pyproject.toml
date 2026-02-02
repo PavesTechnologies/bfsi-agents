@@ -19,12 +19,15 @@ psycopg2 = "^2.9.11"
 sqlalchemy = "^2.0.46"
 pydantic-settings = "^2.12.0"
 asyncpg = "^0.31.0"
+alembic = "^1.18.3"
 ua-parser = "^0.18.0"
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"
 prod = "src.cli:prod"
 test = "src.cli:test"
+migration = "src.cli:migration"
+initial_migration = "src.cli:migrate"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

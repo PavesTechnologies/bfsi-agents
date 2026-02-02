@@ -2,7 +2,8 @@ from typing import Optional
 import datetime
 import decimal
 import uuid
-from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text,LargeBinary
+
+from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from src.utils.migration_database import Base   # <-- import Base
@@ -75,12 +76,6 @@ class LoanApplication(Base):
 
     applicant: Mapped[list['Applicant']] = relationship('Applicant', back_populates='application', lazy="selectin")
     document: Mapped[list['Document']] = relationship('Document', back_populates='application', lazy="selectin")
-    document: Mapped[list["PgsqlDocument"]] = relationship(
-    "PgsqlDocument",
-    back_populates="application",
-    cascade="all, delete-orphan",
-    lazy="selectin",
-    )
 
 
 class Applicant(Base):
@@ -126,6 +121,7 @@ class Document(Base):
     application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     document_type: Mapped[Optional[str]] = mapped_column(String(50))
+    last_modified_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     uploaded_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
 
     application: Mapped['LoanApplication'] = relationship('LoanApplication', back_populates='document', lazy="selectin")
@@ -248,47 +244,3 @@ class Liability(Base):
     days_delinquent: Mapped[Optional[int]] = mapped_column(Integer)
 
     applicant: Mapped['Applicant'] = relationship('Applicant', back_populates='liability', lazy="selectin")
-
-class IntakeValidationResult(Base):
-    __tablename__ = "intake_validation_result"
-
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
-    application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
-    field_name: Mapped[str] = mapped_column(String, nullable=False)
-    reason_code: Mapped[str] = mapped_column(String, nullable=False)
-    message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, default=datetime.datetime.utcnow)
-
-class PgsqlDocument(Base):
-    __tablename__ = "pgsqldocument"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["application_id"],
-            ["loan_application.application_id"],
-            ondelete="CASCADE",
-            name="fk_pgsqldocument_application",
-        ),
-        PrimaryKeyConstraint("id", name="pgsqldocument_pkey"),
-    )
-
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
-
-    application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
-
-    file_name: Mapped[str] = mapped_column(String, nullable=False)
-    mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
-
-    # Actual file bytes (PDF / JPG)
-    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
-
-    uploaded_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=text("now()"),
-    )
-
-    application = relationship(
-        "LoanApplication",
-        back_populates="document",
-        lazy="selectin",
-    )
