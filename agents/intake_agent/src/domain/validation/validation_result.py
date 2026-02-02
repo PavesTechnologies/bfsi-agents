@@ -11,12 +11,8 @@ class ValidationResult:
 
     @staticmethod
     def success():
-        return ValidationResult(passed=True, reason_code=None)
+        return ValidationResult(True, None, None)
 
     @staticmethod
     def failure(code: ValidationReasonCode, message: str):
-        return ValidationResult(
-            passed=False,
-            reason_code=code,
-            message=message
-        )
+        return ValidationResult(False, code, message)

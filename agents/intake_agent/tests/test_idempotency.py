@@ -1,3 +1,11 @@
+from fastapi.testclient import TestClient
+from src.main import app
+import pytest
+
+
+@pytest.fixture
+def client():
+    return TestClient(app)
 def test_idempotent_replay(client):
     payload = {
         "request_id": "11111111-1111-1111-1111-111111111111",
