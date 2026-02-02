@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     DB_NAME: str = Field(..., alias="DB_NAME")
     DB_DRIVER: str = Field(..., alias="DB_DRIVER")
     database_url: str = Field(..., alias="DATABASE_URL")
+    DATABASE_URL_SYNC: str = Field(..., alias="DATABASE_URL_SYNC")
 
     model_config = {
         "case_sensitive": True,
