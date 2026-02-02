@@ -25,6 +25,8 @@ alembic = "^1.18.3"
 dev = "src.cli:dev"
 prod = "src.cli:prod"
 test = "src.cli:test"
+migration = "src.cli:migration"
+initial_migration = "src.cli:migrate"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

@@ -121,7 +121,6 @@ class Document(Base):
     application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     document_type: Mapped[Optional[str]] = mapped_column(String(50))
-    last_modified_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     uploaded_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
 
     application: Mapped['LoanApplication'] = relationship('LoanApplication', back_populates='document', lazy="selectin")
