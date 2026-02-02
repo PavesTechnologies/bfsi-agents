@@ -244,3 +244,13 @@ class Liability(Base):
     days_delinquent: Mapped[Optional[int]] = mapped_column(Integer)
 
     applicant: Mapped['Applicant'] = relationship('Applicant', back_populates='liability', lazy="selectin")
+
+class IntakeValidationResult(Base):
+    __tablename__ = "intake_validation_result"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
+    application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    field_name: Mapped[str] = mapped_column(String, nullable=False)
+    reason_code: Mapped[str] = mapped_column(String, nullable=False)
+    message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, default=datetime.datetime.utcnow)

@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from click import Path
+# from click import Path
 from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings
 
