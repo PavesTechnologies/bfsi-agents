@@ -1,6 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.models.validation import IntakeValidationResult
-
+from src.models.models import IntakeValidationResult
 
 class ValidationRepository:
 
