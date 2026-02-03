@@ -1,6 +1,6 @@
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.models.callback import CallbackStatus
+from src.models.interfaces.callback import CallbackStatus
 
 
 class CallbackRepository:

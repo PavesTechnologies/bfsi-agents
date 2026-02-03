@@ -1,5 +1,5 @@
 import httpx
-from src.models.callback import CallbackPayload
+from src.models.interfaces.callback import CallbackPayload
 import logging
 
 

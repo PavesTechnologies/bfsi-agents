@@ -1152,7 +1152,7 @@ version = "1.2.1"
 description = "Read key-value pairs from a .env file and set them as environment variables"
 optional = false
 python-versions = ">=3.9"
-groups = ["main"]
+groups = ["main", "dev"]
 files = [
     {file = "python_dotenv-1.2.1-py3-none-any.whl", hash = "sha256:b81ee9561e9ca4004139c6cbba3a238c32b03e4894671e181b671e8cb8425d61"},
     {file = "python_dotenv-1.2.1.tar.gz", hash = "sha256:42667e897e16ab0d66954af0e60a9caa94f0fd4ecf3aaf6d2d260eec1aa36ad6"},
@@ -1569,4 +1569,8 @@ standard = ["colorama (>=0.4) ; sys_platform == \"win32\"", "httptools (>=0.5.0)
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
+<<<<<<< HEAD
 content-hash = "6436b209ddb1750337ad80b1042befc4f0f278f625b72dbe257364366cca960c"
+=======
+content-hash = "3c1fdcdf28c481342f7c6d0222d57e9f52ae8458d64622451eccbbba39f53c53"
+>>>>>>> a27ca2b088c966e9402fbb843f838d276ab63055

@@ -86,6 +86,13 @@ class LoanApplication(Base):
     cascade="all, delete-orphan",
     lazy="selectin",
     )
+    documents = relationship("Document", back_populates="application")
+
+    pgsql_documents = relationship(
+            "PgsqlDocument",
+            back_populates="application",
+            cascade="all, delete-orphan"
+        )
 
 
 class Applicant(Base):
@@ -133,7 +140,9 @@ class Document(Base):
     document_type: Mapped[Optional[str]] = mapped_column(String(50))
     uploaded_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
 
-    application: Mapped['LoanApplication'] = relationship('LoanApplication', back_populates='document', lazy="selectin")
+    application = relationship(
+    "LoanApplication",
+    back_populates="documents")
 
 
 class Address(Base):

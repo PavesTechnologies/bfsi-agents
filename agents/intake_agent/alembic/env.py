@@ -26,7 +26,7 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 
 from src.utils.migration_database import Base
-from src.models.models import *
+from src.models import *  # Import all models to ensure they are registered with Base
 
 target_metadata = Base.metadata
 
@@ -54,6 +54,8 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        compare_type=True,
+        compare_server_default=True,
     )
 
     with context.begin_transaction():

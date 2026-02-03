@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import date, datetime
 from uuid import UUID
 from pydantic import BaseModel, Field
@@ -76,29 +76,37 @@ class LiabilitySchema(BaseModel):
 class ApplicantSchema(BaseModel):
     applicant_role: ApplicantRole
 
-    first_name: str
+    # ⚠️ Dirty input allowed
+    first_name: Optional[str] = None
     middle_name: Optional[str] = None
-    last_name: str
+    last_name: Optional[str] = None
     suffix: Optional[str] = None
 
-    date_of_birth: date
-    
-    ssn_last4: Optional[str] = Field(None, min_length=4, max_length=4)
+    date_of_birth: Optional[date] = None
+
+    # ⚠️ NO length / regex constraints here
+    ssn_last4: Optional[str] = None
     itin_number: Optional[str] = None
-    citizenship_status: str
-    email: str
+    citizenship_status: Optional[str] = None
+    email: Optional[str] = None
 
-    addresses: List[AddressSchema]
-
+    # ⚠️ Collections default to empty
+    addresses: List[AddressSchema] = []
     employment: Optional[EmploymentSchema] = None
-    incomes: List[IncomeSchema]
-    assets: List[AssetSchema]
-    liabilities: List[LiabilitySchema]
-
+    incomes: List[IncomeSchema] = []
+    assets: List[AssetSchema] = []
+    liabilities: List[LiabilitySchema] = []
 class LoanIntakeRequest(BaseModel):
     # -------------------------
     # LOAN_APPLICATION
     # -------------------------
+    request_id: UUID
+    callback_url: str
+
+    # ⚠️ optional at intake stage
+    app_id: Optional[UUID] = None
+    payload: Optional[Dict] = None
+    
     loan_type: str
     credit_type: CreditType
     loan_purpose: str
