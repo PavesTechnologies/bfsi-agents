@@ -22,6 +22,7 @@ asyncpg = "^0.31.0"
 alembic = "^1.18.3"
 ua-parser = "^0.18.0"
 python-multipart = "^0.0.22"
+pillow = "^12.1.0"
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"
