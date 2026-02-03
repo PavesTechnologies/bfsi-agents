@@ -2,10 +2,15 @@ from typing import Optional
 import datetime
 import decimal
 import uuid
-from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text,LargeBinary
+import enum
+
+
+from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text,LargeBinary,Enum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from src.utils.migration_database import Base   # <-- import Base
+
+
 
 class AuditLogs(Base):
     __tablename__ = 'audit_logs'
@@ -74,6 +79,13 @@ class LoanApplication(Base):
     updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
 
     applicant: Mapped[list['Applicant']] = relationship('Applicant', back_populates='application', lazy="selectin")
+    document: Mapped[list['Document']] = relationship('Document', back_populates='application', lazy="selectin")
+    pgsql_documents: Mapped[list["PgsqlDocument"]] = relationship(
+    "PgsqlDocument",
+    back_populates="application",
+    cascade="all, delete-orphan",
+    lazy="selectin",
+    )
     documents = relationship("Document", back_populates="application")
 
     pgsql_documents = relationship(
@@ -261,9 +273,27 @@ class IntakeValidationResult(Base):
     message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, default=datetime.datetime.utcnow)
 
+
+
 class PgsqlDocument(Base):
     __tablename__ = "pgsqldocument"
     __table_args__ = (
+        CheckConstraint(
+            "document_type::text = ANY (ARRAY["
+            "'ssn_card', "
+            "'passport', "
+            "'drivers_license', "
+            "'state_id', "
+            "'w2', "
+            "'pay_stub', "
+            "'bank_statement', "
+            "'tax_return', "
+            "'utility_bill', "
+            "'lease_agreement', "
+            "'photo'"
+            "]::text[])",
+            name="pgsqldocument_document_type_check",
+        ),
         ForeignKeyConstraint(
             ["application_id"],
             ["loan_application.application_id"],
@@ -273,16 +303,42 @@ class PgsqlDocument(Base):
         PrimaryKeyConstraint("id", name="pgsqldocument_pkey"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
 
-    application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    application_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+    )
 
-    file_name: Mapped[str] = mapped_column(String, nullable=False)
-    mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    document_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
+
+    file_name: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+    )
+
+    mime_type: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+    )
+
+    file_size: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+    )
 
     # Actual file bytes (PDF / JPG)
-    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    content: Mapped[bytes] = mapped_column(
+        LargeBinary,
+        nullable=False,
+    )
 
     uploaded_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
@@ -290,6 +346,7 @@ class PgsqlDocument(Base):
     )
 
     application = relationship(
-    "LoanApplication",
-    back_populates="pgsql_documents"
+        "LoanApplication",
+        back_populates="pgsql_documents",
+        lazy="selectin",
     )
