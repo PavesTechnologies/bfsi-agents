@@ -1,8 +1,8 @@
-"""intial setup
+"""new setup
 
-Revision ID: 7d0eb0a6f0ad
+Revision ID: d6246ae57292
 Revises: 
-Create Date: 2026-02-02 13:04:33.746915
+Create Date: 2026-02-03 11:43:06.442713
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '7d0eb0a6f0ad'
+revision: str = 'd6246ae57292'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -51,6 +51,15 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.PrimaryKeyConstraint('request_id', name='intake_idempotency_pkey')
     )
+    op.create_table('intake_validation_result',
+    sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('application_id', sa.Uuid(), nullable=False),
+    sa.Column('field_name', sa.String(), nullable=False),
+    sa.Column('reason_code', sa.String(), nullable=False),
+    sa.Column('message', sa.String(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('loan_application',
     sa.Column('application_id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('loan_type', sa.String(length=50), nullable=False),
@@ -68,6 +77,24 @@ def upgrade() -> None:
     sa.CheckConstraint('requested_amount > 0::numeric', name='loan_application_requested_amount_check'),
     sa.PrimaryKeyConstraint('application_id', name='loan_application_pkey')
     )
+    op.create_table('request_metadata',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('request_id', sa.Uuid(), nullable=False),
+    sa.Column('app_id', sa.Uuid(), nullable=False),
+    sa.Column('ip_address', sa.String(length=45), nullable=False),
+    sa.Column('user_agent', sa.String(length=500), nullable=True),
+    sa.Column('browser', sa.String(length=100), nullable=True),
+    sa.Column('os', sa.String(length=100), nullable=True),
+    sa.Column('device_type', sa.String(length=50), nullable=True),
+    sa.Column('accept_language', sa.String(length=200), nullable=True),
+    sa.Column('referrer', sa.String(length=500), nullable=True),
+    sa.Column('metadata_json', sa.JSON(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_request_metadata_app_id'), 'request_metadata', ['app_id'], unique=False)
+    op.create_index(op.f('ix_request_metadata_created_at'), 'request_metadata', ['created_at'], unique=False)
+    op.create_index(op.f('ix_request_metadata_request_id'), 'request_metadata', ['request_id'], unique=True)
     op.create_table('applicant',
     sa.Column('applicant_id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('application_id', sa.Uuid(), nullable=False),
@@ -96,6 +123,17 @@ def upgrade() -> None:
     sa.Column('uploaded_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.ForeignKeyConstraint(['application_id'], ['loan_application.application_id'], name='fk_document_application', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('document_id', name='document_pkey')
+    )
+    op.create_table('pgsqldocument',
+    sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('application_id', sa.Uuid(), nullable=False),
+    sa.Column('file_name', sa.String(), nullable=False),
+    sa.Column('mime_type', sa.String(length=100), nullable=False),
+    sa.Column('file_size', sa.BigInteger(), nullable=False),
+    sa.Column('content', sa.LargeBinary(), nullable=False),
+    sa.Column('uploaded_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['application_id'], ['loan_application.application_id'], name='fk_pgsqldocument_application', ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id', name='pgsqldocument_pkey')
     )
     op.create_table('address',
     sa.Column('address_id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -192,9 +230,15 @@ def downgrade() -> None:
     op.drop_table('employment')
     op.drop_table('asset')
     op.drop_table('address')
+    op.drop_table('pgsqldocument')
     op.drop_table('document')
     op.drop_table('applicant')
+    op.drop_index(op.f('ix_request_metadata_request_id'), table_name='request_metadata')
+    op.drop_index(op.f('ix_request_metadata_created_at'), table_name='request_metadata')
+    op.drop_index(op.f('ix_request_metadata_app_id'), table_name='request_metadata')
+    op.drop_table('request_metadata')
     op.drop_table('loan_application')
+    op.drop_table('intake_validation_result')
     op.drop_table('intake_idempotency')
     op.drop_table('callback_status')
     op.drop_table('audit_logs')
