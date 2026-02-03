@@ -1,8 +1,8 @@
-"""Added new column
+"""document type update
 
-Revision ID: f280c16c5ccd
-Revises: 732ede14bd06
-Create Date: 2026-02-02 15:22:19.582715
+Revision ID: 083026c8fdd6
+Revises: d6246ae57292
+Create Date: 2026-02-03 13:08:13.595357
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'f280c16c5ccd'
-down_revision: Union[str, Sequence[str], None] = '732ede14bd06'
+revision: str = '083026c8fdd6'
+down_revision: Union[str, Sequence[str], None] = 'd6246ae57292'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

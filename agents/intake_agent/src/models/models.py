@@ -278,6 +278,22 @@ class IntakeValidationResult(Base):
 class PgsqlDocument(Base):
     __tablename__ = "pgsqldocument"
     __table_args__ = (
+        CheckConstraint(
+            "document_type::text = ANY (ARRAY["
+            "'ssn_card', "
+            "'passport', "
+            "'drivers_license', "
+            "'state_id', "
+            "'w2', "
+            "'pay_stub', "
+            "'bank_statement', "
+            "'tax_return', "
+            "'utility_bill', "
+            "'lease_agreement', "
+            "'photo'"
+            "]::text[])",
+            name="pgsqldocument_document_type_check",
+        ),
         ForeignKeyConstraint(
             ["application_id"],
             ["loan_application.application_id"],
@@ -287,20 +303,42 @@ class PgsqlDocument(Base):
         PrimaryKeyConstraint("id", name="pgsqldocument_pkey"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
 
-    application_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    application_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+    )
+
     document_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
     )
 
-    file_name: Mapped[str] = mapped_column(String, nullable=False)
-    mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    file_name: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+    )
+
+    mime_type: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+    )
+
+    file_size: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+    )
 
     # Actual file bytes (PDF / JPG)
-    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    content: Mapped[bytes] = mapped_column(
+        LargeBinary,
+        nullable=False,
+    )
 
     uploaded_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),

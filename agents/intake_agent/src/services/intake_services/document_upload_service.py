@@ -12,6 +12,18 @@ ALLOWED_MIME_TYPES = {
     "image/jpg",
 }
 
+ALLOWED_DOCUMENT_TYPES = {
+    "passport",
+    "drivers_license",
+    "state_id",
+    "ssn_card",
+    "visa",
+    "i94",
+    "bank_statement",
+    "pay_stub",
+    "photo",
+}
+
 class DocumentService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -23,6 +35,14 @@ class DocumentService:
         document_type: str,
         file: UploadFile,
     ):
+        # ✅ document type validation
+        if document_type not in ALLOWED_DOCUMENT_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid document_type. Allowed values: {sorted(ALLOWED_DOCUMENT_TYPES)}",
+            )
+
+        # ✅ mime-type validation
         if file.content_type not in ALLOWED_MIME_TYPES:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
