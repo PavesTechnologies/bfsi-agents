@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.repositories.callback_repository import CallbackRepository
 from src.adapters.http.callback_sender import CallbackSender
-from src.models.callback import CallbackPayload
+from src.models.interfaces.callback import CallbackPayload
 import logging
 
 logger = logging.getLogger(__name__)

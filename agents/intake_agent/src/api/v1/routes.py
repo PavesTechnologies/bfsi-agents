@@ -10,7 +10,7 @@ from src.repositories.metadata_repository import MetadataRepository
 from src.services.metadata_service import MetadataService
 from src.services.idempotency_guard import IdempotencyGuard
 from src.services.intake_service import IntakeService
-from src.models.schemas import IntakeRequest
+from src.models.interfaces.schemas import IntakeRequest
 from src.core.deps import get_request_id
 
 
