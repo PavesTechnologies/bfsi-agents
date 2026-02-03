@@ -11,6 +11,7 @@ from src.api.v1.health import router as health_router
 from src.core.exceptions import BaseAgentException
 from src.api.v1.intake_routes import loan_intake_routes
 from src.core.container import job_executor
+from src.api.v1.intake_routes import document_upload_routes
 
 
 
@@ -46,6 +47,7 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(health_router)
     app.include_router(loan_intake_routes.router)
+    app.include_router(document_upload_routes.router)
     
 
     # -------------------------

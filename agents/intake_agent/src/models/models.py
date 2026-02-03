@@ -264,6 +264,8 @@ class IntakeValidationResult(Base):
     message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, default=datetime.datetime.utcnow)
 
+
+
 class PgsqlDocument(Base):
     __tablename__ = "pgsqldocument"
     __table_args__ = (
@@ -298,6 +300,6 @@ class PgsqlDocument(Base):
 
     application = relationship(
         "LoanApplication",
-        back_populates="document",
+        back_populates="pgsql_documents",
         lazy="selectin",
     )
