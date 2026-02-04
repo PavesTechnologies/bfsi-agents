@@ -9,6 +9,7 @@ from PIL import Image
 from src.repositories.intake_repo.document_upload_repo import LoanIntakeDAO
 from src.domain.image_processing.preprocessor import preprocess
 from src.domain.document_validation.ssn_card_doc_validation import ssn_card_validation
+from src.domain.document_validation.passport_doc_validation import passport_validation
 
 # -----------------------------
 # Document rules (centralized)
@@ -91,14 +92,21 @@ class DocumentService:
             is_low_quality = preprocessing_result.is_low_quality
             quality_scores = preprocessing_result.quality_scores
             
-            # # Specific validation for SSN Card
-            # if document_type == "ssn_card":
-            #     validation_result = ssn_card_validation(processed_bytes)
-            #     if not validation_result["valid"]:
-            #         raise HTTPException(
-            #             status_code=status.HTTP_400_BAD_REQUEST,
-            #             detail=f"SSN Card validation failed: {validation_result['doc_type']} (confidence: {validation_result['confidence']})",
-            #         )
+            # Specific validation for SSN Card
+            if document_type == "ssn_card":
+                validation_result = ssn_card_validation(processed_bytes)
+                if not validation_result["valid"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"SSN Card validation failed: {validation_result['doc_type']} (confidence: {validation_result['confidence']})",
+                    )
+            if document_type == "passport":
+                validation_result = passport_validation(processed_bytes)
+                if not validation_result["valid"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Passport validation failed: {validation_result['doc_type']} (confidence: {validation_result['confidence']})",
+                    )
         try:
             document = await self.dao.create_document({
                 "id": uuid.uuid4(),
