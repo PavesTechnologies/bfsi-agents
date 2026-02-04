@@ -350,3 +350,13 @@ class PgsqlDocument(Base):
         back_populates="pgsql_documents",
         lazy="selectin",
     )
+    is_low_quality: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    quality_metadata: Mapped[dict | None] = mapped_column(
+        JSONB,
+        nullable=True,
+    )

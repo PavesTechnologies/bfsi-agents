@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from PIL import Image
 
 from src.repositories.intake_repo.document_upload_repo import LoanIntakeDAO
+from src.domain.image_processing.preprocessor import preprocess
 
 
 # -----------------------------
@@ -79,7 +80,16 @@ class DocumentService:
         self._validate_image_resolution_if_needed(
             document_type, file, file_bytes, rules
         )
+        processed_bytes = file_bytes
+        is_low_quality = False
+        quality_scores = None
 
+        if file.content_type.startswith("image/"):
+            preprocessing_result = preprocess(file_bytes)
+
+            processed_bytes = preprocessing_result.processed_image
+            is_low_quality = preprocessing_result.is_low_quality
+            quality_scores = preprocessing_result.quality_scores
         try:
             document = await self.dao.create_document({
                 "id": uuid.uuid4(),
@@ -89,6 +99,8 @@ class DocumentService:
                 "mime_type": file.content_type,
                 "file_size": len(file_bytes),
                 "content": file_bytes,
+                "is_low_quality": is_low_quality,
+                "quality_metadata": quality_scores,
             })
 
             await self.db.commit()
@@ -98,9 +110,9 @@ class DocumentService:
         except SQLAlchemyError:
             await self.db.rollback()
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to upload document",
-            )
+                status_code=500,
+                detail="Database error while uploading document",
+            ) from exc
 
     # -----------------------------
     # Validation helpers

@@ -10,6 +10,7 @@ from .quality_evaluator import (
     compute_overall_quality,
 )
 from .preprocessing_result import ImagePreprocessingResult
+from src.domain.image_processing.perspective import correct_perspective
 
 
 def preprocess(image_bytes: bytes) -> ImagePreprocessingResult:
