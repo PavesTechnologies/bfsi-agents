@@ -159,7 +159,6 @@ class DocumentService:
         # Sprint 3: Document Type Identification
         # -----------------------------
         document_classification = self.document_identifier.identify(
-            image=processed_bytes,
             file_bytes=file_bytes,
             mime_type=file.content_type,
         )
