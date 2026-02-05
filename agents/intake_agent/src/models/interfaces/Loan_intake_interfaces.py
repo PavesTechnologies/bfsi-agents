@@ -3,6 +3,8 @@ from datetime import date, datetime
 from uuid import UUID
 from pydantic import BaseModel, Field
 from enum import Enum
+from src.utils.validation.blocking_aggregator import BlockingValidationSummary,ValidationError
+
 
 class CreditType(str, Enum):
     individual = "individual"
@@ -124,6 +126,22 @@ class LoanIntakeRequest(BaseModel):
     applicants: List[ApplicantSchema]
     # documents: Optional[List[DocumentSchema]] = []
 
+
+class ValidationIssue(BaseModel):
+    """Represents a non-blocking validation failure during intake processing."""
+    field: str = Field(..., description="Field path that failed validation (e.g., applicant[0].email)")
+    reason_code: str = Field(..., description="Machine-readable reason code (e.g., non_blocking_validation, duplicate_email)")
+    message: str = Field(..., description="Human-friendly validation error message")
+
+
 class LoanIntakeResponse(BaseModel):
     application_id: UUID
     timestamp: datetime
+    validation_issues: List[ValidationIssue] = Field(
+        default_factory=list,
+        description="Non-blocking validation issues collected during intake processing"
+    )
+    validation_summary: Optional[BlockingValidationSummary] = Field(
+        default=None,
+        description="Blocking validation summary collected during intake processing"
+    )

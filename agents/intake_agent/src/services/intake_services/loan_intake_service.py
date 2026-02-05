@@ -27,6 +27,9 @@ from src.repositories.validation_repository import ValidationRepository
 from src.utils.validation.aggregator import validate_applicant
 from types import SimpleNamespace
 from fastapi import HTTPException
+from src.utils.validation.blocking_aggregator import (
+    validate_all_applicants_blocking)
+
 
 class LoanIntakeService:
     
@@ -42,6 +45,13 @@ class LoanIntakeService:
     
     async def submit_application(self, request: LoanIntakeRequest) -> LoanIntakeResponse:
         try:
+
+            validation_summary = validate_all_applicants_blocking(request.applicants)
+            if not validation_summary.is_valid:
+                raise HTTPException(
+                    status_code=400,
+                    detail=validation_summary.to_http_detail()
+                )
             # -----------------------------
             # 1. Create Loan Application
             # -----------------------------
@@ -223,7 +233,8 @@ class LoanIntakeService:
             return LoanIntakeResponse(
                 application_id=loan.application_id,
                 timestamp=datetime.utcnow(),
-                validation_issues=validation_issues
+                validation_issues=validation_issues,
+                validation_summary=validation_summary
             )
 
         except SQLAlchemyError:
