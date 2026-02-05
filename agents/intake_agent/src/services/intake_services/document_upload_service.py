@@ -1,3 +1,4 @@
+import os
 import uuid
 from io import BytesIO
 
@@ -12,7 +13,8 @@ from src.domain.image_processing.preprocessor import preprocess
 # Sprint 3 – Document Type Identification
 from src.domain.document_classification.orchestrator import DocumentTypeIdentifier
 from src.domain.document_classification.ml.layoutlm_classifier import LayoutLMClassifier
-
+from src.domain.document_validation.ssn_card_doc_validation import ssn_card_validation
+from src.domain.document_validation.aws_passport_validation import PassportOCR
 
 # -----------------------------
 # Document rules (centralized)
@@ -87,16 +89,53 @@ class DocumentService:
         self._validate_mime_type(document_type, file, rules)
 
         file_bytes = await file.read()
+        
+        if not file_bytes:
+            raise HTTPException(400, "Empty file")
 
         self._validate_file_size(document_type, file_bytes, rules)
         self._validate_image_resolution_if_needed(
             document_type, file, file_bytes, rules
         )
+        
+        # ----------------------------
+        # Create Temp Dir
+        # ----------------------------
+        os.makedirs("temp_files", exist_ok=True)
+
+        ext = os.path.splitext(file.filename)[1].lower()
+
+        temp_upload = f"temp_files/upload_{uuid.uuid4().hex}{ext}"
+        
+        print("[INFO] Saving temp upload to:", temp_upload)
+        with open(temp_upload, "wb") as f:
+            f.write(file_bytes)
+        
+        passport_ocr = PassportOCR()
+        
 
         processed_bytes = file_bytes
         is_low_quality = False
         quality_scores = None
 
+        if document_type == "passport":
+
+            ocr_result = passport_ocr.process_file(
+                temp_upload,
+                document_type=document_type,
+                application_id=application_id
+            )
+
+            if ocr_result["status"] != "success":
+                os.remove(temp_upload)
+                raise HTTPException(
+                    400,
+                    f"OCR failed: {ocr_result}"
+                )
+            os.remove(temp_upload)
+            user_details = ocr_result["mrz_data"]
+            print("[INFO] Extracted Passport MRZ Data:", user_details)
+            
         # -----------------------------
         # Image preprocessing
         # -----------------------------
@@ -106,6 +145,15 @@ class DocumentService:
             processed_bytes = preprocessing_result.processed_image
             is_low_quality = preprocessing_result.is_low_quality
             quality_scores = preprocessing_result.quality_scores
+            
+            # Specific validation for SSN Card
+            if document_type == "ssn_card":
+                validation_result = ssn_card_validation(processed_bytes)
+                if not validation_result["valid"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"SSN Card validation failed: {validation_result['doc_type']} (confidence: {validation_result['confidence']})",
+                    )
 
         # -----------------------------
         # Sprint 3: Document Type Identification
@@ -149,7 +197,7 @@ class DocumentService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database error while uploading document",
-            ) from exc
+            )
 
     # -----------------------------
     # Validation helpers

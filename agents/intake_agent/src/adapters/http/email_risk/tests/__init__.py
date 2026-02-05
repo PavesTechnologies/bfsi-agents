@@ -1,0 +1,1 @@
+"""Email risk adapter tests."""

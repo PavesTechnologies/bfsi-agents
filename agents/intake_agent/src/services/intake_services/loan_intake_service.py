@@ -24,6 +24,12 @@ from src.domain.validation.typed_field_validators import (
 )
 from src.repositories.validation_repository import ValidationRepository
 
+from src.utils.validation.aggregator import validate_applicant
+from types import SimpleNamespace
+from fastapi import HTTPException
+from src.utils.validation.blocking_aggregator import (
+    validate_all_applicants_blocking)
+
 
 class LoanIntakeService:
     
@@ -39,6 +45,13 @@ class LoanIntakeService:
     
     async def submit_application(self, request: LoanIntakeRequest) -> LoanIntakeResponse:
         try:
+
+            validation_summary = validate_all_applicants_blocking(request.applicants)
+            if not validation_summary.is_valid:
+                raise HTTPException(
+                    status_code=400,
+                    detail=validation_summary.to_http_detail()
+                )
             # -----------------------------
             # 1. Create Loan Application
             # -----------------------------
@@ -60,6 +73,30 @@ class LoanIntakeService:
             # 2. Applicants & Children
             # -----------------------------
             for applicant in request.applicants:
+                summary = validate_applicant(applicant)
+                print(f"Validation summary {summary}")
+                for res in summary.results:
+                    print(f"Validation result {res.is_valid}")
+                    if not res.is_valid:
+                        repo_result = SimpleNamespace(
+                            reason_code=SimpleNamespace(value="non_blocking_validation"),
+                            message=(res.reason or "validation failed")
+                        )
+
+                        await self.validation_repo.save(
+                            session=self.db,
+                            application_id=loan.application_id,
+                            field_name=f"applicant.{res.field}",
+                            result=repo_result
+                        )
+
+                        validation_issues.append({
+                            "field": f"applicant.{res.field}",
+                            "reason_code": repo_result.reason_code.value,
+                            "message": repo_result.message,
+                        })
+                        raise HTTPException(status_code=400, detail=validation_issues[-1]["message"])
+                    
                 applicant_row = await self.dao.create_applicant({
                     "application_id": loan.application_id,
                     "applicant_role": applicant.applicant_role,
@@ -196,7 +233,8 @@ class LoanIntakeService:
             return LoanIntakeResponse(
                 application_id=loan.application_id,
                 timestamp=datetime.utcnow(),
-                validation_issues=validation_issues
+                validation_issues=validation_issues,
+                validation_summary=validation_summary
             )
 
         except SQLAlchemyError:
