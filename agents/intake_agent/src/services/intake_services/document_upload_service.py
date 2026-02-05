@@ -136,6 +136,17 @@ class DocumentService:
             user_details = ocr_result["mrz_data"]
             print("[INFO] Extracted Passport MRZ Data:", user_details)
             
+        # Specific validation for SSN Card
+        if document_type == "ssn_card":
+                validation_result = ssn_card_validation(temp_upload, document_type, application_id)
+                if not validation_result["valid"]:
+                    os.remove(temp_upload)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"SSN Card validation failed: {validation_result['doc_type']} (confidence: {validation_result['confidence']})",
+                    )
+                os.remove(temp_upload)
+                print("Temp file deleted after SSN validation")  
         # -----------------------------
         # Image preprocessing
         # -----------------------------
@@ -145,15 +156,6 @@ class DocumentService:
             processed_bytes = preprocessing_result.processed_image
             is_low_quality = preprocessing_result.is_low_quality
             quality_scores = preprocessing_result.quality_scores
-            
-            # Specific validation for SSN Card
-            if document_type == "ssn_card":
-                validation_result = ssn_card_validation(processed_bytes)
-                if not validation_result["valid"]:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"SSN Card validation failed: {validation_result['doc_type']} (confidence: {validation_result['confidence']})",
-                    )
 
         # -----------------------------
         # Sprint 3: Document Type Identification
@@ -162,8 +164,10 @@ class DocumentService:
             file_bytes=file_bytes,
             mime_type=file.content_type,
         )
-
-
+        
+        if os.path.exists(temp_upload):
+            os.remove(temp_upload)
+            
         try:
             document = await self.dao.create_document(
                 {
