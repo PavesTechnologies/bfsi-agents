@@ -9,6 +9,10 @@ from PIL import Image
 from src.repositories.intake_repo.document_upload_repo import LoanIntakeDAO
 from src.domain.image_processing.preprocessor import preprocess
 
+# Sprint 3 – Document Type Identification
+from src.domain.document_classification.orchestrator import DocumentTypeIdentifier
+from src.domain.document_classification.ml.layoutlm_classifier import LayoutLMClassifier
+
 
 # -----------------------------
 # Document rules (centralized)
@@ -65,12 +69,20 @@ class DocumentService:
         self.db = db
         self.dao = LoanIntakeDAO(db)
 
+        # Sprint 3: document type identifier (rule-based + ML fallback)
+        self.document_identifier = DocumentTypeIdentifier(
+            ml_classifier=LayoutLMClassifier()
+        )
+
     async def upload_document(
         self,
         application_id: str,
         document_type: str,
         file: UploadFile,
     ):
+        # -----------------------------
+        # Validation
+        # -----------------------------
         rules = self._validate_document_type(document_type)
         self._validate_mime_type(document_type, file, rules)
 
@@ -80,37 +92,62 @@ class DocumentService:
         self._validate_image_resolution_if_needed(
             document_type, file, file_bytes, rules
         )
+
         processed_bytes = file_bytes
         is_low_quality = False
         quality_scores = None
 
+        # -----------------------------
+        # Image preprocessing
+        # -----------------------------
         if file.content_type.startswith("image/"):
             preprocessing_result = preprocess(file_bytes)
 
             processed_bytes = preprocessing_result.processed_image
             is_low_quality = preprocessing_result.is_low_quality
             quality_scores = preprocessing_result.quality_scores
+
+        # -----------------------------
+        # Sprint 3: Document Type Identification
+        # -----------------------------
+        document_classification = self.document_identifier.identify(
+            image=processed_bytes,
+            file_bytes=file_bytes,
+            mime_type=file.content_type,
+        )
+
+
         try:
-            document = await self.dao.create_document({
-                "id": uuid.uuid4(),
-                "application_id": uuid.UUID(application_id),
-                "document_type": document_type,
-                "file_name": file.filename,
-                "mime_type": file.content_type,
-                "file_size": len(file_bytes),
-                "content": file_bytes,
-                "is_low_quality": is_low_quality,
-                "quality_metadata": quality_scores,
-            })
+            document = await self.dao.create_document(
+                {
+                    "id": uuid.uuid4(),
+                    "application_id": uuid.UUID(application_id),
+
+                    # Detected document metadata
+                    "document_type": document_classification.document_type,
+                    "document_confidence": document_classification.confidence,
+                    "classification_method": document_classification.method,
+
+                    # File metadata
+                    "file_name": file.filename,
+                    "mime_type": file.content_type,
+                    "file_size": len(file_bytes),
+                    "content": file_bytes,
+
+                    # Quality metadata
+                    "is_low_quality": is_low_quality,
+                    "quality_metadata": quality_scores,
+                }
+            )
 
             await self.db.commit()
             await self.db.refresh(document)
             return document
 
-        except SQLAlchemyError:
+        except SQLAlchemyError as exc:
             await self.db.rollback()
             raise HTTPException(
-                status_code=500,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database error while uploading document",
             ) from exc
 
@@ -122,7 +159,10 @@ class DocumentService:
         if document_type not in DOCUMENT_RULES:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid document_type. Allowed values: {sorted(DOCUMENT_RULES.keys())}",
+                detail=(
+                    f"Invalid document_type. "
+                    f"Allowed values: {sorted(DOCUMENT_RULES.keys())}"
+                ),
             )
         return DOCUMENT_RULES[document_type]
 

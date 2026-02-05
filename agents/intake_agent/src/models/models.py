@@ -5,7 +5,7 @@ import uuid
 import enum
 
 
-from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text,LargeBinary,Enum
+from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, Float, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text,LargeBinary,Enum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from src.utils.migration_database import Base   # <-- import Base
@@ -319,6 +319,17 @@ class PgsqlDocument(Base):
         nullable=False,
     )
 
+    # 🟦 Sprint 3 — Document Type Identification metadata
+    document_confidence: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+    )
+
+    classification_method: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+    )
+
     file_name: Mapped[str] = mapped_column(
         String,
         nullable=False,
@@ -345,11 +356,6 @@ class PgsqlDocument(Base):
         server_default=text("now()"),
     )
 
-    application = relationship(
-        "LoanApplication",
-        back_populates="pgsql_documents",
-        lazy="selectin",
-    )
     is_low_quality: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -359,4 +365,10 @@ class PgsqlDocument(Base):
     quality_metadata: Mapped[dict | None] = mapped_column(
         JSONB,
         nullable=True,
+    )
+
+    application = relationship(
+        "LoanApplication",
+        back_populates="pgsql_documents",
+        lazy="selectin",
     )

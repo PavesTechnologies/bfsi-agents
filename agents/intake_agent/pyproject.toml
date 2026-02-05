@@ -8,7 +8,7 @@ authors = ["Agentic Platform Team"]
 include = "src"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.15"
 fastapi = "^0.110.0"
 uvicorn = "^0.29.0"
 langgraph = "^0.0.40"
@@ -25,6 +25,11 @@ numpy = "^2.4.2"
 opencv-python = "^4.13.0.90"
 python-multipart = "^0.0.22"
 pillow = "^12.1.0"
+transformers = "^5.0.0"
+tokenizers = "^0.22.2"
+torch = "^2.10.0"
+pytesseract = "^0.3.13"
+pdf2image = "^1.17.0"
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"
