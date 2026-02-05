@@ -26,6 +26,7 @@ opencv-python = "^4.13.0.90"
 python-multipart = "^0.0.22"
 pillow = "^12.1.0"
 ollama = "^0.6.1"
+boto3 = "^1.42.42"
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"
