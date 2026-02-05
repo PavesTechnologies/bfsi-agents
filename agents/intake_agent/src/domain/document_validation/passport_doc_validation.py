@@ -7,10 +7,14 @@ from .ocr_text_extraction import ocr_text_extraction_from_image_bytes
 # -------------------------------
 
 def has_passport_number(text):
-    """
-    US passport numbers are typically 9 characters (alphanumeric)
-    """
-    return bool(re.search(r"^[A-Z][0-9]{8}$", text))
+    patterns = [
+        r"\b[A-Z0-9]{9}\b",                 # generic
+        r"\bUSA\s*[A-Z0-9]{8,9}\b",          # USA-prefixed
+        r"\b[A-Z]\d{8}\b",                   # Passport card format
+    ]
+
+    text = text.upper()
+    return any(re.search(p, text) for p in patterns)
 
 def passport_keyword_score(text):
     keywords = [

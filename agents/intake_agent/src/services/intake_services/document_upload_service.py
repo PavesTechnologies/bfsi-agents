@@ -103,10 +103,12 @@ class DocumentService:
             if document_type == "passport":
                 validation_result = passport_validation(processed_bytes)
                 if not validation_result["valid"]:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Passport validation failed: {validation_result['doc_type']} (confidence: {validation_result['confidence']})",
-                    )
+                    validation_result = passport_validation(file_bytes)
+                    if not validation_result["valid"]:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Passport validation failed: {validation_result['doc_type']} (confidence: {validation_result['confidence']})",
+                        )
         try:
             document = await self.dao.create_document({
                 "id": uuid.uuid4(),
