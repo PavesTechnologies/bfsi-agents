@@ -10,14 +10,14 @@ from PIL import Image
 from src.repositories.intake_repo.document_upload_repo import LoanIntakeDAO
 from src.domain.image_processing.preprocessor import preprocess
 
-# Existing validations (KEEP)
+# Keep existing special validations
 from src.domain.document_validation.ssn_card_doc_validation import ssn_card_validation
 from src.domain.document_validation.aws_passport_validation import PassportOCR
 
 # OCR (AWS Textract ONLY)
 from src.domain.ocr.ocr_dispatcher import extract_ocr
 
-# Keyword-based intent validation (NEW)
+# Keyword-based intent validation
 from src.domain.document_validation.keyword_document_validator import (
     KeywordDocumentValidator,
 )
@@ -25,9 +25,8 @@ from src.domain.document_classification.document_type import DocumentType
 
 
 # -----------------------------
-# Document rules (centralized)
+# Document rules (unchanged)
 # -----------------------------
-
 DOCUMENT_RULES = {
     "passport": {
         "mime_types": {"application/pdf", "image/jpeg", "image/png"},
@@ -82,14 +81,17 @@ class DocumentService:
         file: UploadFile,
     ):
         # -----------------------------
-        # Basic validation (unchanged)
+        # Basic validation
         # -----------------------------
         rules = self._validate_document_type(document_type)
         self._validate_mime_type(document_type, file, rules)
 
         file_bytes = await file.read()
         if not file_bytes:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Empty file")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file is empty",
+            )
 
         self._validate_file_size(document_type, file_bytes, rules)
         self._validate_image_resolution_if_needed(
@@ -97,49 +99,35 @@ class DocumentService:
         )
 
         # -----------------------------
-        # Temp file (passport only)
+        # Temp directory
         # -----------------------------
         os.makedirs("temp_files", exist_ok=True)
-        temp_upload = None
+        ext = os.path.splitext(file.filename)[1].lower()
+        temp_path = f"temp_files/upload_{uuid.uuid4().hex}{ext}"
 
-        if document_type == "passport":
-            ext = os.path.splitext(file.filename)[1].lower()
-            temp_upload = f"temp_files/upload_{uuid.uuid4().hex}{ext}"
-
-            with open(temp_upload, "wb") as f:
+        with open(temp_path, "wb") as f:
                 f.write(file_bytes)
 
+        # -----------------------------
+        # Passport MRZ validation
+        # -----------------------------
+        if document_type == "passport":
             passport_ocr = PassportOCR()
-            ocr_result = passport_ocr.process_file(
-                temp_upload,
+            result = passport_ocr.process_file(
+                temp_path,
                 document_type=document_type,
                 application_id=application_id,
             )
-
-            os.remove(temp_upload)
-
-            if ocr_result["status"] != "success":
+            os.remove(temp_path)
+            confidence = result.get("confidence", 0)
+            if result["status"] != "success":
                 raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    f"Passport OCR failed: {ocr_result}",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Passport MRZ validation failed",
                 )
-            os.remove(temp_upload)
-            user_details = ocr_result["mrz_data"]
-            print("[INFO] Extracted Passport MRZ Data:", user_details)
-            
-        # Specific validation for SSN Card
-        if document_type == "ssn_card":
-                validation_result = ssn_card_validation(temp_upload, document_type, application_id)
-                if not validation_result["valid"]:
-                    os.remove(temp_upload)
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"SSN Card validation failed: {validation_result['doc_type']} (confidence: {validation_result['confidence']})",
-                    )
-                os.remove(temp_upload)
-                print("Temp file deleted after SSN validation")  
+
         # -----------------------------
-        # Image preprocessing (unchanged)
+        # Image preprocessing (quality only)
         # -----------------------------
         processed_bytes = file_bytes
         is_low_quality = False
@@ -152,43 +140,56 @@ class DocumentService:
             quality_scores = preprocessing_result.quality_scores
 
         # -----------------------------
-        # OCR + KEYWORD VALIDATION (CORE FIX)
+        # SSN Card validation
         # -----------------------------
-        ocr_result = extract_ocr(
-            file_bytes=file_bytes,
-            mime_type=file.content_type,
-        )
-        
-        expected_type = DocumentType(document_type)
-
-        is_valid, confidence = KeywordDocumentValidator.validate(
-            expected_type=expected_type,
-            ocr_text=ocr_result.full_text,
-        )
-
-        if not is_valid:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Uploaded document does not match expected type "
-                    f"'{document_type}'. Please upload a valid {document_type}."
-                ),
+        if document_type == "ssn_card":
+            validation_result = ssn_card_validation(temp_path,"ssn_card",application_id)
+            os.remove(temp_path)
+            confidence = validation_result.get("confidence", 0)
+            if not validation_result["valid"]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"SSN Card validation failed: "
+                        f"{validation_result['doc_type']} "
+                        f"(confidence: {validation_result['confidence']})"
+                    ),
+                )
+        if document_type not in ["passport", "ssn_card", "drivers_license"]:            
+            # -----------------------------
+            # OCR + KEYWORD INTENT VALIDATION (AUTHORITATIVE)
+            # -----------------------------
+            ocr_result = extract_ocr(
+                file_bytes=file_bytes,
+                mime_type=file.content_type,
             )
 
+            expected_type = DocumentType(document_type)
+
+            is_valid, confidence = KeywordDocumentValidator.validate(
+                expected_type=expected_type,
+                ocr_text=ocr_result.full_text,
+            )
+
+            if not is_valid:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Uploaded document does not match expected type "
+                        f"'{document_type}'. Please upload a valid {document_type}."
+                    ),
+                )
+
         # -----------------------------
-        # Persist ONLY AFTER validation
-        # -----------------------------  
-              
-        if os.path.exists(temp_upload):
-            os.remove(temp_upload)
-            
+        # Persist ONLY AFTER ALL VALIDATIONS
+        # -----------------------------
         try:
             document = await self.dao.create_document(
                 {
                     "id": uuid.uuid4(),
                     "application_id": uuid.UUID(application_id),
 
-                    # SOURCE OF TRUTH = endpoint
+                    # SOURCE OF TRUTH
                     "document_type": document_type,
                     "document_confidence": confidence,
                     "classification_method": "keyword_ocr",
@@ -215,7 +216,7 @@ class DocumentService:
             )
 
     # -----------------------------
-    # Validation helpers (UNCHANGED)
+    # Validation helpers (unchanged)
     # -----------------------------
     def _validate_document_type(self, document_type: str) -> dict:
         if document_type not in DOCUMENT_RULES:
