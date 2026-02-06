@@ -208,12 +208,7 @@ class DocumentService:
                         f"'{document_type}'. Please upload a valid {document_type}."
                     ),
                 )
-        #normalization
        
-        normalizer = DriversLicenseNormalizer()
-        print(f"********************user info: {user_info}")
-        normalized_data = normalizer.normalize(user_info)    
-        print("Normalized Data:", normalized_data)
         
         
         
