@@ -1,20 +1,41 @@
+MANDATORY_KEYWORDS = [
+    "ACCOUNT NUMBER",
+    "STATEMENT PERIOD",
+]
+
+STRONG_KEYWORDS = [
+    "BEGINNING BALANCE",
+    "ENDING BALANCE",
+    "DEPOSITS",
+    "WITHDRAWALS",
+    "DAILY BALANCE",
+    "INTEREST EARNED",
+]
+
+NEGATIVE_KEYWORDS = [
+    "W-2",
+    "PAY PERIOD",
+    "GROSS PAY",
+    "NET PAY",
+    "SOCIAL SECURITY",
+]
+
+
 def match(text: str, ocr_blocks=None) -> float:
     if not text:
         return 0.0
 
-    text = text.upper()
-    score = 0.0
+    t = text.upper()
 
-    if "BANK STATEMENT" in text:
-        score += 0.4
+    if any(n in t for n in NEGATIVE_KEYWORDS):
+        return 0.0
 
-    if "BEGINNING BALANCE" in text:
-        score += 0.3
+    mandatory_hits = sum(1 for k in MANDATORY_KEYWORDS if k in t)
+    strong_hits = sum(1 for k in STRONG_KEYWORDS if k in t)
 
-    if "ENDING BALANCE" in text:
-        score += 0.3
+    if mandatory_hits == len(MANDATORY_KEYWORDS) and strong_hits >= 3:
+        return 0.95
+    if mandatory_hits >= 1 and strong_hits >= 2:
+        return 0.85
 
-    if "ACCOUNT NUMBER" in text:
-        score += 0.2
-
-    return min(score, 1.0)
+    return 0.0

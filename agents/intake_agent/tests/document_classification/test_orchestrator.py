@@ -1,4 +1,5 @@
 from src.domain.document_classification.orchestrator import DocumentTypeIdentifier
+import src.domain.document_classification.orchestrator as orchestrator_mod
 from src.domain.document_classification.document_type import DocumentType
 from src.domain.document_classification.classification_result import (
     DocumentClassificationResult
@@ -14,13 +15,20 @@ class MockMLClassifier:
         )
 
 
+class MockVisionValidator:
+    def validate(self, file_bytes: bytes) -> float:
+        return 1.0
+
+
 def test_orchestrator_fallback_to_ml():
-    identifier = DocumentTypeIdentifier(ml_classifier=MockMLClassifier())
+    # stub OCR to avoid AWS call
+    orchestrator_mod.extract_ocr_from_bytes = lambda b: type("R", (), {"full_text": "random unrelated text", "blocks": []})()
+
+    identifier = DocumentTypeIdentifier(ml_classifier=MockMLClassifier(), vision_validator=MockVisionValidator())
 
     result = identifier.identify(
-        image=None,
-        text="random unrelated text",
-        ocr_blocks=None,
+        file_bytes=b"",
+        image_size=(1000, 2000),
     )
 
     assert result.document_type == DocumentType.PASSPORT
