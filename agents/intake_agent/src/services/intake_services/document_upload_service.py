@@ -128,6 +128,10 @@ class DocumentService:
                 )
             user_info=validation_result.get("extracted_fields", {})
             print(f"Extracted DL info: {user_info}")
+            normalizer = DriversLicenseNormalizer()
+            print(f"********************user info: {user_info}")
+            normalized_data = normalizer.normalize(user_info)    
+            print("Normalized Data:", normalized_data)
         # -----------------------------
         # Passport MRZ validation
         # -----------------------------
@@ -202,19 +206,10 @@ class DocumentService:
                     ),
                 )
         #normalization
-        user_details = {
-    "full_name": "John A. Doe",
-    "dob": "1992-04-18",
-    "license_number": "d123-456-789",
-    "address_line1": "123 Main Street",
-    "city": "San Jose",
-    "state": "ca",
-    "zip": "95112-1234",
-    "expiry_date": "2028-04-18",
-    "issuing_state": "California",
-}
+       
         normalizer = DriversLicenseNormalizer()
-        normalized_data = normalizer.normalize(user_details)    
+        print(f"********************user info: {user_info}")
+        normalized_data = normalizer.normalize(user_info)    
         print("Normalized Data:", normalized_data)
         
         
