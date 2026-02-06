@@ -3,7 +3,8 @@ import base64
 import time
 from ollama import chat
 import re
-from .ocr_text_extraction import ocr_text_extraction_from_image_bytes
+# from .ocr_text_extraction import ocr_text_extraction_from_image_bytes
+from .aws_text_extraction import AWSOCR
 def has_ssn_number(text):
     """Check SSN number format"""
     return bool(re.search(r"\b\d{3}-\d{2}-\d{4}\b", text))
@@ -62,13 +63,21 @@ def validate_ssn(text):
 # OCR + Validation Pipeline
 # -------------------------------
 
-def ssn_card_validation(processed_image_bytes):
+def ssn_card_validation(file,document_type, application_id):
+    
+    # -------------------------------
+    # OCR + Validation Pipeline
+    # -------------------------------
+
+    SSN_ocr = AWSOCR()
     
     print("Starting SSN Card Validation Pipeline...")
-    ocr_text = ocr_text_extraction_from_image_bytes(processed_image_bytes)
+    ocr_text = SSN_ocr.process_file(file, document_type, application_id)
+    
+    text=" ".join(ocr_text["lines"]) if ocr_text["status"] == "success" else ""
+    
     # Validate SSN
-    result = validate_ssn(ocr_text)
-
+    result = validate_ssn(text)
     # -------------------------------
     # Final Output
     # -------------------------------
