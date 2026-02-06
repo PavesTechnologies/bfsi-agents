@@ -186,6 +186,9 @@ class DocumentService:
                 ocr_text=ocr_result.full_text,
             )
 
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+                
             if not is_valid:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
