@@ -177,7 +177,9 @@ class DocumentService:
 
         # -----------------------------
         # Persist ONLY AFTER validation
-        # -----------------------------        if os.path.exists(temp_upload):
+        # -----------------------------  
+              
+        if os.path.exists(temp_upload):
             os.remove(temp_upload)
             
         try:
