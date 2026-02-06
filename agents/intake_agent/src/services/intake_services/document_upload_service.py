@@ -13,6 +13,7 @@ from src.domain.image_processing.preprocessor import preprocess
 # Keep existing special validations
 from src.domain.document_validation.ssn_card_doc_validation import ssn_card_validation
 from src.domain.document_validation.aws_passport_validation import PassportOCR
+from src.domain.document_validation.usa_driving_licence_validation import process_single_dl
 
 # OCR (AWS Textract ONLY)
 from src.domain.ocr.ocr_dispatcher import extract_ocr
@@ -113,6 +114,20 @@ class DocumentService:
         with open(temp_path, "wb") as f:
                 f.write(file_bytes)
 
+        if document_type == "drivers_license":
+            validation_result = process_single_dl(temp_path)
+            os.remove(temp_path)
+            confidence = validation_result.get("confidence_score", 0)
+            if not validation_result.get("valid", False):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Driver's License validation failed: "
+                        f"{validation_result.get('doc_type', 'INVALID')} "
+                    ),
+                )
+            user_info=validation_result.get("extracted_fields", {})
+            print(f"Extracted DL info: {user_info}")
         # -----------------------------
         # Passport MRZ validation
         # -----------------------------
@@ -130,7 +145,7 @@ class DocumentService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Passport MRZ validation failed",
                 )
-
+            print(f"Extracted MRZ data: {result.get('mrz_data', {})}")
         # -----------------------------
         # Image preprocessing (quality only)
         # -----------------------------
