@@ -13,6 +13,7 @@ from src.domain.image_processing.preprocessor import preprocess
 # Keep existing special validations
 from src.domain.document_validation.ssn_card_doc_validation import ssn_card_validation
 from src.domain.document_validation.aws_passport_validation import PassportOCR
+from src.domain.document_validation.usa_driving_licence_validation import process_single_dl
 
 # OCR (AWS Textract ONLY)
 from src.domain.ocr.ocr_dispatcher import extract_ocr
@@ -23,28 +24,32 @@ from src.domain.document_validation.keyword_document_validator import (
 )
 from src.domain.document_classification.document_type import DocumentType
 
+from src.domain.normalization.drivers_license import DriversLicenseNormalizer
+
+
 
 # -----------------------------
 # Document rules (unchanged)
 # -----------------------------
 DOCUMENT_RULES = {
     "passport": {
-        "mime_types": {"application/pdf", "image/jpeg", "image/png"},
+        "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 5,
         "max_resolution": (5000, 5000),
     },
     "drivers_license": {
-        "mime_types": {"image/jpeg", "image/png"},
+        "mime_types": {"image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 3,
         "max_resolution": (4000, 4000),
     },
     "state_id": {
-        "mime_types": {"image/jpeg", "image/png"},
+        "mime_types": {"image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 3,
         "max_resolution": (4000, 4000),
     },
+
     "ssn_card": {
-        "mime_types": {"application/pdf", "image/jpeg", "image/png"},
+        "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 2,
         "max_resolution": (3000, 3000),
     },
@@ -57,12 +62,12 @@ DOCUMENT_RULES = {
         "max_size_mb": 5,
     },
     "photo": {
-        "mime_types": {"image/jpeg", "image/png"},
+        "mime_types": {"image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 2,
         "max_resolution": (3000, 3000),
     },
     "w2": {
-        "mime_types": {"application/pdf", "image/jpeg", "image/png"},
+        "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 5,
         "max_resolution": (4000, 4000),
     },
@@ -85,6 +90,7 @@ class DocumentService:
         # -----------------------------
         rules = self._validate_document_type(document_type)
         self._validate_mime_type(document_type, file, rules)
+        print(f"File '{file.filename}' passed basic validation for {document_type}")
 
         file_bytes = await file.read()
         if not file_bytes:
@@ -108,6 +114,24 @@ class DocumentService:
         with open(temp_path, "wb") as f:
                 f.write(file_bytes)
 
+        if document_type == "drivers_license":
+            validation_result = process_single_dl(temp_path)
+            os.remove(temp_path)
+            confidence = validation_result.get("confidence_score", 0)
+            if not validation_result.get("valid", False):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Driver's License validation failed: "
+                        f"{validation_result.get('doc_type', 'INVALID')} "
+                    ),
+                )
+            user_info=validation_result.get("extracted_fields", {})
+            print(f"Extracted DL info: {user_info}")
+            normalizer = DriversLicenseNormalizer()
+            print(f"********************user info: {user_info}")
+            normalized_data = normalizer.normalize(user_info)    
+            print("Normalized Data:", normalized_data)
         # -----------------------------
         # Passport MRZ validation
         # -----------------------------
@@ -125,7 +149,7 @@ class DocumentService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Passport MRZ validation failed",
                 )
-
+            print(f"Extracted MRZ data: {result.get('mrz_data', {})}")
         # -----------------------------
         # Image preprocessing (quality only)
         # -----------------------------
@@ -163,14 +187,19 @@ class DocumentService:
                 file_bytes=file_bytes,
                 mime_type=file.content_type,
             )
-
+            print(f"***********ocr result: {ocr_result.full_text}")
             expected_type = DocumentType(document_type)
+           
+
 
             is_valid, confidence = KeywordDocumentValidator.validate(
                 expected_type=expected_type,
                 ocr_text=ocr_result.full_text,
             )
 
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+                
             if not is_valid:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -179,6 +208,15 @@ class DocumentService:
                         f"'{document_type}'. Please upload a valid {document_type}."
                     ),
                 )
+        #normalization
+       
+        normalizer = DriversLicenseNormalizer()
+        print(f"********************user info: {user_info}")
+        normalized_data = normalizer.normalize(user_info)    
+        print("Normalized Data:", normalized_data)
+        
+        
+        
 
         # -----------------------------
         # Persist ONLY AFTER ALL VALIDATIONS
@@ -220,6 +258,7 @@ class DocumentService:
     # -----------------------------
     def _validate_document_type(self, document_type: str) -> dict:
         if document_type not in DOCUMENT_RULES:
+           
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=(
