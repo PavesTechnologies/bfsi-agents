@@ -10,11 +10,19 @@ from PIL import Image
 from src.repositories.intake_repo.document_upload_repo import LoanIntakeDAO
 from src.domain.image_processing.preprocessor import preprocess
 
-# Sprint 3 – Document Type Identification
-from src.domain.document_classification.orchestrator import DocumentTypeIdentifier
-from src.domain.document_classification.ml.layoutlm_classifier import LayoutLMClassifier
+# Existing validations (KEEP)
 from src.domain.document_validation.ssn_card_doc_validation import ssn_card_validation
 from src.domain.document_validation.aws_passport_validation import PassportOCR
+
+# OCR (AWS Textract ONLY)
+from src.domain.ocr.ocr_dispatcher import extract_ocr
+
+# Keyword-based intent validation (NEW)
+from src.domain.document_validation.keyword_document_validator import (
+    KeywordDocumentValidator,
+)
+from src.domain.document_classification.document_type import DocumentType
+
 
 # -----------------------------
 # Document rules (centralized)
@@ -41,15 +49,6 @@ DOCUMENT_RULES = {
         "max_size_mb": 2,
         "max_resolution": (3000, 3000),
     },
-    "visa": {
-        "mime_types": {"application/pdf", "image/jpeg", "image/png"},
-        "max_size_mb": 5,
-        "max_resolution": (5000, 5000),
-    },
-    "i94": {
-        "mime_types": {"application/pdf"},
-        "max_size_mb": 2,
-    },
     "bank_statement": {
         "mime_types": {"application/pdf"},
         "max_size_mb": 10,
@@ -63,6 +62,11 @@ DOCUMENT_RULES = {
         "max_size_mb": 2,
         "max_resolution": (3000, 3000),
     },
+    "w2": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png"},
+        "max_size_mb": 5,
+        "max_resolution": (4000, 4000),
+    },
 }
 
 
@@ -71,11 +75,6 @@ class DocumentService:
         self.db = db
         self.dao = LoanIntakeDAO(db)
 
-        # Sprint 3: document type identifier (rule-based + ML fallback)
-        self.document_identifier = DocumentTypeIdentifier(
-            ml_classifier=LayoutLMClassifier()
-        )
-
     async def upload_document(
         self,
         application_id: str,
@@ -83,105 +82,116 @@ class DocumentService:
         file: UploadFile,
     ):
         # -----------------------------
-        # Validation
+        # Basic validation (unchanged)
         # -----------------------------
         rules = self._validate_document_type(document_type)
         self._validate_mime_type(document_type, file, rules)
 
         file_bytes = await file.read()
-        
         if not file_bytes:
-            raise HTTPException(400, "Empty file")
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Empty file")
 
         self._validate_file_size(document_type, file_bytes, rules)
         self._validate_image_resolution_if_needed(
             document_type, file, file_bytes, rules
         )
-        
-        # ----------------------------
-        # Create Temp Dir
-        # ----------------------------
+
+        # -----------------------------
+        # Temp file (passport only)
+        # -----------------------------
         os.makedirs("temp_files", exist_ok=True)
+        temp_upload = None
 
-        ext = os.path.splitext(file.filename)[1].lower()
+        if document_type == "passport":
+            ext = os.path.splitext(file.filename)[1].lower()
+            temp_upload = f"temp_files/upload_{uuid.uuid4().hex}{ext}"
 
-        temp_upload = f"temp_files/upload_{uuid.uuid4().hex}{ext}"
-        
-        print("[INFO] Saving temp upload to:", temp_upload)
-        with open(temp_upload, "wb") as f:
-            f.write(file_bytes)
-        
-        passport_ocr = PassportOCR()
-        
+            with open(temp_upload, "wb") as f:
+                f.write(file_bytes)
 
+            passport_ocr = PassportOCR()
+            ocr_result = passport_ocr.process_file(
+                temp_upload,
+                document_type=document_type,
+                application_id=application_id,
+            )
+
+            os.remove(temp_upload)
+
+            if ocr_result["status"] != "success":
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    f"Passport OCR failed: {ocr_result}",
+                )
+
+        # -----------------------------
+        # Image preprocessing (unchanged)
+        # -----------------------------
         processed_bytes = file_bytes
         is_low_quality = False
         quality_scores = None
 
-        if document_type == "passport":
-
-            ocr_result = passport_ocr.process_file(
-                temp_upload,
-                document_type=document_type,
-                application_id=application_id
-            )
-
-            if ocr_result["status"] != "success":
-                os.remove(temp_upload)
-                raise HTTPException(
-                    400,
-                    f"OCR failed: {ocr_result}"
-                )
-            os.remove(temp_upload)
-            user_details = ocr_result["mrz_data"]
-            print("[INFO] Extracted Passport MRZ Data:", user_details)
-            
-        # -----------------------------
-        # Image preprocessing
-        # -----------------------------
         if file.content_type.startswith("image/"):
             preprocessing_result = preprocess(file_bytes)
-
             processed_bytes = preprocessing_result.processed_image
             is_low_quality = preprocessing_result.is_low_quality
             quality_scores = preprocessing_result.quality_scores
-            
-            # Specific validation for SSN Card
+
             if document_type == "ssn_card":
                 validation_result = ssn_card_validation(processed_bytes)
                 if not validation_result["valid"]:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"SSN Card validation failed: {validation_result['doc_type']} (confidence: {validation_result['confidence']})",
+                        detail=(
+                            f"SSN Card validation failed: "
+                            f"{validation_result['doc_type']} "
+                            f"(confidence: {validation_result['confidence']})"
+                        ),
                     )
 
         # -----------------------------
-        # Sprint 3: Document Type Identification
+        # OCR + KEYWORD VALIDATION (CORE FIX)
         # -----------------------------
-        document_classification = self.document_identifier.identify(
+        ocr_result = extract_ocr(
             file_bytes=file_bytes,
             mime_type=file.content_type,
         )
 
+        expected_type = DocumentType(document_type)
 
+        is_valid, confidence = KeywordDocumentValidator.validate(
+            expected_type=expected_type,
+            ocr_text=ocr_result.full_text,
+        )
+
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Uploaded document does not match expected type "
+                    f"'{document_type}'. Please upload a valid {document_type}."
+                ),
+            )
+
+        # -----------------------------
+        # Persist ONLY AFTER validation
+        # -----------------------------
         try:
             document = await self.dao.create_document(
                 {
                     "id": uuid.uuid4(),
                     "application_id": uuid.UUID(application_id),
 
-                    # Detected document metadata
-                    "document_type": document_classification.document_type,
-                    "document_confidence": document_classification.confidence,
-                    "classification_method": document_classification.method,
+                    # SOURCE OF TRUTH = endpoint
+                    "document_type": document_type,
+                    "document_confidence": confidence,
+                    "classification_method": "keyword_ocr",
 
-                    # File metadata
                     "file_name": file.filename,
                     "mime_type": file.content_type,
                     "file_size": len(file_bytes),
                     "content": file_bytes,
 
-                    # Quality metadata
                     "is_low_quality": is_low_quality,
                     "quality_metadata": quality_scores,
                 }
@@ -191,7 +201,7 @@ class DocumentService:
             await self.db.refresh(document)
             return document
 
-        except SQLAlchemyError as exc:
+        except SQLAlchemyError:
             await self.db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -199,9 +209,8 @@ class DocumentService:
             )
 
     # -----------------------------
-    # Validation helpers
+    # Validation helpers (UNCHANGED)
     # -----------------------------
-
     def _validate_document_type(self, document_type: str) -> dict:
         if document_type not in DOCUMENT_RULES:
             raise HTTPException(
@@ -234,14 +243,7 @@ class DocumentService:
         file_bytes: bytes,
         rules: dict,
     ):
-        if not file_bytes:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Uploaded file is empty",
-            )
-
         max_size_bytes = rules["max_size_mb"] * 1024 * 1024
-
         if len(file_bytes) > max_size_bytes:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -260,7 +262,6 @@ class DocumentService:
     ):
         if not file.content_type.startswith("image/"):
             return
-
         if "max_resolution" not in rules:
             return
 
@@ -277,7 +278,6 @@ class DocumentService:
                         f"maximum allowed {max_w}x{max_h}"
                     ),
                 )
-
         except HTTPException:
             raise
         except Exception:

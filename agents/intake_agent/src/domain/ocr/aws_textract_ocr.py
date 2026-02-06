@@ -1,44 +1,64 @@
 import boto3
-from dataclasses import dataclass
-from typing import List, Dict
+from typing import Union
+from PIL import Image
+import io
 
+from src.domain.ocr.ocr_types import OCRResult, OCRBlock
 
-@dataclass
-class OCRBlock:
-    text: str
-    bbox: Dict[str, float]   # normalized bbox from Textract
-
-
-@dataclass
-class OCRResult:
-    full_text: str
-    blocks: List[OCRBlock]
-
-
+# Create Textract client once
 _textract = boto3.client("textract")
 
 
-def extract_ocr_from_bytes(file_bytes: bytes) -> OCRResult:
+def extract_ocr(image_or_bytes: Union[bytes, Image.Image]) -> OCRResult:
     """
     AWS Textract OCR for images (JPEG / PNG).
-    Uses DetectDocumentText.
+
+    Accepts:
+    - raw image bytes
+    - PIL Image
+
+    Returns:
+    - OCRResult(full_text, blocks)
     """
 
+    # -----------------------------
+    # Normalize input to bytes
+    # -----------------------------
+    if isinstance(image_or_bytes, Image.Image):
+        buf = io.BytesIO()
+        image_or_bytes.save(buf, format="JPEG")
+        image_bytes = buf.getvalue()
+    else:
+        image_bytes = image_or_bytes
+
+    # -----------------------------
+    # Call Textract
+    # -----------------------------
     response = _textract.detect_document_text(
-        Document={"Bytes": file_bytes}
+        Document={"Bytes": image_bytes}
     )
 
-    blocks = []
-    texts = []
+    blocks: list[OCRBlock] = []
+    text_parts: list[str] = []
 
+    # -----------------------------
+    # Parse LINE blocks (not WORD)
+    # -----------------------------
     for block in response.get("Blocks", []):
-        if block["BlockType"] != "WORD":
+        if block.get("BlockType") != "LINE":
             continue
 
-        text = block.get("Text", "")
-        bbox = block.get("Geometry", {}).get("BoundingBox", {})
+        text = block.get("Text", "").strip()
+        confidence = block.get("Confidence", 0.0)
 
-        texts.append(text)
+        geometry = block.get("Geometry", {})
+        bbox = geometry.get("BoundingBox", {})
+
+        if not text:
+            continue
+
+        text_parts.append(text)
+
         blocks.append(
             OCRBlock(
                 text=text,
@@ -48,10 +68,18 @@ def extract_ocr_from_bytes(file_bytes: bytes) -> OCRResult:
                     "width": bbox.get("Width", 0.0),
                     "height": bbox.get("Height", 0.0),
                 },
+                confidence=confidence,
             )
         )
 
     return OCRResult(
-        full_text=" ".join(texts),
+        full_text=" ".join(text_parts),
         blocks=blocks,
     )
+
+
+def extract_ocr_from_bytes(image_bytes: bytes) -> OCRResult:
+    """
+    Backwards-compatible wrapper accepting raw image bytes.
+    """
+    return extract_ocr(image_bytes)
