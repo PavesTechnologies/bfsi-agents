@@ -209,10 +209,6 @@ class DocumentService:
                     ),
                 )
        
-        
-        
-        
-
         # -----------------------------
         # Persist ONLY AFTER ALL VALIDATIONS
         # -----------------------------
