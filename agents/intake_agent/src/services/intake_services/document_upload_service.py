@@ -36,6 +36,7 @@ DOCUMENT_RULES = {
         "max_size_mb": 3,
         "max_resolution": (4000, 4000),
     },
+
     "ssn_card": {
         "mime_types": {"application/pdf", "image/jpeg", "image/png"},
         "max_size_mb": 2,
@@ -62,6 +63,11 @@ DOCUMENT_RULES = {
         "mime_types": {"image/jpeg", "image/png"},
         "max_size_mb": 2,
         "max_resolution": (3000, 3000),
+    },
+    "w2": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png"},
+        "max_size_mb": 5,
+        "max_resolution": (4000, 4000),
     },
 }
 
