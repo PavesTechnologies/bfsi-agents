@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     DB_DRIVER: str = Field(..., alias="DB_DRIVER")
     database_url: str = Field(..., alias="DATABASE_URL")
     DATABASE_URL_SYNC: str = Field(..., alias="DATABASE_URL_SYNC")
+    BARCODE_LICENSE_KEY: str = Field(..., alias="BARCODE_LICENSE_KEY")
 
     model_config = {
         "case_sensitive": True,

@@ -140,6 +140,32 @@ class PassportOCR:
                 return True
 
         return False
+        # ---------------------------------------
+    # Confidence Scoring (MRZ-first)
+    # ---------------------------------------
+    def calculate_confidence(self, lines, mrz_data):
+
+        # 1️⃣ Strongest signal: MRZ success
+        if mrz_data:
+            base_score = 0.9
+
+            # Small reinforcement from OCR keywords
+            if self.is_passport_document(lines):
+                base_score += 0.05
+
+            return round(min(base_score, 1.0), 3)
+
+        # 2️⃣ No MRZ → fallback logic (weak)
+        score = 0.0
+
+        if self.is_passport_document(lines):
+            score += 0.5
+
+        passport_no = self.extract_passport_number(lines)
+        if passport_no:
+            score += 0.3
+
+        return round(min(score, 0.7), 3)
 
     # ---------------------------------------
     # Find Passport Number
@@ -341,6 +367,11 @@ class PassportOCR:
         # ----------------------------
 
         try:
+            confidence = self.calculate_confidence(
+                lines=lines,
+                mrz_data=mrz_data
+            )
+
             os.remove(temp_file)
             print("[INFO] Temp file deleted")
         except:
@@ -354,5 +385,6 @@ class PassportOCR:
             "status": "success",
             "s3_file": filename,
             "passport_number": passport_no,
-            "mrz_data": mrz_data
+            "mrz_data": mrz_data,
+            "confidence": confidence
         }
