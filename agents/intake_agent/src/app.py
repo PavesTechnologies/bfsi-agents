@@ -18,7 +18,7 @@ from src.api.v1.enrichment_routes import (
     phone_router,
     email_router,
 )
-
+from src.api.v1.human_in_loop import human_in_loop_routes
 
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ def create_app() -> FastAPI:
     app.include_router(employer_router)
     app.include_router(phone_router)
     app.include_router(email_router)
-    
+    app.include_router(human_in_loop_routes.router)
 
     # -------------------------
     # LIFECYCLE EVENTS

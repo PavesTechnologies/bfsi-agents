@@ -30,7 +30,7 @@ from fastapi import HTTPException
 from src.utils.validation.blocking_aggregator import (
     validate_all_applicants_blocking)
 
-
+from src.models.enums import ApplicantStatus
 class LoanIntakeService:
     
     def __init__(self, db: AsyncSession):
@@ -63,7 +63,7 @@ class LoanIntakeService:
                 "requested_term_months": request.requested_term_months,
                 "preferred_payment_day": request.preferred_payment_day,
                 "origination_channel": request.origination_channel,
-                "application_status": "submitted"
+                "application_status": ApplicantStatus.SUBMITTED
             })
 
             # 🔹 ADDITION: collect validation issues
