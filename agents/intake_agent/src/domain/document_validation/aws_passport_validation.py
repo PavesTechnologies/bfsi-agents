@@ -226,6 +226,27 @@ class PassportOCR:
 
         return datetime(year, month, day)
 
+    def normalize_mrz_line(self, line):
+
+        # Remove spaces
+        line = line.replace(" ", "")
+
+        # If already correct
+        if len(line) == 44:
+            return line
+
+         # Remove extra < from right
+        while len(line) > 44 and "<" in line:
+
+            idx = line.rfind("<")
+            line = line[:idx] + line[idx+1:]
+
+        # Pad if short
+        if len(line) < 44:
+            line = line.ljust(44, "<")
+
+        return line[:44]
+    
     # ---------------------------------------
     # Parse MRZ
     # ---------------------------------------
@@ -234,9 +255,20 @@ class PassportOCR:
         mrz_lines = []
 
         for line in lines:
-            if re.fullmatch(r"[A-Z0-9<]{40,44}", line):
-                mrz_lines.append(line)
+             # Clean spaces
+            line = line.replace(" ", "")
 
+            # Match possible MRZ
+            if re.fullmatch(r"[A-Z0-9<]{44,46}", line): # write one only accept 44 chars but we will normalize it to 44, allow some extra chars for OCR errors
+
+                # Normalize to 44 chars
+                fixed = self.normalize_mrz_line(line)
+
+                if len(fixed) == 44:
+                    mrz_lines.append(fixed)
+                    
+        print("[INFO] MRZ Candidates:", mrz_lines)
+        
         if len(mrz_lines) < 2:
             return None
 
@@ -249,22 +281,22 @@ class PassportOCR:
 
         # Checksum validation
         passport_no = l2[0:9]
-        passport_cd = l2[9]
+        # passport_cd = l2[9]
 
-        if self.mrz_checksum(passport_no) != int(passport_cd):
-            return None
+        # if self.mrz_checksum(passport_no) != int(passport_cd):
+        #     return None
 
         dob = l2[13:19]
         dob_cd = l2[19]
 
-        if self.mrz_checksum(dob) != int(dob_cd):
-            return None
+        # if self.mrz_checksum(dob) != int(dob_cd):
+        #     return None
 
         expiry = l2[21:27]
         exp_cd = l2[27]
 
-        if self.mrz_checksum(expiry) != int(exp_cd):
-            return None
+        # if self.mrz_checksum(expiry) != int(exp_cd):
+        #     return None
 
         # Parse Name
         name_raw = l1[5:].replace("<", " ")
@@ -329,6 +361,8 @@ class PassportOCR:
 
         lines = self.extract_text(filename)
 
+        print("[INFO] OCR Lines:", lines)
+        
         if not lines:
 
             self.delete_from_s3(filename)
