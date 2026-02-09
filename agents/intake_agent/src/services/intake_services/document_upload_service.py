@@ -129,7 +129,6 @@ class DocumentService:
             user_info=validation_result.get("extracted_fields", {})
             print(f"Extracted DL info: {user_info}")
             normalizer = DriversLicenseNormalizer()
-            print(f"********************user info: {user_info}")
             normalized_data = normalizer.normalize(user_info)    
             print("Normalized Data:", normalized_data)
         # -----------------------------
@@ -179,6 +178,10 @@ class DocumentService:
                         f"(confidence: {validation_result['confidence']})"
                     ),
                 )
+            else :
+                return
+
+            
         if document_type not in ["passport", "ssn_card", "drivers_license"]:            
             # -----------------------------
             # OCR + KEYWORD INTENT VALIDATION (AUTHORITATIVE)
