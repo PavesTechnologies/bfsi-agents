@@ -109,6 +109,8 @@ class LoanIntakeService:
                     "itin_number": applicant.itin_number,
                     "citizenship_status": applicant.citizenship_status,
                     "email": applicant.email,
+                    "phone_number": applicant.phone_number,
+                    "gender": applicant.gender,
                 })
 
                 # ==================================================

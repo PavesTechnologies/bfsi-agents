@@ -7,7 +7,7 @@ from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTim
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from src.utils.migration_database import Base   # <-- import Base
-from src.models.enums import ApplicantStatus  # adjust import path
+from src.models.enums import ApplicantStatus,Gender  # adjust import path
 
 if TYPE_CHECKING:
     from src.models.human_in_loop import HumanReview
@@ -129,8 +129,9 @@ class Applicant(Base):
     ssn_last4: Mapped[Optional[str]] = mapped_column(CHAR(4))
     itin_number: Mapped[Optional[str]] = mapped_column(String(15))
     citizenship_status: Mapped[Optional[str]] = mapped_column(String(30))
+    phone_number: Mapped[str] = mapped_column(String(20),nullable=False)
+    gender: Mapped[Gender] = mapped_column(Enum(Gender, name="gender_enum"),nullable=False,)
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
-
     application: Mapped['LoanApplication'] = relationship('LoanApplication', back_populates='applicant', lazy="selectin")
     address: Mapped[list['Address']] = relationship('Address', back_populates='applicant', lazy="selectin")
     asset: Mapped[list['Asset']] = relationship('Asset', back_populates='applicant', lazy="selectin")
