@@ -1,9 +1,9 @@
 import logging
 from fastapi import FastAPI, Request
-
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from src.core.logging import setup_logging, request_id_ctx
 
+from src.core.logging import setup_logging, request_id_ctx
 from src.api.v1.routes import router
 from src.core.database import engine
 from src.models.models import Base
@@ -34,6 +34,20 @@ def create_app() -> FastAPI:
         version="0.1.0",
     )
 
+    # ✅ ADD CORS HERE (THIS IS THE PLACE)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:5173",  # Vite dev
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],        # enables OPTIONS
+        allow_headers=["*"],
+    )
+
+    # -------------------------
+    # Exception handling
+    # -------------------------
     @app.exception_handler(BaseAgentException)
     async def base_agent_exception_handler(
         request: Request,
@@ -49,8 +63,10 @@ def create_app() -> FastAPI:
                 "request_id": request_id_ctx.get(),
             },
         )
-    
-    
+
+    # -------------------------
+    # Routers
+    # -------------------------
     app.include_router(router)
     app.include_router(health_router)
     app.include_router(loan_intake_routes.router)
@@ -64,7 +80,7 @@ def create_app() -> FastAPI:
     app.include_router(loan_query_routes.router)
     
     # -------------------------
-    # LIFECYCLE EVENTS
+    # Lifecycle events
     # -------------------------
     @app.on_event("startup")
     async def startup_event():

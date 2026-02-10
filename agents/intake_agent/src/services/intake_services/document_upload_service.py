@@ -2,6 +2,7 @@ import os
 import uuid
 from io import BytesIO
 
+
 from fastapi import UploadFile, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
@@ -27,6 +28,8 @@ from src.domain.document_validation.keyword_document_validator import (
 from src.domain.document_classification.document_type import DocumentType
 
 from src.domain.normalization.drivers_license import DriversLicenseNormalizer
+from src.domain.normalization.passport import PassportNormalizer
+
 from src.services.cross_validation_service import CrossValidationService
 
 
@@ -134,8 +137,8 @@ class DocumentService:
             user_info=validation_result.get("extracted_fields", {})
             print(f"Extracted DL info: {user_info}")
             normalizer = DriversLicenseNormalizer()
-            print(f"********************user info: {user_info}")
             normalized_data = normalizer.normalize(user_info)    
+            print("drivers Normalized Data:", normalized_data)
             print("Normalized Data:", normalized_data)
 
             cross_validator = CrossValidationService(
@@ -184,6 +187,10 @@ class DocumentService:
                     detail="Passport MRZ validation failed",
                 )
             print(f"Extracted MRZ data: {result.get('mrz_data', {})}")
+            normalizer = PassportNormalizer()
+            mrz_normalized_data = normalizer.normalize(result.get("mrz_data", {}))
+
+            print("new Normalized Data:", mrz_normalized_data)
 
             cross_validator = CrossValidationService(
                 self.applicant_dao,
@@ -238,6 +245,10 @@ class DocumentService:
                         f"(confidence: {validation_result['confidence']})"
                     ),
                 )
+            else :
+                return
+
+            
         if document_type not in ["passport", "ssn_card", "drivers_license"]:            
             # -----------------------------
             # OCR + KEYWORD INTENT VALIDATION (AUTHORITATIVE)

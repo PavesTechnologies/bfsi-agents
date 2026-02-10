@@ -1,4 +1,5 @@
 import re
+from enum import Enum
 
 NAME_REGEX = re.compile(r"^[A-Za-z\s\-']{1,50}$")
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -22,3 +23,10 @@ EMPLOYMENT_TYPES = {
     "retired",
     "unemployed"
 }
+
+class ApplicantStatusEnum(str, Enum):
+    SUBMITTED = "submitted"
+    IN_PROGRESS = "in_progress"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+

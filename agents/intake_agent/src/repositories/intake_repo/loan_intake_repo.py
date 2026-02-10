@@ -7,6 +7,7 @@ from src.models.models import Income
 from src.models.models import Asset
 from src.models.models import Liability
 from src.models.models import Document
+from src.domain.validation.constants import ApplicantStatusEnum
 
 
 class LoanIntakeDAO:
@@ -19,10 +20,15 @@ class LoanIntakeDAO:
         self.db = db
 
     async def create_loan_application(self, loan_data: dict) -> LoanApplication:
+        if isinstance(loan_data.get("application_status"), str):
+            loan_data["application_status"] = ApplicantStatusEnum(
+            loan_data["application_status"]
+        )
         loan = LoanApplication(**loan_data)
         self.db.add(loan)
         await self.db.flush()
         return loan
+
 
     async def create_applicant(self, applicant_data: dict) -> Applicant:
         applicant = Applicant(**applicant_data)
