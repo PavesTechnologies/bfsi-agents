@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from PIL import Image
 
+from src.repositories.intake_repo.address_repo import AddressDAO
+from src.repositories.intake_repo.applicant_repo import ApplicantDAO
 from src.services.idempotency_guard import IdempotencyGuard
 from src.repositories.idempotency_repository import IdempotencyRepository
 from src.utils.hash import stable_bytes_hash
@@ -126,6 +128,7 @@ class DocumentService:
                 document_type=document_type,
                 file=file,
                 file_bytes=file_bytes,
+                synthetic_request_id=synthetic_request_id,
             )
 
         return await guard.execute(
@@ -148,9 +151,11 @@ class DocumentService:
         document_type: str,
         file: UploadFile,
         file_bytes: bytes,
+        synthetic_request_id: uuid.UUID,
     ):
         temp_path = None
 
+        
         try:
             # -----------------------------
             # Basic validation
@@ -267,27 +272,57 @@ class DocumentService:
             # -----------------------------
             # Persist ONLY AFTER ALL VALIDATIONS
             # -----------------------------
-            document = await self.dao.create_document(
-                {
-                    "id": uuid.uuid4(),
-                    "application_id": uuid.UUID(application_id),
-                    "document_type": document_type,
-                    "document_confidence": confidence,
-                    "classification_method": "keyword_ocr",
-                    "file_name": file.filename,
-                    "mime_type": file.content_type,
-                    "file_size": len(file_bytes),
-                    "content": processed_bytes,
-                    "is_low_quality": is_low_quality,
-                    "quality_metadata": quality_scores,
-                }
-            )
+            
+            # Ensure all required fields are present and valid
+            required_fields = {
+                "application_id": uuid.UUID(application_id),
+                "document_type": document_type,
+                "file_name": file.filename,
+                "mime_type": file.content_type,
+                "file_size": len(file_bytes),
+                "content": processed_bytes,
+                "is_low_quality": is_low_quality if is_low_quality is not None else False,
+            }
+            for k, v in required_fields.items():
+                if v is None:
+                    raise HTTPException(status_code=400, detail=f"Missing required field: {k}")
+            document_data = {
+                **required_fields,
+                "document_confidence": confidence,
+                "classification_method": "keyword_ocr",
+                "quality_metadata": quality_scores,
+            }
+            document = await self.dao.create_document(document_data)
             await self.db.commit()
             await self.db.refresh(document)
+            # Debug logging
+            
+            
+            
+            
+            
+            
+
+            # Serialize document to dict for idempotency
+            response_payload = {
+                "id": str(getattr(document, "id", None)),
+                "file_name": getattr(document, "file_name", None),
+                "mime_type": getattr(document, "mime_type", None),
+                "file_size": getattr(document, "file_size", None),
+                "document_type": getattr(document, "document_type", None),
+                "document_confidence": getattr(document, "document_confidence", None),
+                "classification_method": getattr(document, "classification_method", None),
+                "is_low_quality": getattr(document, "is_low_quality", None),
+                "quality_metadata": getattr(document, "quality_metadata", None),
+            }
+            # Mark idempotency as completed
+            # Use the synthetic_request_id (idempotency key) for marking completed
+            await IdempotencyRepository(self.db).mark_completed(request_id=synthetic_request_id, response_payload=response_payload)
             return document
 
-        except SQLAlchemyError:
+        except SQLAlchemyError as e:
             await self.db.rollback()
+            print(f"DATABASE ERROR: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database error while uploading document",
