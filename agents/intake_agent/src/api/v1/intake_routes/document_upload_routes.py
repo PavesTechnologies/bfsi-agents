@@ -28,14 +28,25 @@ async def _upload_with_document_type(
         file=file,
     )
 
-    return {
-        "message": "Document uploaded successfully",
-        "document_id": str(document.id),
-        "file_name": document.file_name,
-        "mime_type": document.mime_type,
-        "file_size": document.file_size,
-        "document_type": document.document_type,
-    }
+    # Support both ORM object and dict (idempotency cache)
+    if isinstance(document, dict):
+        return {
+            "message": "Document uploaded successfully",
+            "document_id": str(document["id"]),
+            "file_name": document["file_name"],
+            "mime_type": document["mime_type"],
+            "file_size": document["file_size"],
+            "document_type": document["document_type"],
+        }
+    else:
+        return {
+            "message": "Document uploaded successfully",
+            "document_id": str(document.id),
+            "file_name": document.file_name,
+            "mime_type": document.mime_type,
+            "file_size": document.file_size,
+            "document_type": document.document_type,
+        }
 
 
 # -------------------------------

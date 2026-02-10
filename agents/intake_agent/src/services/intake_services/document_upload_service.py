@@ -29,28 +29,35 @@ from src.domain.document_validation.keyword_document_validator import (
 )
 from src.domain.document_classification.document_type import DocumentType
 
+from src.domain.normalization.drivers_license import DriversLicenseNormalizer
+from src.domain.normalization.passport import PassportNormalizer
+
+from src.services.cross_validation_service import CrossValidationService
+
+
 
 # -----------------------------
 # Document rules (UNCHANGED)
 # -----------------------------
 DOCUMENT_RULES = {
     "passport": {
-        "mime_types": {"application/pdf", "image/jpeg", "image/png"},
+        "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 5,
         "max_resolution": (5000, 5000),
     },
     "drivers_license": {
-        "mime_types": {"image/jpeg", "image/png"},
+        "mime_types": {"image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 3,
         "max_resolution": (4000, 4000),
     },
     "state_id": {
-        "mime_types": {"image/jpeg", "image/png"},
+        "mime_types": {"image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 3,
         "max_resolution": (4000, 4000),
     },
+
     "ssn_card": {
-        "mime_types": {"application/pdf", "image/jpeg", "image/png"},
+        "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 2,
         "max_resolution": (3000, 3000),
     },
@@ -63,12 +70,12 @@ DOCUMENT_RULES = {
         "max_size_mb": 5,
     },
     "photo": {
-        "mime_types": {"image/jpeg", "image/png"},
+        "mime_types": {"image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 2,
         "max_resolution": (3000, 3000),
     },
     "w2": {
-        "mime_types": {"application/pdf", "image/jpeg", "image/png"},
+        "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 5,
         "max_resolution": (4000, 4000),
     },
@@ -79,6 +86,8 @@ class DocumentService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.dao = LoanIntakeDAO(db)
+        self.applicant_dao = ApplicantDAO(db)
+        self.address_dao = AddressDAO(db)
 
     # =========================================================
     # PUBLIC API — IDEMPOTENT WRAPPER (ADDED)
@@ -273,7 +282,6 @@ class DocumentService:
                     "quality_metadata": quality_scores,
                 }
             )
-
             await self.db.commit()
             await self.db.refresh(document)
             return document
@@ -294,6 +302,7 @@ class DocumentService:
     # -----------------------------
     def _validate_document_type(self, document_type: str) -> dict:
         if document_type not in DOCUMENT_RULES:
+           
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=(

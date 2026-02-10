@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 from enum import Enum
 from src.utils.validation.blocking_aggregator import BlockingValidationSummary,ValidationError
+from src.models.enums import Gender
 
 
 class CreditType(str, Enum):
@@ -91,7 +92,12 @@ class ApplicantSchema(BaseModel):
     itin_number: Optional[str] = None
     citizenship_status: Optional[str] = None
     email: Optional[str] = None
-
+    
+      # ✅ REQUIRED (DB NOT NULL)
+    phone_number: str
+    gender: Gender
+    
+    
     # ⚠️ Collections default to empty
     addresses: List[AddressSchema] = []
     employment: Optional[EmploymentSchema] = None
