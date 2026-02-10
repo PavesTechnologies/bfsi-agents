@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from PIL import Image
 
+from src.repositories.intake_repo.applicant_repo import ApplicantDAO
+from src.repositories.intake_repo.address_repo import AddressDAO
 from src.repositories.intake_repo.document_upload_repo import LoanIntakeDAO
 from src.domain.image_processing.preprocessor import preprocess
 
@@ -26,8 +28,12 @@ from src.domain.document_validation.keyword_document_validator import (
 from src.domain.document_classification.document_type import DocumentType
 
 from src.domain.normalization.drivers_license import DriversLicenseNormalizer
+<<<<<<< HEAD
 from src.domain.normalization.passport import PassportNormalizer
 
+=======
+from src.services.cross_validation_service import CrossValidationService
+>>>>>>> b4a9eb0337c5448a3119dc35ed488c981a804eca
 
 
 
@@ -81,6 +87,8 @@ class DocumentService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.dao = LoanIntakeDAO(db)
+        self.applicant_dao = ApplicantDAO(db)
+        self.address_dao = AddressDAO(db)
 
     async def upload_document(
         self,
@@ -133,7 +141,40 @@ class DocumentService:
             print(f"Extracted DL info: {user_info}")
             normalizer = DriversLicenseNormalizer()
             normalized_data = normalizer.normalize(user_info)    
+<<<<<<< HEAD
             print("drivers Normalized Data:", normalized_data)
+=======
+            print("Normalized Data:", normalized_data)
+
+            cross_validator = CrossValidationService(
+                self.applicant_dao,
+                self.address_dao,
+            )
+
+            cross_result = await cross_validator.validate_drivers_license(
+                application_id,
+                normalized_data
+            )
+            print(f"Cross-validation result: valid={cross_result.valid}, mismatches={cross_result.mismatches}")
+
+            if not cross_result.valid:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "message": "Driver license does not match application data",
+                        "mismatches": [
+                            {
+                                "field": m.field,
+                                "expected": m.expected,
+                                "actual": m.actual,
+                            }
+                            for m in cross_result.mismatches
+                        ]
+                    }
+                )
+
+            confidence = 1.0
+>>>>>>> b4a9eb0337c5448a3119dc35ed488c981a804eca
         # -----------------------------
         # Passport MRZ validation
         # -----------------------------
@@ -152,10 +193,38 @@ class DocumentService:
                     detail="Passport MRZ validation failed",
                 )
             print(f"Extracted MRZ data: {result.get('mrz_data', {})}")
+<<<<<<< HEAD
             normalizer = PassportNormalizer()
             mrz_normalized_data = normalizer.normalize(result.get("mrz_data", {}))
 
             print("new Normalized Data:", mrz_normalized_data)
+=======
+
+            cross_validator = CrossValidationService(
+                self.applicant_dao,
+                self.address_dao,
+            )
+            cross_result = await cross_validator.validate_passport(
+                application_id,
+                result.get("mrz_data", {})
+            )
+            print(f"Cross-validation result: valid={cross_result.valid}, mismatches={cross_result.mismatches}")
+            if not cross_result.valid:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "message": "Passport does not match application data",
+                        "mismatches": [
+                            {
+                                "field": m.field,
+                                "expected": m.expected,
+                                "actual": m.actual,
+                            }
+                            for m in cross_result.mismatches
+                        ]
+                    }
+                )
+>>>>>>> b4a9eb0337c5448a3119dc35ed488c981a804eca
         # -----------------------------
         # Image preprocessing (quality only)
         # -----------------------------

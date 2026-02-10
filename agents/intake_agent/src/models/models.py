@@ -2,17 +2,23 @@ from typing import Optional
 import datetime
 import decimal
 import uuid
+<<<<<<< HEAD
 import enum
 from sqlalchemy import Enum as SQLEnum
 # from src.models.enums.applicant_status import ApplicantStatusEnum
 
 from src.domain.validation.constants import ApplicantStatusEnum
+=======
+from typing import TYPE_CHECKING
+>>>>>>> b4a9eb0337c5448a3119dc35ed488c981a804eca
 from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, Float, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text,LargeBinary,Enum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from src.utils.migration_database import Base   # <-- import Base
+from src.models.enums import ApplicantStatus,Gender  # adjust import path
 
-
+if TYPE_CHECKING:
+    from src.models.human_in_loop import HumanReview
 
 class AuditLogs(Base):
     __tablename__ = 'audit_logs'
@@ -77,6 +83,7 @@ class LoanApplication(Base):
     requested_term_months: Mapped[Optional[int]] = mapped_column(Integer)
     preferred_payment_day: Mapped[Optional[int]] = mapped_column(Integer)
     origination_channel: Mapped[Optional[str]] = mapped_column(String(20))
+<<<<<<< HEAD
     application_status: Mapped[ApplicantStatusEnum] = mapped_column(
     SQLEnum(
         ApplicantStatusEnum,
@@ -87,8 +94,16 @@ class LoanApplication(Base):
     nullable=False
 )
 
+=======
+    
+    application_status: Mapped[ApplicantStatus] = mapped_column(
+        Enum(ApplicantStatus, name="applicant_status_enum"),
+        nullable=False,
+        server_default=text("'SUBMITTED'"),
+    )
+>>>>>>> b4a9eb0337c5448a3119dc35ed488c981a804eca
     updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
-
+    
     applicant: Mapped[list['Applicant']] = relationship('Applicant', back_populates='application', lazy="selectin")
     document: Mapped[list['Document']] = relationship('Document', back_populates='application', lazy="selectin")
     pgsql_documents: Mapped[list["PgsqlDocument"]] = relationship(
@@ -105,6 +120,13 @@ class LoanApplication(Base):
             cascade="all, delete-orphan"
         )
 
+    human_reviews: Mapped[list["HumanReview"]] = relationship(
+        "HumanReview",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        order_by="HumanReview.created_at",
+        lazy="selectin",
+    )
 
 class Applicant(Base):
     __tablename__ = 'applicant'
@@ -128,8 +150,9 @@ class Applicant(Base):
     ssn_last4: Mapped[Optional[str]] = mapped_column(CHAR(4))
     itin_number: Mapped[Optional[str]] = mapped_column(String(15))
     citizenship_status: Mapped[Optional[str]] = mapped_column(String(30))
+    phone_number: Mapped[str] = mapped_column(String(20),nullable=False)
+    gender: Mapped[Gender] = mapped_column(Enum(Gender, name="gender_enum"),nullable=False,)
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
-
     application: Mapped['LoanApplication'] = relationship('LoanApplication', back_populates='applicant', lazy="selectin")
     address: Mapped[list['Address']] = relationship('Address', back_populates='applicant', lazy="selectin")
     asset: Mapped[list['Asset']] = relationship('Asset', back_populates='applicant', lazy="selectin")
