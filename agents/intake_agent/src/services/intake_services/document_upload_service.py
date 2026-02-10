@@ -28,12 +28,9 @@ from src.domain.document_validation.keyword_document_validator import (
 from src.domain.document_classification.document_type import DocumentType
 
 from src.domain.normalization.drivers_license import DriversLicenseNormalizer
-<<<<<<< HEAD
 from src.domain.normalization.passport import PassportNormalizer
 
-=======
 from src.services.cross_validation_service import CrossValidationService
->>>>>>> b4a9eb0337c5448a3119dc35ed488c981a804eca
 
 
 
@@ -141,9 +138,7 @@ class DocumentService:
             print(f"Extracted DL info: {user_info}")
             normalizer = DriversLicenseNormalizer()
             normalized_data = normalizer.normalize(user_info)    
-<<<<<<< HEAD
             print("drivers Normalized Data:", normalized_data)
-=======
             print("Normalized Data:", normalized_data)
 
             cross_validator = CrossValidationService(
@@ -174,7 +169,6 @@ class DocumentService:
                 )
 
             confidence = 1.0
->>>>>>> b4a9eb0337c5448a3119dc35ed488c981a804eca
         # -----------------------------
         # Passport MRZ validation
         # -----------------------------
@@ -193,12 +187,10 @@ class DocumentService:
                     detail="Passport MRZ validation failed",
                 )
             print(f"Extracted MRZ data: {result.get('mrz_data', {})}")
-<<<<<<< HEAD
             normalizer = PassportNormalizer()
             mrz_normalized_data = normalizer.normalize(result.get("mrz_data", {}))
 
             print("new Normalized Data:", mrz_normalized_data)
-=======
 
             cross_validator = CrossValidationService(
                 self.applicant_dao,
@@ -224,7 +216,6 @@ class DocumentService:
                         ]
                     }
                 )
->>>>>>> b4a9eb0337c5448a3119dc35ed488c981a804eca
         # -----------------------------
         # Image preprocessing (quality only)
         # -----------------------------
