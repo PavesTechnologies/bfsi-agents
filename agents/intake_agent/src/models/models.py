@@ -3,8 +3,10 @@ import datetime
 import decimal
 import uuid
 import enum
+from sqlalchemy import Enum as SQLEnum
+# from src.models.enums.applicant_status import ApplicantStatusEnum
 
-
+from src.domain.validation.constants import ApplicantStatusEnum
 from sqlalchemy import BigInteger, Boolean, CHAR, CheckConstraint, Date, DateTime, Float, ForeignKeyConstraint, Integer, JSON, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text,LargeBinary,Enum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -75,7 +77,16 @@ class LoanApplication(Base):
     requested_term_months: Mapped[Optional[int]] = mapped_column(Integer)
     preferred_payment_day: Mapped[Optional[int]] = mapped_column(Integer)
     origination_channel: Mapped[Optional[str]] = mapped_column(String(20))
-    application_status: Mapped[Optional[str]] = mapped_column(String(30))
+    application_status: Mapped[ApplicantStatusEnum] = mapped_column(
+    SQLEnum(
+        ApplicantStatusEnum,
+        name="applicant_status_enum",  # MUST match Postgres enum name
+        native_enum=True,
+        create_type=False              # IMPORTANT: enum already exists
+    ),
+    nullable=False
+)
+
     updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
 
     applicant: Mapped[list['Applicant']] = relationship('Applicant', back_populates='application', lazy="selectin")

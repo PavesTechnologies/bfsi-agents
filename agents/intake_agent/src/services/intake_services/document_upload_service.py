@@ -2,6 +2,7 @@ import os
 import uuid
 from io import BytesIO
 
+
 from fastapi import UploadFile, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
@@ -25,6 +26,8 @@ from src.domain.document_validation.keyword_document_validator import (
 from src.domain.document_classification.document_type import DocumentType
 
 from src.domain.normalization.drivers_license import DriversLicenseNormalizer
+from src.domain.normalization.passport import PassportNormalizer
+
 
 
 
@@ -130,7 +133,7 @@ class DocumentService:
             print(f"Extracted DL info: {user_info}")
             normalizer = DriversLicenseNormalizer()
             normalized_data = normalizer.normalize(user_info)    
-            print("Normalized Data:", normalized_data)
+            print("drivers Normalized Data:", normalized_data)
         # -----------------------------
         # Passport MRZ validation
         # -----------------------------
@@ -149,6 +152,10 @@ class DocumentService:
                     detail="Passport MRZ validation failed",
                 )
             print(f"Extracted MRZ data: {result.get('mrz_data', {})}")
+            normalizer = PassportNormalizer()
+            mrz_normalized_data = normalizer.normalize(result.get("mrz_data", {}))
+
+            print("new Normalized Data:", mrz_normalized_data)
         # -----------------------------
         # Image preprocessing (quality only)
         # -----------------------------
