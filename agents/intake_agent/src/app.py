@@ -1,6 +1,7 @@
 import logging
 from contextlib import asynccontextmanager  # <--- NEW IMPORT
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -86,6 +87,51 @@ def create_app() -> FastAPI:
                 "message": exc.message,
                 "request_id": request_id_ctx.get(),
             },
+        )
+    
+    @app.exception_handler(HTTPException)
+    async def custom_http_exception_handler(request: Request, exc: HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "success": False,
+                "error_envelope": exc.detail # This will contain your list of ValidationResults
+            }
+        )
+    
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        standardized_errors = []
+        
+        for error in exc.errors():
+            # 1. Transform Pydantic 'loc' (tuple) into a readable string
+            # e.g., ["body", "applicants", 0, "date_of_birth"] -> "applicants[0].date_of_birth"
+            loc = error.get("loc", [])
+            field_path = ".".join([str(x) for x in loc[1:]]) if len(loc) > 1 else "body"
+            
+            # 2. Map Pydantic 'type' to your ValidationReasonCode (or a generic one)
+            error_type = error.get("type")
+            reason_code = "INVALID_FORMAT" # Default
+            
+            if "date" in error_type:
+                reason_code = "INVALID_DOB_FORMAT"
+            elif "enum" in error_type:
+                reason_code = "INVALID_ENUM_VALUE"
+            elif "missing" in error_type:
+                reason_code = "MISSING_REQUIRED_FIELD"
+
+            standardized_errors.append({
+                "field": field_path,
+                "reason_code": reason_code,
+                "message": error.get("msg").capitalize()
+            })
+
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "success": False,
+                "error_envelope": standardized_errors
+            }
         )
 
     # -------------------------
