@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager  # <--- NEW IMPORT
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -28,13 +29,35 @@ logger = logging.getLogger(__name__)
 def create_app() -> FastAPI:
     setup_logging()
 
+    # -------------------------
+    # Lifecycle Manager (Replaces on_event)
+    # -------------------------
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # --- Startup Logic ---
+        logger.info("Startup: Initializing database tables")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        
+        yield  # Application runs here
+        
+        # --- Shutdown Logic ---
+        logger.info("Shutdown: Disposing database engine")
+        await engine.dispose()
+
+    # -------------------------
+    # App Definition
+    # -------------------------
     app = FastAPI(
         title="intake_agent",
         description="Agent microservice: intake_agent",
         version="0.1.0",
+        lifespan=lifespan,  # <--- CONNECTED HERE
     )
 
-    # ✅ ADD CORS HERE (THIS IS THE PLACE)
+    # -------------------------
+    # Middleware
+    # -------------------------
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
@@ -79,16 +102,4 @@ def create_app() -> FastAPI:
     app.include_router(human_in_loop_application_routes.router)
     app.include_router(loan_query_routes.router)
     
-    # -------------------------
-    # Lifecycle events
-    # -------------------------
-    @app.on_event("startup")
-    async def startup_event():
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
-    @app.on_event("shutdown")
-    async def shutdown_event():
-        await engine.dispose()
-
     return app
