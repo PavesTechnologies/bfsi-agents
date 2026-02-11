@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
@@ -15,10 +15,7 @@ class PgsqlDocumentResponse(BaseModel):
     is_low_quality: bool
     quality_metadata: Optional[dict]
 
-    class Config:
-        orm_mode = True
-
-
+    model_config = ConfigDict(from_attributes=True)
 class ApplicantResponse(BaseModel):
     applicant_id: UUID
     first_name: str
@@ -27,10 +24,7 @@ class ApplicantResponse(BaseModel):
     phone_number: str
     gender: Gender
 
-    class Config:
-        orm_mode = True
-
-
+    model_config = ConfigDict(from_attributes=True)
 class LoanDetailsResponse(BaseModel):
     application_id: UUID
     loan_type: str
@@ -47,5 +41,4 @@ class LoanDetailsResponse(BaseModel):
     applicants: List[ApplicantResponse]
     documents: List[PgsqlDocumentResponse]
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

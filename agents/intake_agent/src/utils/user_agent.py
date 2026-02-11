@@ -3,7 +3,7 @@
 No regexes — rely on the library for accurate parsing.
 """
 from typing import Tuple
-# from ua_parser.user_agent_parser import Parse
+from ua_parser.user_agent_parser import Parse
 
 
 def parse_user_agent(user_agent: str) -> Tuple[str, str, str]:

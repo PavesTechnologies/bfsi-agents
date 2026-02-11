@@ -21,7 +21,12 @@ class Settings(BaseSettings):
     database_url: str = Field(..., alias="DATABASE_URL")
     DATABASE_URL_SYNC: str = Field(..., alias="DATABASE_URL_SYNC")
     BARCODE_LICENSE_KEY: str = Field(..., alias="BARCODE_LICENSE_KEY")
-
+    REDIS_HOST: str = Field(..., alias="REDIS_HOST")
+    REDIS_PORT: int = Field(..., alias="REDIS_PORT")
+    REDIS_USERNAME: str = Field(..., alias="REDIS_USERNAME")
+    REDIS_PASSWORD: str = Field(..., alias="REDIS_PASSWORD")
+    
+    
     model_config = {
         "case_sensitive": True,
         "env_file": ".env",

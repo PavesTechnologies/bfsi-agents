@@ -28,13 +28,34 @@ async def _upload_with_document_type(
         file=file,
     )
 
+    # Debug logging
+    
+    # if isinstance(document, dict):
+    #     for k, v in document.items():
+    #         print(f"DEBUG: document[{k}] = {v}")
+            
+    # Support both ORM object and dict (idempotency cache)
+    # Robustly handle both dict and object, fallback if key missing
+    if isinstance(document, dict):
+        document_id = document.get("id") or document.get("document_id")
+        file_name = document.get("file_name")
+        mime_type = document.get("mime_type")
+        file_size = document.get("file_size")
+        document_type = document.get("document_type")
+    else:
+        document_id = getattr(document, "id", None)
+        file_name = getattr(document, "file_name", None)
+        mime_type = getattr(document, "mime_type", None)
+        file_size = getattr(document, "file_size", None)
+        document_type = getattr(document, "document_type", None)
+
     return {
         "message": "Document uploaded successfully",
-        "document_id": str(document.id),
-        "file_name": document.file_name,
-        "mime_type": document.mime_type,
-        "file_size": document.file_size,
-        "document_type": document.document_type,
+        "document_id": str(document_id) if document_id else None,
+        "file_name": file_name,
+        "mime_type": mime_type,
+        "file_size": file_size,
+        "document_type": document_type,
     }
 
 

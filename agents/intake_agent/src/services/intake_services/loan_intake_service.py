@@ -3,6 +3,7 @@ from src.models.interfaces.Loan_intake_interfaces import LoanIntakeRequest, Loan
 from src.repositories.intake_repo.loan_intake_repo import LoanIntakeDAO
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
+from uuid import uuid4
 
 # ============================
 # 🔹 ADDITIONS: Error Semantics
@@ -30,28 +31,24 @@ from fastapi import HTTPException
 from src.utils.validation.blocking_aggregator import (
     validate_all_applicants_blocking)
 
+from src.services.idempotency_guard import IdempotencyGuard
+from src.repositories.idempotency_repository import IdempotencyRepository
+from typing import Optional
 from src.models.enums import ApplicantStatus
+
 class LoanIntakeService:
     
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, idempotency: Optional[IdempotencyGuard] = None):
         self.db = db
         self.dao = LoanIntakeDAO(db)
-
-        # 🔹 ADDITION
         self.validation_repo = ValidationRepository()
+        self.idempotency = idempotency or IdempotencyGuard(IdempotencyRepository(db))
 
     async def check(self) -> str:
         return "Loan Intake Service is operational."
     
     async def submit_application(self, request: LoanIntakeRequest) -> LoanIntakeResponse:
-        try:
-
-            validation_summary = validate_all_applicants_blocking(request.applicants)
-            if not validation_summary.is_valid:
-                raise HTTPException(
-                    status_code=400,
-                    detail=validation_summary.to_http_detail()
-                )
+        async def first_execution():
             # -----------------------------
             # 1. Create Loan Application
             # -----------------------------
@@ -233,13 +230,33 @@ class LoanIntakeService:
             await self.db.commit()
 
             # 🔹 ADDITION: return validation issues (non-blocking)
-            return LoanIntakeResponse(
-                application_id=loan.application_id,
-                timestamp=datetime.utcnow(),
-                validation_issues=validation_issues,
-                validation_summary=validation_summary
+            response_payload = {
+                "application_id": str(loan.application_id),
+                "timestamp": datetime.utcnow().isoformat(),
+                "validation_issues": validation_issues,
+                "validation_summary": validation_summary.model_dump() if validation_summary else None
+            }
+
+            # Mark completed in idempotency repo
+            await IdempotencyRepository(self.db).mark_completed(
+                request_id=request.request_id,
+                response_payload=response_payload
             )
 
-        except SQLAlchemyError:
-            await self.db.rollback()
-            raise HTTPException(status_code=500, detail="Database error during loan application submission.")
+            return response_payload
+
+        # 1. Blocking Validations (Run BEFORE idempotency to avoid caching bad requests)
+        validation_summary = validate_all_applicants_blocking(request.applicants)
+        if not validation_summary.is_valid:
+            raise HTTPException(
+                status_code=400,
+                detail=validation_summary.to_http_detail()
+            )
+
+        # 2. Execute with Idempotency Guard
+        return await self.idempotency.execute(
+            request_id=request.request_id,
+            app_id=str(request.app_id) if request.app_id else str(uuid4()),
+            payload=request.model_dump(mode="json"),
+            on_first_execution=first_execution,
+        )
