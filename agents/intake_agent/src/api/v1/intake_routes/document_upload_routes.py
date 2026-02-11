@@ -30,9 +30,9 @@ async def _upload_with_document_type(
 
     # Debug logging
     
-    if isinstance(document, dict):
-        for k, v in document.items():
-            print(f"DEBUG: document[{k}] = {v}")
+    # if isinstance(document, dict):
+    #     for k, v in document.items():
+    #         print(f"DEBUG: document[{k}] = {v}")
             
     # Support both ORM object and dict (idempotency cache)
     # Robustly handle both dict and object, fallback if key missing

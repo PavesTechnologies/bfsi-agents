@@ -88,6 +88,7 @@ class ApplicantSchema(BaseModel):
     date_of_birth: Optional[date] = None
 
     # ⚠️ NO length / regex constraints here
+    ssn_no: Optional[str] = None
     ssn_last4: Optional[str] = None
     itin_number: Optional[str] = None
     citizenship_status: Optional[str] = None

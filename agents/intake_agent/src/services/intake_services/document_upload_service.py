@@ -230,20 +230,42 @@ class DocumentService:
             # -----------------------------
             if document_type == "ssn_card":
                 validation_result = ssn_card_validation(
-                    temp_path, "ssn_card", application_id
-                )
+                    temp_path,
+                    "ssn_card",
+                    application_id
+                    )
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+
+
                 confidence = validation_result.get("confidence", 0)
 
                 if not validation_result["valid"]:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=(
-                            f"SSN Card validation failed: "
-                            f"{validation_result['doc_type']} "
-                            f"(confidence: {validation_result['confidence']})"
-                        ),
-                    )
+                        f"SSN Card validation failed: "
+                        f"{validation_result['doc_type']} "
+                        f"(confidence: {validation_result['confidence']})"
+                    ),
+                )
 
+                # if document_type == "ssn_card":
+                #     validation_result = ssn_card_validation(temp_path,"ssn_card",application_id)
+                #     os.remove(temp_path)
+                #     confidence = validation_result.get("confidence", 0)
+                #     if not validation_result["valid"]:
+                #         raise HTTPException(
+                #             status_code=status.HTTP_400_BAD_REQUEST,
+                #             detail=(
+                #                 f"SSN Card validation failed: "
+                #                 f"{validation_result['doc_type']} "
+                #                 f"(confidence: {validation_result['confidence']})"
+                #             ),
+                #         )
+                #     else :
+                #         return
+           
             # -----------------------------
             # OCR + KEYWORD INTENT VALIDATION
             # -----------------------------
@@ -296,14 +318,7 @@ class DocumentService:
             await self.db.commit()
             await self.db.refresh(document)
             # Debug logging
-            
-            
-            
-            
-            
-            
-
-            # Serialize document to dict for idempotency
+                       # Serialize document to dict for idempotency
             response_payload = {
                 "id": str(getattr(document, "id", None)),
                 "file_name": getattr(document, "file_name", None),
