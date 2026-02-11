@@ -244,8 +244,8 @@ class DocumentService:
 
             confidence = validation_result.get("confidence", 0)
 
-        if not validation_result["valid"]:
-            raise HTTPException(
+            if not validation_result["valid"]:
+                raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=(
                 f"SSN Card validation failed: "
