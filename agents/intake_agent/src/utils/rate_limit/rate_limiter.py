@@ -34,3 +34,10 @@ class RateLimiter:
 
 # redis_client.set('foo', 'bar')
 # print(redis_client.get('foo'))  # Output: b'bar'
+
+# redis_client.flushdb()  # Clear the database for testing
+# print("Database cleared. Current keys:", redis_client.keys())  # Should print an empty list
+
+
+# keys = redis_client.keys("*") # Fetch all keys in the database
+# print(keys)
