@@ -59,12 +59,20 @@ class CrossValidationService:
             ))
 
         # Gender (optional, if available)
-        if "gender" in mrz_data and hasattr(applicant, "gender") and applicant.gender and applicant.gender.upper() != mrz_data["gender"].upper():
-            mismatches.append(FieldMismatch(
-                field="gender",
-                expected=getattr(applicant, "gender", None),
-                actual=mrz_data["gender"]
-            ))
+        if (
+    "gender" in mrz_data
+    and hasattr(applicant, "gender")
+    and applicant.gender
+    and applicant.gender.value.upper() != mrz_data["gender"].upper()
+):
+            mismatches.append(
+        FieldMismatch(
+            field="gender",
+            expected=applicant.gender.value,
+            actual=mrz_data["gender"]
+        )
+    )
+
 
         return CrossValidationResult(
             valid=len(mismatches) == 0,

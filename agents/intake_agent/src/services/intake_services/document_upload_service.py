@@ -233,20 +233,42 @@ class DocumentService:
         # SSN Card validation
         # -----------------------------
         if document_type == "ssn_card":
-            validation_result = ssn_card_validation(temp_path,"ssn_card",application_id)
-            os.remove(temp_path)
-            confidence = validation_result.get("confidence", 0)
-            if not validation_result["valid"]:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=(
-                        f"SSN Card validation failed: "
-                        f"{validation_result['doc_type']} "
-                        f"(confidence: {validation_result['confidence']})"
-                    ),
+            validation_result = ssn_card_validation(
+                temp_path,
+                "ssn_card",
+                application_id
                 )
-            else :
-                return
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+
+            confidence = validation_result.get("confidence", 0)
+
+        if not validation_result["valid"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                f"SSN Card validation failed: "
+                f"{validation_result['doc_type']} "
+                f"(confidence: {validation_result['confidence']})"
+            ),
+        )
+
+        # if document_type == "ssn_card":
+        #     validation_result = ssn_card_validation(temp_path,"ssn_card",application_id)
+        #     os.remove(temp_path)
+        #     confidence = validation_result.get("confidence", 0)
+        #     if not validation_result["valid"]:
+        #         raise HTTPException(
+        #             status_code=status.HTTP_400_BAD_REQUEST,
+        #             detail=(
+        #                 f"SSN Card validation failed: "
+        #                 f"{validation_result['doc_type']} "
+        #                 f"(confidence: {validation_result['confidence']})"
+        #             ),
+        #         )
+        #     else :
+        #         return
 
             
         if document_type not in ["passport", "ssn_card", "drivers_license"]:            
