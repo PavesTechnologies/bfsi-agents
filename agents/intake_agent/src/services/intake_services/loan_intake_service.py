@@ -105,6 +105,7 @@ class LoanIntakeService:
                     "last_name": applicant.last_name,
                     "suffix": applicant.suffix,
                     "date_of_birth": applicant.date_of_birth,
+                    "ssn_encrypted": applicant.ssn_no,
                     "ssn_last4": applicant.ssn_last4,
                     "itin_number": applicant.itin_number,
                     "citizenship_status": applicant.citizenship_status,
@@ -241,4 +242,4 @@ class LoanIntakeService:
 
         except SQLAlchemyError:
             await self.db.rollback()
-            raise
+            raise HTTPException(status_code=500, detail="Database error during loan application submission.")
