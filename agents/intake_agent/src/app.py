@@ -39,7 +39,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=[
             "http://localhost:5173", 
-            "https://agenticaipaves.netlify.app/" # Vite dev
+            "https://agenticaipaves.netlify.app" # Vite dev
         ],
         allow_credentials=False,
         allow_methods=["*"],        # enables OPTIONS
