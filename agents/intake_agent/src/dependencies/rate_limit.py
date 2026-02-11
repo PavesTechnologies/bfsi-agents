@@ -13,5 +13,5 @@ async def rate_limit_dependency(request: Request):
     if not limiter.is_allowed(key):
         raise HTTPException(
             status_code=429,
-            detail="Rate limit exceeded. Try again later."
+            detail="Rate limit exceeded. Try again after 60 seconds."
         )
