@@ -20,4 +20,9 @@ async def submit_loan_application(
     db: AsyncSession = Depends(get_db)
 ) -> LoanIntakeResponse:
     service = LoanIntakeService(db)
-    return await service.submit_application(request)
+    response = await service.submit_application(request)
+    
+    # Handle dict response from idempotency cache
+    if isinstance(response, dict):
+        return LoanIntakeResponse.model_validate(response)
+    return response

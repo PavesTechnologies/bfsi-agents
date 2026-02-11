@@ -41,6 +41,13 @@ class BlockingValidationSummary:
         """Convert errors to HTTP 400 detail format."""
         return [{"field": error.field, "message": error.message} for error in self.errors]
 
+    def model_dump(self) -> Dict[str, Any]:
+        """Dump to dict for compatibility with Pydantic usage."""
+        return {
+            "is_valid": self.is_valid,
+            "errors": [{"field": e.field, "message": e.message} for e in self.errors]
+        }
+
 
 def validate_applicant_blocking(applicant) -> BlockingValidationSummary:
     """Validate applicant fields and return all errors at once.
