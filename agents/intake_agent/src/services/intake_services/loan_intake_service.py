@@ -92,7 +92,6 @@ class LoanIntakeService:
                             "reason_code": repo_result.reason_code.value,
                             "message": repo_result.message,
                         })
-                        raise HTTPException(status_code=400, detail=validation_issues[-1]["message"])
                     
                 applicant_row = await self.dao.create_applicant({
                     "application_id": loan.application_id,
@@ -246,6 +245,12 @@ class LoanIntakeService:
             return response_payload
 
         # 1. Blocking Validations (Run BEFORE idempotency to avoid caching bad requests)
+        if request.requested_term_months <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail=[{"field": "requested_term_months", "message": "Term must be greater than 1 month"}]
+            )
+
         validation_summary = validate_all_applicants_blocking(request.applicants)
         if not validation_summary.is_valid:
             raise HTTPException(

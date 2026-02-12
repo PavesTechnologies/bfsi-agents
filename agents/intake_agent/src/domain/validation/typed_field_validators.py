@@ -32,6 +32,11 @@ def validate_ssn(value: str) -> ValidationResult:
 
 
 def validate_ssn_last4(value: str) -> ValidationResult:
+    if value is None:
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_SSN_LAST4,
+            "SSN last4 is required"
+        )
     if not SSN_LAST4_REGEX.match(value):
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_SSN_LAST4,
@@ -42,6 +47,11 @@ from datetime import date
 
 
 def validate_dob(value: date) -> ValidationResult:
+    if value is None:
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_DOB_FORMAT,
+            "Date of birth is required"
+        )
     if value >= date.today():
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_DOB_FORMAT,
@@ -63,6 +73,11 @@ from .constants import EMAIL_REGEX, PHONE_REGEX
 
 
 def validate_email(value: str) -> ValidationResult:
+    if value is None:
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_EMAIL_FORMAT,
+            "Email is required"
+        )
     if not EMAIL_REGEX.match(value):
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_EMAIL_FORMAT,

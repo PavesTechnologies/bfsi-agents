@@ -77,17 +77,11 @@ def validate_applicant_blocking(applicant) -> BlockingValidationSummary:
     if not result.passed:
         errors.append(ValidationError(field="applicant.ssn_last4", message=result.message))
     
-    # Date of Birth
+    # Date of birth
     dob = getattr(applicant, "date_of_birth", None)
     result = validate_dob(dob)
     if not result.passed:
         errors.append(ValidationError(field="applicant.date_of_birth", message=result.message))
-    
-    # Email
-    email = getattr(applicant, "email", None)
-    result = validate_email(email)
-    if not result.passed:
-        errors.append(ValidationError(field="applicant.email", message=result.message))
     
     # ==================== Address Fields ====================
     addresses = getattr(applicant, "addresses", []) or []
