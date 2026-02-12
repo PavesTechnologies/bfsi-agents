@@ -35,7 +35,7 @@ from src.domain.normalization.drivers_license import DriversLicenseNormalizer
 from src.domain.normalization.passport import PassportNormalizer
 
 from src.services.cross_validation_service import CrossValidationService
-
+from src.repositories.intake_repo.loan_info_repo import LoanInfoDAO
 
 
 # -----------------------------
@@ -43,7 +43,7 @@ from src.services.cross_validation_service import CrossValidationService
 # -----------------------------
 DOCUMENT_RULES = {
     "passport": {
-        "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg"},
+        "mime_types": {"image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 5,
         "max_resolution": (5000, 5000),
     },
@@ -59,7 +59,7 @@ DOCUMENT_RULES = {
     },
 
     "ssn_card": {
-        "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg"},
+        "mime_types": { "image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 2,
         "max_resolution": (3000, 3000),
     },
@@ -90,6 +90,7 @@ class DocumentService:
         self.dao = LoanIntakeDAO(db)
         self.applicant_dao = ApplicantDAO(db)
         self.address_dao = AddressDAO(db)
+        self.loan_info_dao = LoanInfoDAO(db)
 
     # =========================================================
     # PUBLIC API — IDEMPOTENT WRAPPER (ADDED)
@@ -100,56 +101,71 @@ class DocumentService:
         document_type: str,
         file: UploadFile,
     ):
-        file_bytes = await file.read()
-        if not file_bytes:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Uploaded file is empty",
+        try:
+            application_id = UUID(application_id)
+            application_info = await self.loan_info_dao.get_loan_application_by_id(application_id)
+            if not application_info:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"No loan application found with id {application_id}",
+                )
+                
+            file_bytes = await file.read()
+            if not file_bytes:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Uploaded file is empty",
+                )
+
+            # -----------------------------
+            # 🔐 DOCUMENT IDEMPOTENCY KEY
+            # -----------------------------
+            document_hash = stable_bytes_hash(file_bytes)
+
+            synthetic_request_id = UUID(
+                stable_bytes_hash(
+                    f"{application_id}:{document_type}:{document_hash}".encode()
+                )[:32]
             )
 
-        # -----------------------------
-        # 🔐 DOCUMENT IDEMPOTENCY KEY
-        # -----------------------------
-        document_hash = stable_bytes_hash(file_bytes)
+            guard = IdempotencyGuard(
+                repo=IdempotencyRepository(self.db)
+            )
 
-        synthetic_request_id = UUID(
-            stable_bytes_hash(
-                f"{application_id}:{document_type}:{document_hash}".encode()
-            )[:32]
-        )
+            async def first_execution():
+                try:
+                    return await self._process_and_store_document(
+                        application_id=application_id,
+                        document_type=document_type,
+                        file=file,
+                        file_bytes=file_bytes,
+                        synthetic_request_id=synthetic_request_id,
+                    )
+                except HTTPException as e:
+                    await IdempotencyRepository(self.db).delete(synthetic_request_id)
+                    raise e
+                except Exception as e:
+                    # For unexpected crashes, we also want to allow a retry
+                    await IdempotencyRepository(self.db).delete(synthetic_request_id)
+                    raise e
 
-        guard = IdempotencyGuard(
-            repo=IdempotencyRepository(self.db)
-        )
-
-        async def first_execution():
-            try:
-                return await self._process_and_store_document(
-                    application_id=application_id,
-                    document_type=document_type,
-                    file=file,
-                    file_bytes=file_bytes,
-                    synthetic_request_id=synthetic_request_id,
+            return await guard.execute(
+                request_id=synthetic_request_id,
+                app_id=application_id,
+                payload={
+                    "application_id": application_id,
+                    "document_type": document_type,
+                    "file_hash": document_hash,
+                },
+                on_first_execution=first_execution,
+            )
+            
+        except ValueError:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Invalid application_id format. Must be a valid UUID.",
                 )
-            except HTTPException as e:
-                await IdempotencyRepository(self.db).delete(synthetic_request_id)
-                raise e
-            except Exception as e:
-                # For unexpected crashes, we also want to allow a retry
-                await IdempotencyRepository(self.db).delete(synthetic_request_id)
-                raise e
-
-        return await guard.execute(
-            request_id=synthetic_request_id,
-            app_id=application_id,
-            payload={
-                "application_id": application_id,
-                "document_type": document_type,
-                "file_hash": document_hash,
-            },
-            on_first_execution=first_execution,
-        )
-
+        
     # =========================================================
     # ORIGINAL LOGIC — MOVED VERBATIM (UNCHANGED)
     # =========================================================
@@ -216,13 +232,32 @@ class DocumentService:
                     document_type=document_type,
                     application_id=application_id,
                 )
+                print(f"Passport OCR Result: {result}")
                 confidence = result.get("confidence", 0)
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
+
+                passport_normalizer = PassportNormalizer()
+                normalized_passport_data = passport_normalizer.normalize(result.get("mrz_data", {}))
+                print(f"Normalized Passport MRZ Data: {normalized_passport_data}")
+
+                crossValidator = CrossValidationService(applicant_dao=self.applicant_dao, address_dao=self.address_dao)
+                crossValidation_result = await crossValidator.validate_passport(application_id, normalized_passport_data)
+
+
                 if result["status"] != "success":
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Passport MRZ validation failed",
+                    )
+                elif not crossValidation_result.valid:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "message": "Passport cross-validation failed",
+                            "confidence_score": confidence,
+                            "mismatches": [m.__dict__ for m in crossValidation_result.mismatches]
+                        }
                     )
 
             # -----------------------------
@@ -251,6 +286,22 @@ class DocumentService:
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
                 confidence = validation_result.get("confidence", 0)
+
+                print(f"SSN Card validation result: {validation_result}")
+
+                crossValidator = CrossValidationService(applicant_dao=self.applicant_dao, address_dao=self.address_dao)
+                crossValidation_result = await crossValidator.validate_ssn(application_id, validation_result)
+
+                if not crossValidation_result.valid:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "message": "SSN Card validation failed",
+                            "reason_code": validation_result.get("doc_type", "UNKNOWN"),
+                            "confidence_score": confidence,
+                            "mismatches": [m.__dict__ for m in crossValidation_result.mismatches]
+                        }
+                    )
 
                 if not validation_result["valid"]:
                     raise HTTPException(
