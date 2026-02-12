@@ -235,6 +235,7 @@ class DocumentService:
                     "ssn_card",
                     application_id
                     )
+                # print(f"SSN Card validation result: {validation_result}")
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
                 confidence = validation_result.get("confidence", 0)
