@@ -216,13 +216,32 @@ class DocumentService:
                     document_type=document_type,
                     application_id=application_id,
                 )
+                print(f"Passport OCR Result: {result}")
                 confidence = result.get("confidence", 0)
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
+
+                passport_normalizer = PassportNormalizer()
+                normalized_passport_data = passport_normalizer.normalize(result.get("mrz_data", {}))
+                print(f"Normalized Passport MRZ Data: {normalized_passport_data}")
+
+                crossValidator = CrossValidationService(applicant_dao=self.applicant_dao, address_dao=self.address_dao)
+                crossValidation_result = await crossValidator.validate_passport(application_id, normalized_passport_data)
+
+
                 if result["status"] != "success":
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Passport MRZ validation failed",
+                    )
+                elif not crossValidation_result.valid:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "message": "Passport cross-validation failed",
+                            "confidence_score": confidence,
+                            "mismatches": [m.__dict__ for m in crossValidation_result.mismatches]
+                        }
                     )
 
             # -----------------------------
