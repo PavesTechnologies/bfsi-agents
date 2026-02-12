@@ -75,3 +75,4 @@ terraform.tfstate.backup
 secrets/
 
 poetry.lock
+**/poetry.lock

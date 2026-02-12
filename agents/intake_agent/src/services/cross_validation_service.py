@@ -3,9 +3,9 @@ from src.repositories.intake_repo.applicant_repo import ApplicantDAO
 from src.repositories.intake_repo.address_repo import AddressDAO
 
 class CrossValidationService:
-    def __init__(self, applicant_dao : ApplicantDAO, address_dao : AddressDAO):
-        self.applicant_dao = applicant_dao
-        self.address_dao = address_dao
+    def __init__(self, applicant_dao : ApplicantDAO = None, address_dao : AddressDAO = None):
+        self.applicant_dao = applicant_dao or ApplicantDAO()
+        self.address_dao = address_dao or AddressDAO()
         
     async def validate_passport(
         self,
@@ -59,19 +59,34 @@ class CrossValidationService:
             ))
 
         # Gender (optional, if available)
-        if (
-    "gender" in mrz_data
-    and hasattr(applicant, "gender")
-    and applicant.gender
-    and applicant.gender.value.upper() != mrz_data["gender"].upper()
-):
-            mismatches.append(
-        FieldMismatch(
-            field="gender",
-            expected=applicant.gender.value,
-            actual=mrz_data["gender"]
-        )
+        def _normalize_gender(value: str) -> str: 
+            if not value:
+                return ""
+            value = str(value).strip().upper()
+            if value in ["M", "MALE"]:
+                return "M"
+            if value in ["F", "FEMALE"]:
+              return "F"
+
+            return value
+
+        if "gender" in mrz_data and applicant.gender:
+            applicant_gender = (
+        applicant.gender.value
+        if hasattr(applicant.gender, "value")
+        else str(applicant.gender)
     )
+            normalized_applicant_gender = _normalize_gender(applicant_gender)
+            normalized_mrz_gender = _normalize_gender(mrz_data["gender"])
+
+        if normalized_applicant_gender != normalized_mrz_gender:
+            mismatches.append(
+            FieldMismatch(
+                field="gender",
+                expected=applicant_gender,
+                actual=mrz_data["gender"],
+            )
+        )
 
 
         return CrossValidationResult(

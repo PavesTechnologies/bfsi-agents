@@ -123,13 +123,21 @@ class DocumentService:
         )
 
         async def first_execution():
-            return await self._process_and_store_document(
-                application_id=application_id,
-                document_type=document_type,
-                file=file,
-                file_bytes=file_bytes,
-                synthetic_request_id=synthetic_request_id,
-            )
+            try:
+                return await self._process_and_store_document(
+                    application_id=application_id,
+                    document_type=document_type,
+                    file=file,
+                    file_bytes=file_bytes,
+                    synthetic_request_id=synthetic_request_id,
+                )
+            except HTTPException as e:
+                await IdempotencyRepository(self.db).delete(synthetic_request_id)
+                raise e
+            except Exception as e:
+                # For unexpected crashes, we also want to allow a retry
+                await IdempotencyRepository(self.db).delete(synthetic_request_id)
+                raise e
 
         return await guard.execute(
             request_id=synthetic_request_id,
@@ -154,6 +162,7 @@ class DocumentService:
         synthetic_request_id: uuid.UUID,
     ):
         temp_path = None
+        confidence=0
 
         
         try:
@@ -182,16 +191,19 @@ class DocumentService:
             # Driver's License validation
             # -----------------------------
             if document_type == "drivers_license":
-                validation_result = process_single_dl(temp_path)
+                validation_result = await process_single_dl(application_id,temp_path , self.applicant_dao, self.address_dao)
                 confidence = validation_result.get("confidence_score", 0)
-
+                
+                os.remove(temp_path)
                 if not validation_result.get("valid", False):
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=(
-                            f"Driver's License validation failed: "
-                            f"{validation_result.get('doc_type', 'INVALID')} "
-                        ),
+                        detail={
+                            "message": "Driver's License validation failed",
+                            "reason_code": validation_result.get("doc_type", "UNKNOWN"),
+                            "confidence_score": confidence,
+                            "mismatches": validation_result.get("cross_validation_mismatches", [])
+                        }
                     )
 
             # -----------------------------
@@ -205,7 +217,8 @@ class DocumentService:
                     application_id=application_id,
                 )
                 confidence = result.get("confidence", 0)
-
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
                 if result["status"] != "success":
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -234,37 +247,20 @@ class DocumentService:
                     "ssn_card",
                     application_id
                     )
+                # print(f"SSN Card validation result: {validation_result}")
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
-
-
                 confidence = validation_result.get("confidence", 0)
 
                 if not validation_result["valid"]:
                     raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=(
-                        f"SSN Card validation failed: "
-                        f"{validation_result['doc_type']} "
-                        f"(confidence: {validation_result['confidence']})"
-                    ),
-                )
-
-                # if document_type == "ssn_card":
-                #     validation_result = ssn_card_validation(temp_path,"ssn_card",application_id)
-                #     os.remove(temp_path)
-                #     confidence = validation_result.get("confidence", 0)
-                #     if not validation_result["valid"]:
-                #         raise HTTPException(
-                #             status_code=status.HTTP_400_BAD_REQUEST,
-                #             detail=(
-                #                 f"SSN Card validation failed: "
-                #                 f"{validation_result['doc_type']} "
-                #                 f"(confidence: {validation_result['confidence']})"
-                #             ),
-                #         )
-                #     else :
-                #         return
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                f"SSN Card validation failed: "
+                f"{validation_result['doc_type']} "
+                f"(confidence: {validation_result['confidence']})"
+            ),
+        )
            
             # -----------------------------
             # OCR + KEYWORD INTENT VALIDATION
@@ -274,7 +270,10 @@ class DocumentService:
                     file_bytes=file_bytes,
                     mime_type=file.content_type,
                 )
-
+                
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                    
                 expected_type = DocumentType(document_type)
 
                 is_valid, confidence = KeywordDocumentValidator.validate(
@@ -317,8 +316,8 @@ class DocumentService:
             document = await self.dao.create_document(document_data)
             await self.db.commit()
             await self.db.refresh(document)
-            # Debug logging
-                       # Serialize document to dict for idempotency
+
+            # Serialize document to dict for idempotency
             response_payload = {
                 "id": str(getattr(document, "id", None)),
                 "file_name": getattr(document, "file_name", None),

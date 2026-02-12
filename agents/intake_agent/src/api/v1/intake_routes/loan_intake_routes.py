@@ -4,10 +4,10 @@ from src.services.intake_services import loan_intake_service
 from src.utils.intake_database.db_session import get_db
 from src.services.intake_services.loan_intake_service import LoanIntakeService
 from src.models.interfaces.Loan_intake_interfaces import LoanIntakeRequest, LoanIntakeResponse
-
+from src.dependencies.rate_limit import rate_limit_dependency
 router = APIRouter(prefix="/loan_intake", tags=["loan_intake"])
 
-@router.get("/check")
+@router.get("/check",dependencies=[Depends(rate_limit_dependency)])
 async def check_loan_intake_service(
     db: AsyncSession = Depends(get_db)
     ) -> str:
