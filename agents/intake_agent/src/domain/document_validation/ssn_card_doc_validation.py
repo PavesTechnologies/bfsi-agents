@@ -39,6 +39,11 @@ def calculate_confidence(text):
 
     return min(score, 1.0)
 
+def extract_ssn(text):
+    """Extract SSN number from text"""
+    match = re.search(r"\b\d{3}-\d{2}-\d{4}\b", text)
+    return match.group() if match else None
+
 
 def validate_ssn(text):
 
@@ -47,6 +52,8 @@ def validate_ssn(text):
 
     confidence = calculate_confidence(text)
 
+    ssn_number = extract_ssn(text)
+    
     is_valid = (
         has_number and has_keywords and
         confidence >= 0.8
@@ -55,6 +62,7 @@ def validate_ssn(text):
     return {
         "doc_type": "SSN" if is_valid else "INVALID",
         "confidence": round(confidence, 3),
+        "ssn_number": ssn_number,
         "valid": is_valid
     }
 

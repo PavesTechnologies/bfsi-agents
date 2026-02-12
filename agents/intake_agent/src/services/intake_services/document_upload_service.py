@@ -185,7 +185,7 @@ class DocumentService:
             if document_type == "drivers_license":
                 validation_result = process_single_dl(temp_path)
                 confidence = validation_result.get("confidence_score", 0)
-
+                os.remove(temp_path)
                 if not validation_result.get("valid", False):
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -206,7 +206,8 @@ class DocumentService:
                     application_id=application_id,
                 )
                 confidence = result.get("confidence", 0)
-
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
                 if result["status"] != "success":
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -235,10 +236,9 @@ class DocumentService:
                     "ssn_card",
                     application_id
                     )
+                # print(f"SSN Card validation result: {validation_result}")
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
-
-
                 confidence = validation_result.get("confidence", 0)
 
                 if not validation_result["valid"]:
@@ -275,7 +275,10 @@ class DocumentService:
                     file_bytes=file_bytes,
                     mime_type=file.content_type,
                 )
-
+                
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                    
                 expected_type = DocumentType(document_type)
 
                 is_valid, confidence = KeywordDocumentValidator.validate(
