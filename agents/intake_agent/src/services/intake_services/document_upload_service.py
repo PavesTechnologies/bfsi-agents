@@ -273,6 +273,20 @@ class DocumentService:
 
                 print(f"SSN Card validation result: {validation_result}")
 
+                crossValidator = CrossValidationService(applicant_dao=self.applicant_dao, address_dao=self.address_dao)
+                crossValidation_result = await crossValidator.validate_ssn(application_id, validation_result)
+
+                if not crossValidation_result.valid:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "message": "SSN Card validation failed",
+                            "reason_code": validation_result.get("doc_type", "UNKNOWN"),
+                            "confidence_score": confidence,
+                            "mismatches": [m.__dict__ for m in crossValidation_result.mismatches]
+                        }
+                    )
+
                 if not validation_result["valid"]:
                     raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
