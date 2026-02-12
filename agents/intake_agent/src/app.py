@@ -23,6 +23,8 @@ from src.api.v1.human_in_loop import human_in_loop_routes
 from src.api.v1.human_in_loop import human_in_loop_application_routes
 from src.api.v1.loan_query import loan_query_routes
 
+from src.utils.intake_database.database_setup import dispose_engine
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,8 +44,12 @@ def create_app() -> FastAPI:
         yield  # Application runs here
         
         # --- Shutdown Logic ---
-        logger.info("Shutdown: Disposing database engine")
-        await engine.dispose()
+        logger.info("Shutdown: Disposing database engines")
+        try:
+            await engine.dispose()
+            await dispose_engine()
+        except Exception as e:
+            logger.warning(f"Error disposing database engines: {e}")
 
     # -------------------------
     # App Definition

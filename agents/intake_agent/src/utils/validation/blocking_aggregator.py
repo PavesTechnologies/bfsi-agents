@@ -81,7 +81,13 @@ def validate_applicant_blocking(applicant) -> BlockingValidationSummary:
     dob = getattr(applicant, "date_of_birth", None)
     result = validate_dob(dob)
     if not result.passed:
-        errors.append(ValidationError(field="applicant.date_of_birth", message=result.message))
+        # 🔹 UNDERAGE IS NON-BLOCKING:
+        # We want to record this issue but NOT block the application from being submitted.
+        # This allows the application to reach the "non-blocking" validation phase where
+        # it will be saved to the database for reviewer visibility.
+        from src.domain.validation.reason_codes import ValidationReasonCode
+        if result.reason_code != ValidationReasonCode.AGE_BELOW_MINIMUM:
+            errors.append(ValidationError(field="applicant.date_of_birth", message=result.message))
     
     # ==================== Address Fields ====================
     addresses = getattr(applicant, "addresses", []) or []
