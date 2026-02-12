@@ -101,8 +101,8 @@ def expand_address_abbreviations(address: Optional[str]) -> Optional[str]:
 
     address = address.upper()
 
-    for long, short in ADDRESS_ABBREVIATIONS.items():
-        address = re.sub(rf"\b{long}\b", short, address)
+    # for long, short in ADDRESS_ABBREVIATIONS.items():
+    #     address = re.sub(rf"\b{long}\b", short, address)
 
     address = re.sub(r"\s+", " ", address).strip()
     return address
