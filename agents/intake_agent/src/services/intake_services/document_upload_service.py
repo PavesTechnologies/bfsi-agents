@@ -43,7 +43,7 @@ from src.services.cross_validation_service import CrossValidationService
 # -----------------------------
 DOCUMENT_RULES = {
     "passport": {
-        "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg"},
+        "mime_types": {"image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 5,
         "max_resolution": (5000, 5000),
     },
@@ -59,7 +59,7 @@ DOCUMENT_RULES = {
     },
 
     "ssn_card": {
-        "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg"},
+        "mime_types": { "image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 2,
         "max_resolution": (3000, 3000),
     },
@@ -100,56 +100,65 @@ class DocumentService:
         document_type: str,
         file: UploadFile,
     ):
-        file_bytes = await file.read()
-        if not file_bytes:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Uploaded file is empty",
+       
+        # try: 
+            file_bytes = await file.read()
+            if not file_bytes:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Uploaded file is empty",
+                )
+
+            # -----------------------------
+            # 🔐 DOCUMENT IDEMPOTENCY KEY
+            # -----------------------------
+            document_hash = stable_bytes_hash(file_bytes)
+
+            synthetic_request_id = UUID(
+                stable_bytes_hash(
+                    f"{application_id}:{document_type}:{document_hash}".encode()
+                )[:32]
             )
 
-        # -----------------------------
-        # 🔐 DOCUMENT IDEMPOTENCY KEY
-        # -----------------------------
-        document_hash = stable_bytes_hash(file_bytes)
+            guard = IdempotencyGuard(
+                repo=IdempotencyRepository(self.db)
+            )
 
-        synthetic_request_id = UUID(
-            stable_bytes_hash(
-                f"{application_id}:{document_type}:{document_hash}".encode()
-            )[:32]
-        )
+            async def first_execution():
+                try:
+                    return await self._process_and_store_document(
+                        application_id=application_id,
+                        document_type=document_type,
+                        file=file,
+                        file_bytes=file_bytes,
+                        synthetic_request_id=synthetic_request_id,
+                    )
+                except HTTPException as e:
+                    await IdempotencyRepository(self.db).delete(synthetic_request_id)
+                    raise e
+                except Exception as e:
+                    # For unexpected crashes, we also want to allow a retry
+                    await IdempotencyRepository(self.db).delete(synthetic_request_id)
+                    raise e
 
-        guard = IdempotencyGuard(
-            repo=IdempotencyRepository(self.db)
-        )
-
-        async def first_execution():
-            try:
-                return await self._process_and_store_document(
-                    application_id=application_id,
-                    document_type=document_type,
-                    file=file,
-                    file_bytes=file_bytes,
-                    synthetic_request_id=synthetic_request_id,
-                )
-            except HTTPException as e:
-                await IdempotencyRepository(self.db).delete(synthetic_request_id)
-                raise e
-            except Exception as e:
-                # For unexpected crashes, we also want to allow a retry
-                await IdempotencyRepository(self.db).delete(synthetic_request_id)
-                raise e
-
-        return await guard.execute(
-            request_id=synthetic_request_id,
-            app_id=application_id,
-            payload={
-                "application_id": application_id,
-                "document_type": document_type,
-                "file_hash": document_hash,
-            },
-            on_first_execution=first_execution,
-        )
-
+            return await guard.execute(
+                request_id=synthetic_request_id,
+                app_id=application_id,
+                payload={
+                    "application_id": application_id,
+                    "document_type": document_type,
+                    "file_hash": document_hash,
+                },
+                on_first_execution=first_execution,
+            )
+            
+        # except Exception as e:
+        #     print(f"Error in upload_document: {e}")
+        #     raise HTTPException(
+        #     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        #     detail="Invalid application_id. Must be a valid UUID."
+        # )
+        
     # =========================================================
     # ORIGINAL LOGIC — MOVED VERBATIM (UNCHANGED)
     # =========================================================
