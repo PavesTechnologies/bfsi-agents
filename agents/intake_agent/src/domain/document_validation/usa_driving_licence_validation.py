@@ -93,7 +93,7 @@ async def process_single_dl(application_id: str, image_path: str, applicant_dao=
             print(f"Parsed Data: {parsed}")
             normalizer = DriversLicenseNormalizer()
             validation_result = validate_dl(parsed)
-            
+
             normalized = normalizer.normalize(parsed)
 
             print(f"Normalized Data: {normalized}")
@@ -103,6 +103,7 @@ async def process_single_dl(application_id: str, image_path: str, applicant_dao=
 
             if not crossValidation_result.valid:
                 validation_result["cross_validation_mismatches"] = [m.__dict__ for m in crossValidation_result.mismatches]
+                validation_result["valid"] = crossValidation_result.valid and validation_result["valid"]
                 
             # Add metadata from Dynamsoft
             validation_result["barcode_confidence"] = item.get_confidence()

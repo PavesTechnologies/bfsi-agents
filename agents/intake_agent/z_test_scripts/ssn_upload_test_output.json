@@ -1,0 +1,38 @@
+{
+    "timestamp": "2026-02-12T09:00:54.579790",
+    "endpoint": "/documents/upload/ssn-card",
+    "status_code": 400,
+    "file_name": "C:\\Users\\Ajaykumar.Bhukya\\Downloads\\ssn\\USA.jpg",
+    "application_id": "a41b53c5-1975-4dcb-9307-c2c514138b2f",
+    "response": {
+        "detail": "SSN Card validation failed: INVALID (confidence: 0.4)"
+    }
+}
+
+{
+    "timestamp": "2026-02-12T09:02:01.644782",
+    "endpoint": "/documents/upload/ssn-card",
+    "status_code": 200,
+    "file_name": "C:\\Users\\Ajaykumar.Bhukya\\Downloads\\ssn\\ssn2.jpg",
+    "application_id": "a41b53c5-1975-4dcb-9307-c2c514138b2f",
+    "response": {
+        "message": "Document uploaded successfully",
+        "document_id": "bd5ec735-5469-430e-9ff3-fb27a9735233",
+        "file_name": "sample_ssn_card.jpg",
+        "mime_type": "image/jpeg",
+        "file_size": 11264,
+        "document_type": "ssn_card"
+    }
+}
+
+{
+    "timestamp": "2026-02-12T09:11:35.715396",
+    "endpoint": "/documents/upload/ssn-card",
+    "status_code": 400,
+    "file_name": "C:\\Users\\Ajaykumar.Bhukya\\Downloads\\Sri_Charan_credentials.csv",
+    "application_id": "a41b53c5-1975-4dcb-9307-c2c514138b2f",
+    "response": {
+        "detail": "Invalid or corrupted image file"
+    }
+}
+

@@ -1,0 +1,21 @@
+{
+    "timestamp": "2026-02-12T10:22:17.683310",
+    "endpoint": "/documents/upload/drivers-license",
+    "status_code": 422,
+    "file_name": "C:\\Users\\Ajaykumar.Bhukya\\Downloads\\ssn\\barcode_working.jpg",
+    "application_id": "",
+    "response": {
+        "detail": [
+            {
+                "type": "missing",
+                "loc": [
+                    "body",
+                    "application_id"
+                ],
+                "msg": "Field required",
+                "input": null
+            }
+        ]
+    }
+}
+

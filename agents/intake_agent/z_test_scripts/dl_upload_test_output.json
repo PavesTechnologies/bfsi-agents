@@ -1,0 +1,43 @@
+{
+    "timestamp": "2026-02-12T09:07:19.943268",
+    "endpoint": "/documents/upload/drivers-license",
+    "status_code": 400,
+    "file_name": "C:\\Users\\Ajaykumar.Bhukya\\Downloads\\ssn\\ssn2.jpg",
+    "application_id": "a41b53c5-1975-4dcb-9307-c2c514138b2f",
+    "response": {
+        "detail": {
+            "message": "Driver's License validation failed",
+            "reason_code": "UNKNOWN",
+            "confidence_score": 0,
+            "mismatches": []
+        }
+    }
+}
+
+{
+    "timestamp": "2026-02-12T09:08:33.183046",
+    "endpoint": "/documents/upload/drivers-license",
+    "status_code": 200,
+    "file_name": "C:\\Users\\Ajaykumar.Bhukya\\Downloads\\ssn\\barcode_working.jpg",
+    "application_id": "a41b53c5-1975-4dcb-9307-c2c514138b2f",
+    "response": {
+        "message": "Document uploaded successfully",
+        "document_id": "41318d4b-ac19-4cd3-834a-d57673ec07bd",
+        "file_name": "sample_dl.jpg",
+        "mime_type": "image/jpeg",
+        "file_size": 32540,
+        "document_type": "drivers_license"
+    }
+}
+
+{
+    "timestamp": "2026-02-12T09:10:07.153988",
+    "endpoint": "/documents/upload/drivers-license",
+    "status_code": 400,
+    "file_name": "C:\\Users\\Ajaykumar.Bhukya\\Downloads\\Sri_Charan_credentials.csv",
+    "application_id": "a41b53c5-1975-4dcb-9307-c2c514138b2f",
+    "response": {
+        "detail": "Invalid or corrupted image file"
+    }
+}
+
