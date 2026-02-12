@@ -74,10 +74,7 @@ from .constants import EMAIL_REGEX, PHONE_REGEX
 
 def validate_email(value: str) -> ValidationResult:
     if value is None:
-        return ValidationResult.failure(
-            ValidationReasonCode.INVALID_EMAIL_FORMAT,
-            "Email is required"
-        )
+        return ValidationResult.success()
     if not EMAIL_REGEX.match(value):
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_EMAIL_FORMAT,
@@ -165,5 +162,23 @@ def validate_monthly_income(value: float) -> ValidationResult:
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_MONTHLY_INCOME,
             "Monthly income must be greater than zero"
+        )
+    return ValidationResult.success()
+
+
+def validate_requested_amount(value: float) -> ValidationResult:
+    if value is None or value <= 0:
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_LOAN_AMOUNT,
+            "Requested amount must be greater than zero"
+        )
+    return ValidationResult.success()
+
+
+def validate_requested_term(value: int) -> ValidationResult:
+    if value is None or value <= 1:
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_LOAN_TERM,
+            "Requested term must be greater than 1 month"
         )
     return ValidationResult.success()
