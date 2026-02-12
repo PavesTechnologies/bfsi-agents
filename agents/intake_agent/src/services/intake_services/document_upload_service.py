@@ -185,6 +185,7 @@ class DocumentService:
             if document_type == "drivers_license":
                 validation_result = process_single_dl(temp_path)
                 confidence = validation_result.get("confidence_score", 0)
+                print(f"Driver's License validation result: {validation_result}"   )
                 os.remove(temp_path)
                 if not validation_result.get("valid", False):
                     raise HTTPException(
