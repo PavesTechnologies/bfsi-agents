@@ -3,9 +3,9 @@ from src.repositories.intake_repo.applicant_repo import ApplicantDAO
 from src.repositories.intake_repo.address_repo import AddressDAO
 
 class CrossValidationService:
-    def __init__(self, applicant_dao : ApplicantDAO, address_dao : AddressDAO):
-        self.applicant_dao = applicant_dao
-        self.address_dao = address_dao
+    def __init__(self, applicant_dao : ApplicantDAO = None, address_dao : AddressDAO = None):
+        self.applicant_dao = applicant_dao or ApplicantDAO()
+        self.address_dao = address_dao or AddressDAO()
         
     async def validate_passport(
         self,

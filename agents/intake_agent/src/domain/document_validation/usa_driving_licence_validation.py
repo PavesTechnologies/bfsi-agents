@@ -4,6 +4,9 @@ import numpy as np
 from datetime import date, datetime
 from dynamsoft_barcode_reader_bundle import *
 from src.core.config import get_settings
+from src.services.cross_validation_service import CrossValidationService
+from src.domain.normalization.drivers_license import DriversLicenseNormalizer
+
 
 settings = get_settings()
 LICENSE_KEY = settings.BARCODE_LICENSE_KEY
@@ -30,22 +33,23 @@ def parse_aamva_payload(payload: str) -> dict:
         # print(f"Extracted {field}: {data.get(field, 'N/A')}")
     return data
 
-def normalize_dl_data(data: dict) -> dict:
-    def parse_date(value):
-        # Common AAMVA date formats: MMDDYYYY or YYYYMMDD
-        for fmt in ("%m%d%Y", "%Y%m%d"):
-            try:
-                return datetime.strptime(value, fmt).date().isoformat()
-            except: continue
-        return value
+# def normalize_dl_data(data: dict) -> dict:
+#     def parse_date(value):
+#         # Common AAMVA date formats: MMDDYYYY or YYYYMMDD
+#         for fmt in ("%m%d%Y", "%Y%m%d"):
+#             try:
+#                 return datetime.strptime(value, fmt).date().isoformat()
+#             except: continue
+#         return value
 
-    for field in ["date_of_birth", "expiry_date", "issue_date"]:
-        if field in data:
-            data[field] = parse_date(data[field])
-    return data
+#     for field in ["date_of_birth", "expiry_date", "issue_date"]:
+#         if field in data:
+#             data[field] = parse_date(data[field])
+#     return data
 
 def validate_dl(data: dict) -> dict:
     present_req = [f for f in REQUIRED_FIELDS if f in data]
+    print(f"Present required fields: {present_req} / {REQUIRED_FIELDS}")
     req_score = len(present_req) / len(REQUIRED_FIELDS)
     
     is_expired = False
@@ -68,7 +72,7 @@ def validate_dl(data: dict) -> dict:
 LicenseManager.init_license(LICENSE_KEY)
 router = CaptureVisionRouter()
 
-def process_single_dl(image_path: str):
+async def process_single_dl(application_id: str, image_path: str, applicant_dao=None, address_dao=None):
     print(f"🚀 Processing: {os.path.basename(image_path)}")
     
     # Use Dynamsoft to capture barcodes
@@ -85,11 +89,24 @@ def process_single_dl(image_path: str):
             
             # Run your existing logic chain
             parsed = parse_aamva_payload(raw_payload)
-            normalized = normalize_dl_data(parsed)
-            validation_result = validate_dl(normalized)
+            # normalized = normalize_dl_data(parsed)
+            print(f"Parsed Data: {parsed}")
+            normalizer = DriversLicenseNormalizer()
+            validation_result = validate_dl(parsed)
             
+            normalized = normalizer.normalize(parsed)
+
+            print(f"Normalized Data: {normalized}")
+
+            crossValidator = CrossValidationService(applicant_dao=applicant_dao, address_dao=address_dao)
+            crossValidation_result = await crossValidator.validate_drivers_license(application_id, normalized)
+
+            if not crossValidation_result.valid:
+                validation_result["cross_validation_mismatches"] = [m.__dict__ for m in crossValidation_result.mismatches]
+                
             # Add metadata from Dynamsoft
             validation_result["barcode_confidence"] = item.get_confidence()
+            print(f"Validation Result: {validation_result}")
             return validation_result
 
     return {"error": "No  barcode found in image.","valid": False}
