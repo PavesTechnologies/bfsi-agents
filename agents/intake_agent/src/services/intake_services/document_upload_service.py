@@ -101,7 +101,7 @@ class DocumentService:
         file: UploadFile,
     ):
        
-        try: 
+        # try: 
             file_bytes = await file.read()
             if not file_bytes:
                 raise HTTPException(
@@ -152,11 +152,12 @@ class DocumentService:
                 on_first_execution=first_execution,
             )
             
-        except Exception:
-            raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Invalid application_id. Must be a valid UUID."
-        )
+        # except Exception as e:
+        #     print(f"Error in upload_document: {e}")
+        #     raise HTTPException(
+        #     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        #     detail="Invalid application_id. Must be a valid UUID."
+        # )
         
     # =========================================================
     # ORIGINAL LOGIC — MOVED VERBATIM (UNCHANGED)
