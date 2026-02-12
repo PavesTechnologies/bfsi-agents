@@ -190,3 +190,26 @@ class CrossValidationService:
             valid=len(mismatches) == 0,
             mismatches=mismatches
         )
+
+    async def validate_ssn(self, application_id: str, ssn_data: dict) -> CrossValidationResult:
+        # Similar structure to the above methods, comparing SSN data with applicant info
+        
+        applicant = await self.applicant_dao.get_primary_by_application_id(application_id)
+        if not applicant:
+            raise Exception("Applicant not found")
+
+        mismatches = []
+
+        if str(applicant.ssn_last4) != ssn_data["ssn_number"][-4:]:
+            mismatches.append(
+                FieldMismatch(
+                    field="ssn number last 4 digits",
+                    expected=str(applicant.ssn_last4),
+                    actual=ssn_data["ssn_number"][-4:],
+                )
+            )
+
+        return CrossValidationResult(
+            valid=len(mismatches) == 0,
+            mismatches=mismatches
+        )

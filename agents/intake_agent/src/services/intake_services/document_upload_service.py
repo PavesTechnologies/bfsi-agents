@@ -271,6 +271,8 @@ class DocumentService:
                     os.remove(temp_path)
                 confidence = validation_result.get("confidence", 0)
 
+                print(f"SSN Card validation result: {validation_result}")
+
                 if not validation_result["valid"]:
                     raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
