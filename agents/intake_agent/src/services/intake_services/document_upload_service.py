@@ -165,7 +165,19 @@ class DocumentService:
                     status_code=422,
                     detail="Invalid application_id format. Must be a valid UUID.",
                 )
-        
+                
+        except SQLAlchemyError:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database unavailable. Please try again later.",
+            )
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unexpected error processing document: {str(e)}",
+            )
+
     # =========================================================
     # ORIGINAL LOGIC — MOVED VERBATIM (UNCHANGED)
     # =========================================================
