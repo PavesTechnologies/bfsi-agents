@@ -1,9 +1,0 @@
-﻿============================= test session starts =============================
-platform win32 -- Python 3.11.8, pytest-8.4.2, pluggy-1.6.0
-rootdir: C:\Users\Thejas.Gajula\bfsi-agents\agents\intake_agent
-configfile: pytest.ini
-plugins: anyio-4.12.1, asyncio-0.23.8, typeguard-4.4.4
-asyncio: mode=Mode.AUTO
-collected 11 items
-
-tests\unit\test_validators_refined.py ...                                [ 27%]
