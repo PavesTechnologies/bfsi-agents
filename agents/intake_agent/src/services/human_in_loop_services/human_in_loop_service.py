@@ -10,12 +10,15 @@ from src.models.interfaces.human_in_loop_interface import (
     HumanInLoopRequest,
     HumanInLoopResponse,
 )
+from uuid import UUID
+from src.repositories.loan_info.loan_query_dao import LoanQueryDAO
 
 
 class HumanInLoopService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.dao = HumanInLoopDAO(db)
+        self.loan_info_dao = LoanQueryDAO(db)
 
     async def submit_review(
         self,
@@ -23,6 +26,16 @@ class HumanInLoopService:
     ) -> HumanInLoopResponse:
 
         try:
+            application_id_obj = UUID(request.application_id)
+            
+            application_info = await self.loan_info_dao.get_loan_by_application_id(application_id_obj)
+            
+            if not application_info:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"No loan application found with id {request.application_id}",
+                )
+                
             # -----------------------------
             # 1. Persist human review
             # -----------------------------
@@ -59,10 +72,19 @@ class HumanInLoopService:
                 response=response_msg,
             )
 
+        except ValueError:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid application_id format: {request.application_id}",
+            )
+        
         except SQLAlchemyError:
             await self.db.rollback()
             raise
-
+            
+        except HTTPException as e:
+            raise e
+        
         except Exception as e:
             await self.db.rollback()
             raise HTTPException(status_code=400, detail=str(e))

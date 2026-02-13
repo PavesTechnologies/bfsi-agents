@@ -42,6 +42,8 @@ def validate_email(value: str) -> ValidationResult:
     """
     field_name = "email"
     try:
+        if value is None:
+            return ValidationResult(field=field_name, is_valid=True)
         if not isinstance(value, str):
             return ValidationResult(field=field_name, is_valid=False, reason="email must be a string")
         value = value.strip()

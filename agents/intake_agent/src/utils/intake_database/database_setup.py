@@ -22,15 +22,26 @@ DB_DRIVER = settings.DB_DRIVER
 DB_URL = f"{DB_DRIVER}://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # ✅ Create async engine
+import os
+from sqlalchemy.pool import NullPool
+
+# Use NullPool in tests to avoid "different loop" errors on Windows
+poolclass = NullPool if os.getenv("PYTEST_CURRENT_TEST") else None
+
 engine = create_async_engine(
     DB_URL,
-    pool_size=15,
-    max_overflow=30,
+    pool_size=15 if not poolclass else None,
+    max_overflow=30 if not poolclass else None,
     pool_timeout=15,
     pool_recycle=1800,
     pool_pre_ping=True,
     echo=False,
+    poolclass=poolclass
 )
+
+async def dispose_engine():
+    """Dispose the engine"""
+    await engine.dispose()
 
 # ✅ Use async_sessionmaker instead of sessionmaker
 AsyncSessionLocal = async_sessionmaker(

@@ -21,7 +21,8 @@ from src.domain.validation.typed_field_validators import (
     validate_employer_name,
     validate_job_title,
     validate_monthly_income,
-    validate_ssn,
+    validate_requested_amount,
+    validate_requested_term,
 )
 
 
@@ -92,7 +93,21 @@ def validate_applicant_blocking(applicant) -> BlockingValidationSummary:
     dob = getattr(applicant, "date_of_birth", None)
     result = validate_dob(dob)
     if not result.passed:
-        errors.append(ValidationError(field="applicant.date_of_birth", message=result.message))
+        # 🔹 UNDERAGE IS NON-BLOCKING:
+        # We want to record this issue but NOT block the application from being submitted.
+        # This allows the application to reach the "non-blocking" validation phase where
+        # it will be saved to the database for reviewer visibility.
+        from src.domain.validation.reason_codes import ValidationReasonCode
+        if result.reason_code != ValidationReasonCode.AGE_BELOW_MINIMUM:
+            errors.append(ValidationError(field="applicant.date_of_birth", message=result.message))
+    
+    # Email (NON-BLOCKING)
+    email = getattr(applicant, "email", None)
+    result = validate_email(email)
+    if not result.passed:
+        # 🔹 EMAIL FORMAT IS NON-BLOCKING:
+        # We record it but don't stop submission.
+        pass
     
     # ==================== Address Fields ====================
     addresses = getattr(applicant, "addresses", []) or []
@@ -176,16 +191,42 @@ def validate_applicant_blocking(applicant) -> BlockingValidationSummary:
     return BlockingValidationSummary(is_valid=is_valid, errors=errors)
 
 
-def validate_all_applicants_blocking(applicants: List[Any]) -> BlockingValidationSummary:
-    """Validate all applicants and collect all errors at once.
+def validate_loan_blocking(loan) -> BlockingValidationSummary:
+    """Validate loan-level fields."""
+    errors: List[ValidationError] = []
+    
+    # Amount
+    amount = getattr(loan, "requested_amount", None)
+    result = validate_requested_amount(amount)
+    if not result.passed:
+        errors.append(ValidationError(field="requested_amount", message=result.message))
+        
+    # Term
+    term = getattr(loan, "requested_term_months", None)
+    result = validate_requested_term(term)
+    if not result.passed:
+        errors.append(ValidationError(field="requested_term_months", message=result.message))
+        
+    is_valid = len(errors) == 0
+    return BlockingValidationSummary(is_valid=is_valid, errors=errors)
+
+
+def validate_all_applicants_blocking(request_body: Any) -> BlockingValidationSummary:
+    """Validate entire request including loan level and all applicants.
     
     Returns:
-        BlockingValidationSummary with is_valid=True only if ALL applicants
-        and their nested fields pass validation. All errors across all applicants
-        are collected together.
+        BlockingValidationSummary with is_valid=True only if everything
+        passes structural validation.
     """
     all_errors: List[ValidationError] = []
     
+    # 1. Loan Level
+    loan_summary = validate_loan_blocking(request_body)
+    if not loan_summary.is_valid:
+        all_errors.extend(loan_summary.errors)
+        
+    # 2. Applicants
+    applicants = getattr(request_body, "applicants", []) or []
     for idx, applicant in enumerate(applicants):
         summary = validate_applicant_blocking(applicant)
         if not summary.is_valid:

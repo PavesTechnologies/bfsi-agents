@@ -35,7 +35,7 @@ from src.domain.normalization.drivers_license import DriversLicenseNormalizer
 from src.domain.normalization.passport import PassportNormalizer
 
 from src.services.cross_validation_service import CrossValidationService
-
+from src.repositories.intake_repo.loan_info_repo import LoanInfoDAO
 
 
 # -----------------------------
@@ -90,6 +90,7 @@ class DocumentService:
         self.dao = LoanIntakeDAO(db)
         self.applicant_dao = ApplicantDAO(db)
         self.address_dao = AddressDAO(db)
+        self.loan_info_dao = LoanInfoDAO(db)
 
     # =========================================================
     # PUBLIC API — IDEMPOTENT WRAPPER (ADDED)
@@ -100,8 +101,15 @@ class DocumentService:
         document_type: str,
         file: UploadFile,
     ):
-       
-        # try: 
+        try:
+            application_id_obj = UUID(application_id)
+            application_info = await self.loan_info_dao.get_loan_application_by_id(application_id_obj)
+            if not application_info:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"No loan application found with id {application_id}",
+                )
+                
             file_bytes = await file.read()
             if not file_bytes:
                 raise HTTPException(
@@ -152,13 +160,27 @@ class DocumentService:
                 on_first_execution=first_execution,
             )
             
-        # except Exception as e:
-        #     print(f"Error in upload_document: {e}")
-        #     raise HTTPException(
-        #     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        #     detail="Invalid application_id. Must be a valid UUID."
-        # )
+        except ValueError:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Invalid application_id format. Must be a valid UUID.",
+                )
+                
+        except SQLAlchemyError:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database unavailable. Please try again later.",
+            )
         
+        except HTTPException as e:
+            raise  e
+        
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unexpected error processing document: {str(e)}",
+            )
+
     # =========================================================
     # ORIGINAL LOGIC — MOVED VERBATIM (UNCHANGED)
     # =========================================================
@@ -281,6 +303,28 @@ class DocumentService:
                 confidence = validation_result.get("confidence", 0)
 
                 print(f"SSN Card validation result: {validation_result}")
+                
+                if not validation_result["valid"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "message": "SSN Card validation failed",
+                            "reason_code": validation_result.get("doc_type", "UNKNOWN"),
+                            "confidence_score": confidence},
+                    )
+                crossValidator = CrossValidationService(applicant_dao=self.applicant_dao, address_dao=self.address_dao)
+                crossValidation_result = await crossValidator.validate_ssn(application_id, validation_result)
+
+                if not crossValidation_result.valid:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "message": "SSN Card validation failed",
+                            "reason_code": validation_result.get("doc_type", "UNKNOWN"),
+                            "confidence_score": confidence,
+                            "mismatches": [m.__dict__ for m in crossValidation_result.mismatches]
+                        }
+                    )
 
                 if not validation_result["valid"]:
                     raise HTTPException(
