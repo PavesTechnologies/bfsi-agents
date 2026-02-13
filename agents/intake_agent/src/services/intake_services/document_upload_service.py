@@ -208,7 +208,7 @@ class DocumentService:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail={
-                            "message": "Driver's License validation failed",
+                            "message": "Driver's License details not matched during cross-validation",
                             "reason_code": validation_result.get("doc_type", "UNKNOWN"),
                             "confidence_score": confidence,
                             "mismatches": validation_result.get("cross_validation_mismatches", [])
@@ -247,7 +247,7 @@ class DocumentService:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail={
-                            "message": "Passport cross-validation failed",
+                            "message": "Passport details not matched during cross-validation",
                             "confidence_score": confidence,
                             "mismatches": [m.__dict__ for m in crossValidation_result.mismatches]
                         }
