@@ -102,8 +102,8 @@ class DocumentService:
         file: UploadFile,
     ):
         try:
-            application_id = UUID(application_id)
-            application_info = await self.loan_info_dao.get_loan_application_by_id(application_id)
+            application_id_obj = UUID(application_id)
+            application_info = await self.loan_info_dao.get_loan_application_by_id(application_id_obj)
             if not application_info:
                 raise HTTPException(
                     status_code=400,
@@ -171,7 +171,10 @@ class DocumentService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database unavailable. Please try again later.",
             )
-            
+        
+        except HTTPException as e:
+            raise  e
+        
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -300,7 +303,15 @@ class DocumentService:
                 confidence = validation_result.get("confidence", 0)
 
                 print(f"SSN Card validation result: {validation_result}")
-
+                
+                if not validation_result["valid"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "message": "SSN Card validation failed",
+                            "reason_code": validation_result.get("doc_type", "UNKNOWN"),
+                            "confidence_score": confidence},
+                    )
                 crossValidator = CrossValidationService(applicant_dao=self.applicant_dao, address_dao=self.address_dao)
                 crossValidation_result = await crossValidator.validate_ssn(application_id, validation_result)
 
