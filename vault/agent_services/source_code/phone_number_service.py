@@ -53,3 +53,6 @@ class PhoneNumberVaultService:
         )
 
         return self._from_base64(response['data']['plaintext'])
+    
+obj=PhoneNumberVaultService()
+print(obj.protect_phone_number("123-456-7890"))
