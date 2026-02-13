@@ -22,7 +22,7 @@ class LoanQueryService:
             loan = await self.dao.get_loan_by_application_id(application_id_obj)
 
             if not loan:
-                raise HTTPException(status_code=404, detail="Loan not found")
+                raise HTTPException(status_code=404, detail="Loan data not found")
 
             return LoanDetailsResponse(
                 application_id = loan.application_id,
