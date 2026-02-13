@@ -65,3 +65,9 @@ class IdempotencyRepository:
         )
         await self.db.execute(stmt)
         await self.db.commit()
+
+    async def delete(self, request_id: UUID):
+        record = await self.get(request_id)
+        if record:
+            await self.db.delete(record)
+            await self.db.commit()

@@ -32,6 +32,11 @@ def validate_ssn(value: str) -> ValidationResult:
 
 
 def validate_ssn_last4(value: str) -> ValidationResult:
+    if value is None:
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_SSN_LAST4,
+            "SSN last4 is required"
+        )
     if not SSN_LAST4_REGEX.match(value):
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_SSN_LAST4,
@@ -42,6 +47,11 @@ from datetime import date
 
 
 def validate_dob(value: date) -> ValidationResult:
+    if value is None:
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_DOB_FORMAT,
+            "Date of birth is required"
+        )
     if value >= date.today():
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_DOB_FORMAT,
@@ -63,6 +73,8 @@ from .constants import EMAIL_REGEX, PHONE_REGEX
 
 
 def validate_email(value: str) -> ValidationResult:
+    if value is None:
+        return ValidationResult.success()
     if not EMAIL_REGEX.match(value):
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_EMAIL_FORMAT,
@@ -150,5 +162,23 @@ def validate_monthly_income(value: float) -> ValidationResult:
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_MONTHLY_INCOME,
             "Monthly income must be greater than zero"
+        )
+    return ValidationResult.success()
+
+
+def validate_requested_amount(value: float) -> ValidationResult:
+    if value is None or value <= 0:
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_LOAN_AMOUNT,
+            "Requested amount must be greater than zero"
+        )
+    return ValidationResult.success()
+
+
+def validate_requested_term(value: int) -> ValidationResult:
+    if value is None or value <= 1:
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_LOAN_TERM,
+            "Requested term must be greater than 1 month"
         )
     return ValidationResult.success()

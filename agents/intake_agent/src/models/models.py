@@ -106,7 +106,7 @@ class LoanApplication(Base):
     cascade="all, delete-orphan",
     lazy="selectin",
     )
-    documents = relationship("Document", back_populates="application")
+    documents = relationship("Document", back_populates="application", overlaps="document")
 
     pgsql_documents = relationship(
             "PgsqlDocument",

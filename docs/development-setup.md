@@ -12,9 +12,40 @@ Following these steps helps ensure everyone works in a consistent environment, w
 
 Before starting, ensure the following are installed on your machine:
 
-* **Python** (version defined in `pyproject.toml`)
-* **Poetry** (used for dependency and environment management)
-* **Git**
+- **Python** (version defined in `pyproject.toml`)
+- **Git**
+
+### 1. Install Poetry
+
+If Poetry is not already installed, you can install it using pip:
+
+```bash
+pip install poetry
+```
+
+Or use the official installer:
+
+```bash
+curl -sSL https://install.python-poetry.org | python3 -
+```
+
+On Windows (PowerShell):
+
+```powershell
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+```
+
+See the [Poetry installation docs](https://python-poetry.org/docs/#installation) for more details.
+
+### 2. Configure Poetry Virtual Environment Location
+
+To keep the virtual environment inside the project folder (recommended for consistency), run this command **inside your agent directory**:
+
+```bash
+poetry config virtualenvs.in-project true
+```
+
+This will create a `.venv` folder in your repo root after running `poetry install`.
 
 Using the same Python and Poetry versions across the team helps avoid subtle environment-related issues.
 
@@ -22,7 +53,7 @@ Using the same Python and Poetry versions across the team helps avoid subtle env
 
 ## Repository Setup
 
-### 1. Clone the Repository
+### 3. Clone the Repository
 
 ```bash
 git clone https://github.com/rohitlingarker/bfsi-agents
@@ -43,9 +74,9 @@ poetry install
 
 What this does:
 
-* Creates a virtual environment for the project
-* Installs all dependencies defined in `pyproject.toml`
-* Uses `poetry.lock` to ensure exact versions
+- Creates a virtual environment for the project
+- Installs all dependencies defined in `pyproject.toml`
+- Uses `poetry.lock` to ensure exact versions
 
 This step is required only once unless dependencies change.
 
@@ -59,8 +90,8 @@ poetry env info
 
 This command confirms:
 
-* Which Python interpreter is being used
-* Where the virtual environment is located
+- Which Python interpreter is being used
+- Where the virtual environment is located
 
 It’s a useful first check if something behaves unexpectedly.
 
@@ -102,8 +133,8 @@ Most configuration is provided via environment variables.
 
 Typical setup steps:
 
-* Copy `.env.example` to `.env` (if present)
-* Update values as needed for local development
+- Copy `.env.example` to `.env` (if present)
+- Update values as needed for local development
 
 Configuration loading is handled centrally (usually in `src/core/config.py`).
 
@@ -125,9 +156,9 @@ This ensures tests use the same dependencies and settings as the application.
 
 ## Common Issues and Tips
 
-* **Dependency errors**: Run `poetry install` again and ensure Python version matches `pyproject.toml`
-* **Command not found**: Make sure commands are run via `poetry run`
-* **Unexpected behavior**: Verify the active virtual environment with `poetry env info`
+- **Dependency errors**: Run `poetry install` again and ensure Python version matches `pyproject.toml`
+- **Command not found**: Make sure commands are run via `poetry run`
+- **Unexpected behavior**: Verify the active virtual environment with `poetry env info`
 
 Most setup issues are related to environment mismatches, and Poetry helps surface these early.
 

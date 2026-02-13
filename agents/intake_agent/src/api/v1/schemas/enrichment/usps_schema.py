@@ -1,6 +1,6 @@
 """USPS enrichment API schemas."""
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 
 class USPSAddressRequestSchema(BaseModel):
@@ -11,18 +11,7 @@ class USPSAddressRequestSchema(BaseModel):
     state: Optional[str] = Field(None, description="State code (e.g., CA, NY)")
     zip_code: Optional[str] = Field(None, description="ZIP code")
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "address_line1": "123 Main St",
-                "address_line2": "Apt 4B",
-                "city": "San Francisco",
-                "state": "CA",
-                "zip_code": "94102"
-            }
-        }
-
-
+    model_config = ConfigDict(json_schema_extra={"example": {"address_line1": "123 Main St", "address_line2": "Apt 4B", "city": "San Francisco", "state": "CA", "zip_code": "94102"}})
 class USPSAddressResponseSchema(BaseModel):
     """Response schema for USPS address verification."""
     deliverable: bool = Field(..., description="Whether the address is deliverable")
@@ -31,13 +20,4 @@ class USPSAddressResponseSchema(BaseModel):
     zip4: Optional[str] = Field(None, description="ZIP+4 extension")
     confidence: float = Field(..., description="Confidence score (0.0-1.0)")
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "deliverable": True,
-                "standardized_address": "123 MAIN ST APT 4B",
-                "zip5": "94102",
-                "zip4": "1234",
-                "confidence": 0.9
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={"example": {"deliverable": True, "standardized_address": "123 MAIN ST APT 4B", "zip5": "94102", "zip4": "1234", "confidence": 0.9}})

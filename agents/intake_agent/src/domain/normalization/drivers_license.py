@@ -1,3 +1,4 @@
+from datetime import datetime 
 from typing import Dict, Any
 
 from .base import BaseNormalizer
@@ -14,6 +15,17 @@ class DriversLicenseNormalizer(BaseNormalizer):
     """
     Normalizes Drivers License extracted fields into canonical format.
     """
+
+    def parse_date(self,value):
+        # Common AAMVA date formats: MMDDYYYY or YYYYMMDD
+        for fmt in ("%m%d%Y", "%Y%m%d"):
+            try:
+                return datetime.strptime(value, fmt).date().isoformat()
+            except Exception as e:
+                print(e) 
+                print(f"Date parsing failed for value: {value} with format {fmt}") 
+                continue
+        return value
 
     def normalize(self, data: Dict[str, Any]) -> Dict[str, Any]:
         # -----------------------------
@@ -51,15 +63,15 @@ class DriversLicenseNormalizer(BaseNormalizer):
 
             "name": name_parts,
 
-            "dob": data.get("date_of_birth"),
+            "dob": self.parse_date(data.get("date_of_birth")),
             "license_number": normalize_name(data.get("license_number")),
 
             "address": address,
 
-            "issue_date": data.get("issue_date"),
-            "expiry_date": data.get("expiry_date"),
+            "issue_date": self.parse_date(data.get("issue_date")),
+            "expiry_date": self.parse_date(data.get("expiry_date")),
 
-            "sex": normalize_sex(data.get("sex")),
+            "gender": normalize_sex(data.get("sex")),
             "country": normalize_country(data.get("country")),
             "issuing_state": normalize_name(data.get("state")),
         }

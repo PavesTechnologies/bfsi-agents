@@ -3,75 +3,76 @@ from src.repositories.intake_repo.applicant_repo import ApplicantDAO
 from src.repositories.intake_repo.address_repo import AddressDAO
 
 class CrossValidationService:
-    def __init__(self, applicant_dao : ApplicantDAO, address_dao : AddressDAO):
-        self.applicant_dao = applicant_dao
-        self.address_dao = address_dao
+    def __init__(self, applicant_dao : ApplicantDAO = None, address_dao : AddressDAO = None):
+        self.applicant_dao = applicant_dao or ApplicantDAO()
+        self.address_dao = address_dao or AddressDAO()
         
     async def validate_passport(
         self,
         application_id: str,
-        mrz_data: dict,
+        normalized_data: dict,
     ) -> CrossValidationResult:
+        
+        # normalized_data : 
+        # {'document_type': 'PASSPORT', 'issuing_country': 'USA', 'nationality': 'USA', 'last_name': 'MEHTA', 'first_name': 'ROHAN ANIL', 'passport_number': 'P98765432', 'date_of_birth': '1993-09-14', 'expiry_date': '2029-01-11', 'gender': 'MALE'}
+
+
         applicant = await self.applicant_dao.get_primary_by_application_id(application_id)
         if not applicant:
             raise Exception("Applicant not found")
 
         mismatches = []
+        print(applicant.__dict__)
 
-        # Surname (last name)
-        if "surname" in mrz_data and applicant.last_name and applicant.last_name.upper() != mrz_data["surname"].upper():
+        # last name
+        if "last_name" in normalized_data and applicant.last_name and applicant.last_name.upper() != normalized_data["last_name"].upper():
             mismatches.append(FieldMismatch(
-                field="surname",
+                field="last_name",
                 expected=applicant.last_name,
-                actual=mrz_data["surname"]
+                actual=normalized_data["last_name"]
             ))
+        else:
+            print(f"Last name matches: {applicant.last_name} / {normalized_data.get('last_name')}")
 
-        # Given name (first name)
-        if "given_name" in mrz_data and applicant.first_name and applicant.first_name.upper() != mrz_data["given_name"].upper():
+        # first name)
+        if "first_name" in normalized_data and applicant.first_name and applicant.first_name.upper() not in normalized_data["first_name"].upper():
             mismatches.append(FieldMismatch(
-                field="given_name",
+                field="first_name",
                 expected=applicant.first_name,
-                actual=mrz_data["given_name"]
+                actual=normalized_data["first_name"]
             ))
 
         # Date of birth
-        if "date_of_birth" in mrz_data and str(applicant.date_of_birth) != mrz_data["date_of_birth"]:
+        if "date_of_birth" in normalized_data and str(applicant.date_of_birth) != normalized_data["date_of_birth"]:
             mismatches.append(FieldMismatch(
                 field="date_of_birth",
                 expected=str(applicant.date_of_birth),
-                actual=mrz_data["date_of_birth"]
+                actual=normalized_data["date_of_birth"]
             ))
 
         # Nationality
-        if "nationality" in mrz_data and hasattr(applicant, "nationality") and applicant.nationality and applicant.nationality.upper() != mrz_data["nationality"].upper():
+        if "nationality" in normalized_data and hasattr(applicant, "nationality") and applicant.nationality and applicant.nationality.upper() != normalized_data["nationality"].upper():
             mismatches.append(FieldMismatch(
                 field="nationality",
                 expected=getattr(applicant, "nationality", None),
-                actual=mrz_data["nationality"]
+                actual=normalized_data["nationality"]
             ))
 
         # Passport number
-        if "passport_number" in mrz_data and hasattr(applicant, "passport_number") and applicant.passport_number and applicant.passport_number != mrz_data["passport_number"]:
+        if "passport_number" in normalized_data and hasattr(applicant, "passport_number") and applicant.passport_number and applicant.passport_number != normalized_data["passport_number"]:
             mismatches.append(FieldMismatch(
                 field="passport_number",
                 expected=getattr(applicant, "passport_number", None),
-                actual=mrz_data["passport_number"]
+                actual=normalized_data["passport_number"]
             ))
 
         # Gender (optional, if available)
-        if (
-    "gender" in mrz_data
-    and hasattr(applicant, "gender")
-    and applicant.gender
-    and applicant.gender.value.upper() != mrz_data["gender"].upper()
-):
-            mismatches.append(
-        FieldMismatch(
-            field="gender",
-            expected=applicant.gender.value,
-            actual=mrz_data["gender"]
-        )
-    )
+        if "gender" in normalized_data and applicant.gender and str(applicant.gender.value).upper() != normalized_data["gender"].upper():
+            mismatches.append(FieldMismatch(
+                field="gender", 
+                expected=getattr(applicant, "gender", None).value if hasattr(applicant, "gender") else None,
+                actual=normalized_data["gender"]
+            ))
 
 
         return CrossValidationResult(
@@ -184,6 +185,29 @@ class CrossValidationService:
                         actual=dl_data["address"]["zip"],
                     )
                 )
+
+        return CrossValidationResult(
+            valid=len(mismatches) == 0,
+            mismatches=mismatches
+        )
+
+    async def validate_ssn(self, application_id: str, ssn_data: dict) -> CrossValidationResult:
+        # Similar structure to the above methods, comparing SSN data with applicant info
+        
+        applicant = await self.applicant_dao.get_primary_by_application_id(application_id)
+        if not applicant:
+            raise Exception("Applicant not found")
+
+        mismatches = []
+
+        if str(applicant.ssn_last4) != ssn_data["ssn_number"][-4:]:
+            mismatches.append(
+                FieldMismatch(
+                    field="ssn number last 4 digits",
+                    expected=str(applicant.ssn_last4),
+                    actual=ssn_data["ssn_number"][-4:],
+                )
+            )
 
         return CrossValidationResult(
             valid=len(mismatches) == 0,
