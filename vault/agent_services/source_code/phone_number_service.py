@@ -52,4 +52,11 @@ class PhoneNumberVaultService:
             ciphertext=ciphertext
         )
 
+<<<<<<< feature-vault
         return self._from_base64(response['data']['plaintext'])
+    
+obj=PhoneNumberVaultService()
+print(obj.protect_phone_number("123-456-7890"))
+=======
+        return self._from_base64(response['data']['plaintext'])
+>>>>>>> main
