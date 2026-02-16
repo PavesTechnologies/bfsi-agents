@@ -12,7 +12,7 @@ router = APIRouter(prefix="/loans", tags=["Loan Information"])
     response_model=LoanDetailsResponse
 )
 async def get_loan_details(
-    application_id: UUID,
+    application_id: str,
     db: AsyncSession = Depends(get_db),
 ):
     service = LoanQueryService(db)
