@@ -21,7 +21,7 @@ from src.core.telemetry import setup_telemetry
 from src.api.routes import router
 from src.api.middleware.idempotency import IdempotencyMiddleware
 from src.repositories.idempotency_repository import RedisIdempotencyRepository
-
+from src.api.v1.kyc_routes import kyc_routes
 
 # test logging  
 logger = logging.getLogger(__name__)
@@ -60,11 +60,14 @@ def create_app() -> FastAPI:
 
     app.state.redis_repo = redis_repo
 
-    app.add_middleware(IdempotencyMiddleware, repository=redis_repo)
+    # app.add_middleware(IdempotencyMiddleware, repository=redis_repo)
 
     app.include_router(router)
     @app.get("/health")
     async def health_check():
         return {"status": "healthy"}
 
+    app.include_router(kyc_routes.router)
+    
+    
     return app
