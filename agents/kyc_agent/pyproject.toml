@@ -13,12 +13,22 @@ fastapi = "^0.110.0"
 uvicorn = "^0.29.0"
 langgraph = "^0.0.40"
 pydantic = "^2.6.0"
-redis = "^5.0.1"
+alembic = "^1.18.4"
+redis = "^7.1.1"
+slowapi = "^0.1.9"
+sqlacodegen = "^3.2.0"
+sqlalchemy = "^2.0.46"
+pydantic-settings = "^2.12.0"
+psycopg2 = "^2.9.11"
+
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"
 prod = "src.cli:prod"
 test = "src.cli:test"
+migration = "src.cli:migration"
+initial_migration = "src.cli:migrate"
+down_grade = "src.cli:downgrade"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
