@@ -2,7 +2,7 @@
 
 from fastapi import Request, HTTPException
 from src.utils.migration_database import SessionLocal
-from src.repositories.kyc_attempt_repository import KYCAttemptRepository
+from src.repositories.kyc_repo.kyc_repository import KYCRepository
 from src.models.enums import FinalDecision, KYCStatus
 from src.workflows.decision_flow import build_graph
 
@@ -10,13 +10,13 @@ _graph = build_graph()
 
 
 async def run_kyc(request: Request, body):
-
+    
     application_id = request.state.application_id
     idempotency_key = request.state.idempotency_key
     payload_hash = request.state.payload_hash
 
     db = SessionLocal()
-    repo = KYCAttemptRepository(db)
+    repo = KYCRepository(db)
 
     try:
         existing = repo.get_latest_attempt(application_id, idempotency_key)

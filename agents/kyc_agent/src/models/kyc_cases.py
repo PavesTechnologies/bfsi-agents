@@ -107,3 +107,9 @@ class KYC(Base):
     back_populates="kyc",
     cascade="all, delete-orphan",
     )
+
+    requests = relationship(
+        "KYCRequest",
+        back_populates="kyc",
+        cascade="all, delete-orphan",
+    )

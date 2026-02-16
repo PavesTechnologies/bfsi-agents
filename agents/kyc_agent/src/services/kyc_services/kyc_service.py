@@ -1,33 +1,80 @@
-# src/services/kyc_service.py
-
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException
 
-from src.repositories.kyc_repo.kyc_repository import (
-    get_attempt_by_idempotency,
-    create_kyc_attempt,
-)
-from src.models.kyc_cases import KYCAttempt
+from src.repositories.kyc_repo.kyc_repository import KYCRepository
+from src.utils.hash_utils import generate_payload_hash
 
-async def trigger_kyc_service(
-    db: AsyncSession,
-    application_id: str,
-    idempotency_key: str,
-) -> KYCAttempt:
 
-    # 1️⃣ Check if attempt already exists for this idempotency key
-    existing_attempt = await get_attempt_by_idempotency(
-        db=db,
-        idempotency_key=idempotency_key,
-    )
+class KYCService:
+    """
+    Business logic layer for KYC operations.
+    """
 
-    if existing_attempt:
-        return existing_attempt
+    def __init__(self, db: AsyncSession):
+        self.db = db
+        self.repo = KYCRepository(db)
 
-    # 2️⃣ Create new attempt
-    attempt = await create_kyc_attempt(
-        db=db,
-        application_id=application_id,
-        idempotency_key=idempotency_key,
-    )
+    # ---------------------------------------------------------
+    # Trigger KYC
+    # ---------------------------------------------------------
+    async def trigger_kyc(
+        self,
+        payload: dict,
+    ) -> dict:
+        """
+        Handles KYC trigger logic with idempotency enforcement.
+        """
 
-    return attempt
+        payload_hash = generate_payload_hash(payload)
+        idempotency_key = payload["idempotency_key"]
+
+        # -----------------------------------------------------
+        # 1️⃣ Check idempotency
+        # -----------------------------------------------------
+        existing_request = await self.repo.get_request_by_idempotency(
+            idempotency_key=idempotency_key,
+        )
+
+        if existing_request:
+
+            # 🔒 Validate payload integrity
+            if existing_request.payload_hash != payload_hash:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Idempotency key reused with different payload",
+                )
+
+            # If response already stored → return it
+            if existing_request.response_payload:
+                return existing_request.response_payload
+
+            # Rare edge case
+            return {
+                "attempt_id": str(existing_request.kyc_id),
+                "kyc_status": existing_request.response_status.value,
+            }
+
+        # -----------------------------------------------------
+        # 2️⃣ Create new KYC case
+        # -----------------------------------------------------
+        kyc_case = await self.repo.create_kyc_case(
+            applicant_id=payload["applicant_id"],
+            payload_hash=payload_hash,
+        )
+
+        response_payload = {
+            "attempt_id": str(kyc_case.id),
+            "kyc_status": kyc_case.status.value,
+        }
+
+        # -----------------------------------------------------
+        # 3️⃣ Store idempotency record
+        # -----------------------------------------------------
+        await self.repo.create_kyc_request(
+            kyc_id=kyc_case.id,
+            idempotency_key=idempotency_key,
+            payload_hash=payload_hash,
+            response_payload=response_payload,
+        )
+
+        return response_payload
