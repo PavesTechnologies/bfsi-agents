@@ -1,18 +1,27 @@
-from fastapi import APIRouter
+# src/api/routes.py
+
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
-from src.services.orchestrator import run_agent
+from typing import Optional, Dict, Any
+from uuid import UUID
+
+from src.services.orchestrator import run_kyc
 
 router = APIRouter()
 
 
-class DecisionRequest(BaseModel):
-    input_text: str
+class KYCRequest(BaseModel):
+    application_id: UUID
+    applicant_data: Dict[str, Any]
+    documents: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None
 
 
 @router.get("/")
 def greet():
-    return "Hello world!"
+    return {"message": "KYC Agent running"}
 
-@router.post("/decide")
-def decide(request: DecisionRequest):
-    return run_agent(request.input_text)
+
+@router.post("/kyc/execute")
+async def execute_kyc(request: Request, body: KYCRequest):
+    return await run_kyc(request, body)

@@ -11,13 +11,16 @@ Responsibilities:
 Do NOT put business logic here.
 """
 import logging
-from fastapi import Request
+from fastapi import FastAPI,Request
 from fastapi.responses import JSONResponse
-from fastapi import FastAPI
+from redis import Redis
+
 from src.core.logging import setup_logging
 from src.core.exceptions import KYCBaseException, ComplianceHardFail
 from src.core.telemetry import setup_telemetry
 from src.api.routes import router
+from src.api.middleware.idempotency import IdempotencyMiddleware
+from src.repositories.idempotency_repository import RedisIdempotencyRepository
 
 
 # test logging  
@@ -45,6 +48,19 @@ def create_app() -> FastAPI:
                 "request_id": getattr(request.state, "request_id", "N/A")
             }
         )
+
+    redis_client = Redis(
+        host="localhost",
+        port=6379,
+        decode_responses=True,
+    )
+
+
+    redis_repo = RedisIdempotencyRepository(redis_client)
+
+    app.state.redis_repo = redis_repo
+
+    app.add_middleware(IdempotencyMiddleware, repository=redis_repo)
 
     app.include_router(router)
     @app.get("/health")
