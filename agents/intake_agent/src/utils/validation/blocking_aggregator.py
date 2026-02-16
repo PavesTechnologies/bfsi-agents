@@ -11,6 +11,7 @@ from src.domain.validation.typed_field_validators import (
     validate_first_name,
     validate_last_name,
     validate_ssn_last4,
+    validate_ssn,
     validate_dob,
     validate_email,
     validate_address_line,
