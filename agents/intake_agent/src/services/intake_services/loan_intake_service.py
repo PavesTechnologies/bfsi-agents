@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.domain.normalization.application_form import RequestNormalizer
 from src.models.interfaces.Loan_intake_interfaces import LoanIntakeRequest, LoanIntakeResponse
 from src.repositories.intake_repo.loan_intake_repo import LoanIntakeDAO
 from sqlalchemy.exc import SQLAlchemyError
@@ -54,14 +55,17 @@ class LoanIntakeService:
                 # -----------------------------
                 # 1. Create Loan Application
                 # -----------------------------
+
+                normalized_req = RequestNormalizer.normalize_intake_request(request)
+
                 loan = await self.dao.create_loan_application({
-                    "loan_type": request.loan_type,
-                    "credit_type": request.credit_type,
-                    "loan_purpose": request.loan_purpose,
-                    "requested_amount": request.requested_amount,
-                    "requested_term_months": request.requested_term_months,
-                    "preferred_payment_day": request.preferred_payment_day,
-                    "origination_channel": request.origination_channel,
+                    "loan_type": normalized_req.loan_type,
+                    "credit_type": normalized_req.credit_type,
+                    "loan_purpose": normalized_req.loan_purpose,
+                    "requested_amount": normalized_req.requested_amount,
+                    "requested_term_months": normalized_req.requested_term_months,
+                    "preferred_payment_day": normalized_req.preferred_payment_day,
+                    "origination_channel": normalized_req.origination_channel,
                     "application_status": ApplicantStatus.SUBMITTED
                 })
 
@@ -71,7 +75,7 @@ class LoanIntakeService:
                 # -----------------------------
                 # 2. Applicants & Children
                 # -----------------------------
-                for applicant in request.applicants:
+                for applicant in normalized_req.applicants:
                     summary = validate_applicant(applicant)
                     print(f"Validation summary {summary}")
                     for res in summary.results:
