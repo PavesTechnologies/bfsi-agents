@@ -16,12 +16,13 @@ def event_loop_policy():
         return asyncio.WindowsSelectorEventLoopPolicy()
     return asyncio.DefaultEventLoopPolicy()
 
-# @pytest.fixture(scope="session")
-# def event_loop():
-#     """Create an instance of the default event loop for each test session."""
-#     loop = asyncio.get_event_loop_policy().new_event_loop()
-#     yield loop
-#     loop.close()
+@pytest.fixture(scope="session")
+def event_loop():
+    """Create an instance of the default event loop for each test session."""
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+    loop.close()
 # ---------------------------------------------------------
 
 @pytest_asyncio.fixture
