@@ -11,6 +11,7 @@ from src.domain.validation.typed_field_validators import (
     validate_first_name,
     validate_last_name,
     validate_ssn_last4,
+    validate_ssn,
     validate_dob,
     validate_email,
     validate_address_line,
@@ -60,7 +61,10 @@ def validate_applicant_blocking(applicant) -> BlockingValidationSummary:
     """
     errors: List[ValidationError] = []
     
+    errors: List[ValidationError] = []
+    
     # ==================== Applicant Fields ====================
+
     # First Name
     first_name = getattr(applicant, "first_name", None)
     result = validate_first_name(first_name)
@@ -78,6 +82,13 @@ def validate_applicant_blocking(applicant) -> BlockingValidationSummary:
     result = validate_ssn_last4(ssn_last4)
     if not result.passed:
         errors.append(ValidationError(field="applicant.ssn_last4", message=result.message))
+
+    # SSN Full (New Addition)
+    ssn_no = getattr(applicant, "ssn_no", None)
+    if ssn_no:
+        result = validate_ssn(ssn_no)
+        if not result.passed:
+            errors.append(ValidationError(field="applicant.ssn_no", message=result.message))
     
     # Date of birth
     dob = getattr(applicant, "date_of_birth", None)
