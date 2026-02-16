@@ -2,7 +2,7 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from src.models.kyc_attempt import KYCAttempt
+from src.models.kyc_cases import KYCAttempt
 from src.models.enums import KYCStatus
 import uuid
 
@@ -23,15 +23,12 @@ async def get_attempt_by_idempotency(
 
 async def create_kyc_attempt(
     db: AsyncSession,
-    application_id: str,
-    idempotency_key: str,
+    application_id: str
 ) -> KYCAttempt:
 
     attempt = KYCAttempt(
         application_id=application_id,
-        attempt_version=1,  # later auto-increment
         status=KYCStatus.PENDING,
-        idempotency_key=idempotency_key,
     )
 
     db.add(attempt)

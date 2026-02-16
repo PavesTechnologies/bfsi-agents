@@ -1,3 +1,5 @@
+# src/models/identity_check.py
+from .kyc_cases import KYC
 import uuid
 import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -15,27 +17,36 @@ class IdentityCheck(Base):
         server_default=text("gen_random_uuid()"),
     )
 
-    kyc_attempt_id: Mapped[uuid.UUID] = mapped_column(
+    # 🔥 Updated FK reference
+    kyc_id: Mapped[uuid.UUID] = mapped_column(
         UUID,
-        ForeignKey("kyc_attempts.id", ondelete="CASCADE"),
+        ForeignKey("kyc_cases.id", ondelete="CASCADE"),
         nullable=False,
-        unique=True,
+        unique=True,  # 1:1 relationship
+        index=True,
     )
 
-    ssn_valid: Mapped[bool] = mapped_column(Boolean)
-    ssn_plausible: Mapped[bool] = mapped_column(Boolean)
-    name_dob_match: Mapped[bool] = mapped_column(Boolean)
-    address_match: Mapped[bool] = mapped_column(Boolean)
-    phone_match: Mapped[bool] = mapped_column(Boolean)
-    email_match: Mapped[bool] = mapped_column(Boolean)
+    # Identity verification signals
+    ssn_valid: Mapped[bool | None] = mapped_column(Boolean)
+    ssn_plausible: Mapped[bool | None] = mapped_column(Boolean)
+    name_dob_match: Mapped[bool | None] = mapped_column(Boolean)
+    address_match: Mapped[bool | None] = mapped_column(Boolean)
+    phone_match: Mapped[bool | None] = mapped_column(Boolean)
+    email_match: Mapped[bool | None] = mapped_column(Boolean)
 
     identity_score: Mapped[float | None] = mapped_column(Float)
 
+    # Structured flags for explainability
     flags: Mapped[dict | None] = mapped_column(JSONB)
 
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=text("now()"),
+        nullable=False,
     )
 
-    kyc_attempt = relationship("KYCAttempt", back_populates="identity_check")
+    # 🔗 Relationship back to parent
+    kyc: Mapped["KYC"] = relationship(
+        "KYC",
+        back_populates="identity_check",
+    )

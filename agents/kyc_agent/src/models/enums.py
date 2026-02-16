@@ -32,3 +32,9 @@ class HumanReviewDecision(str, Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     REUPLOAD_REQUESTED = "REUPLOAD_REQUESTED"
+
+
+class IdempotencyStatus(str, Enum):
+    PENDING = "PENDING"
+    SUCCESS = "SUCCESS"
+    FAILED = "FAILED"

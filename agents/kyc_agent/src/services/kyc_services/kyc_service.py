@@ -6,7 +6,7 @@ from src.repositories.kyc_repo.kyc_repository import (
     get_attempt_by_idempotency,
     create_kyc_attempt,
 )
-from src.models.kyc_attempt import KYCAttempt
+from src.models.kyc_cases import KYCAttempt
 
 async def trigger_kyc_service(
     db: AsyncSession,
@@ -14,10 +14,10 @@ async def trigger_kyc_service(
     idempotency_key: str,
 ) -> KYCAttempt:
 
-    # 1️⃣ Check idempotency
+    # 1️⃣ Check if attempt already exists for this idempotency key
     existing_attempt = await get_attempt_by_idempotency(
-        db,
-        idempotency_key
+        db=db,
+        idempotency_key=idempotency_key,
     )
 
     if existing_attempt:

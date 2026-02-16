@@ -1,32 +1,56 @@
+# src/models/face_check.py
+
 import uuid
 import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Boolean, Float, DateTime, ForeignKey, text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from src.utils.migration_database import Base
+from .kyc_cases import KYC
 
 class FaceCheck(Base):
     __tablename__ = "face_checks"
 
-    id = mapped_column(UUID, primary_key=True, server_default=text("gen_random_uuid()"))
-
-    kyc_attempt_id = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID,
-        ForeignKey("kyc_attempts.id", ondelete="CASCADE"),
-        unique=True,
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+
+    kyc_id: Mapped[uuid.UUID] = mapped_column(
+        UUID,
+        ForeignKey("kyc_cases.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,   # 1:1 relationship
+        index=True,
+    )
+
+    face_match_score: Mapped[float | None] = mapped_column(Float)
+
+    liveness_passed: Mapped[bool | None] = mapped_column(Boolean)
+    
+    liveness_score: Mapped[float | None] = mapped_column(Float)
+
+    spoof_detected: Mapped[bool | None] = mapped_column(Boolean)
+
+    face_threshold: Mapped[float | None] = mapped_column(Float)
+    
+    face_detection_confidence: Mapped[float | None] = mapped_column(Float)
+    
+    deepfake_score: Mapped[float | None] = mapped_column(Float)
+    
+    replay_attack_detected: Mapped[bool | None] = mapped_column(Boolean)
+
+    flags: Mapped[dict | None] = mapped_column(JSONB)
+
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=text("now()"),
         nullable=False,
     )
 
-    face_match_score = mapped_column(Float)
-    liveness_passed = mapped_column(Boolean)
-    spoof_detected = mapped_column(Boolean)
-    face_threshold = mapped_column(Float)
-
-    flags = mapped_column(JSONB)
-
-    created_at = mapped_column(
-        DateTime(timezone=True),
-        server_default=text("now()"),
+    # 🔗 Relationship back to parent
+    kyc: Mapped["KYC"] = relationship(
+        "KYC",
+        back_populates="face_check"
     )
-
-    kyc_attempt = relationship("KYCAttempt", back_populates="face_check")

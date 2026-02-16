@@ -7,7 +7,8 @@ from sqlalchemy import DateTime, Text, Enum, ForeignKey, text
 from sqlalchemy.dialects.postgresql import UUID
 from src.utils.migration_database import Base
 from .enums import HumanReviewDecision
-
+from .kyc_cases import KYC
+from sqlalchemy.dialects.postgresql import JSONB
 
 class HumanReview(Base):
     __tablename__ = "human_reviews"
@@ -18,9 +19,9 @@ class HumanReview(Base):
         server_default=text("gen_random_uuid()"),
     )
 
-    kyc_attempt_id: Mapped[uuid.UUID] = mapped_column(
+    kyc_id: Mapped[uuid.UUID] = mapped_column(
         UUID,
-        ForeignKey("kyc_attempts.id", ondelete="CASCADE"),
+        ForeignKey("kyc_cases.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -28,11 +29,13 @@ class HumanReview(Base):
     reviewer_id: Mapped[uuid.UUID] = mapped_column(
         UUID,
         nullable=False,
+        index=True,
     )
 
     decision: Mapped[HumanReviewDecision] = mapped_column(
         Enum(HumanReviewDecision, name="human_review_decision_enum"),
         nullable=False,
+        index=True,
     )
 
     reviewer_notes: Mapped[str | None] = mapped_column(
@@ -40,15 +43,19 @@ class HumanReview(Base):
         nullable=True,
     )
 
+    review_reason_codes = mapped_column(JSONB)
+
+    
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=text("now()"),
         nullable=False,
+        index=True,
     )
 
-    # 🔗 Relationship back to KYC Attempt
-    kyc_attempt = relationship(
-        "KYCAttempt",
+    # 🔗 Relationship back to KYC
+    kyc: Mapped["KYC"] = relationship(
+        "KYC",
         back_populates="human_reviews",
         lazy="selectin",
     )

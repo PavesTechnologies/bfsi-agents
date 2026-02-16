@@ -3,7 +3,7 @@
 from sqlalchemy import select, func
 from datetime import datetime
 
-from src.models.kyc_attempt import KYCAttempt
+from src.models.kyc_cases import KYCAttempt
 from src.models.risk_decision import RiskDecision
 from src.models.enums import KYCStatus, FinalDecision
 

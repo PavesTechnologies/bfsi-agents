@@ -1,31 +1,50 @@
+# src/models/aml_check.py
+
 import uuid
 import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Boolean, Float, DateTime, ForeignKey, text, String
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from src.utils.migration_database import Base
+from .kyc_cases import KYC
 
 class AMLCheck(Base):
     __tablename__ = "aml_checks"
 
-    id = mapped_column(UUID, primary_key=True, server_default=text("gen_random_uuid()"))
-
-    kyc_attempt_id = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID,
-        ForeignKey("kyc_attempts.id", ondelete="CASCADE"),
-        unique=True,
-        nullable=False,
-        index=True
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
     )
 
-    ofac_match = mapped_column(Boolean, index=True)
-    ofac_confidence = mapped_column(Float)
-    pep_match = mapped_column(Boolean)
-    sanctions_list_version = mapped_column(String(100))
-    aml_score = mapped_column(Float)
+    kyc_id: Mapped[uuid.UUID] = mapped_column(
+        UUID,
+        ForeignKey("kyc_cases.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,  # 1:1 relationship
+        index=True,
+    )
 
-    flags = mapped_column(JSONB)
+    ofac_match: Mapped[bool | None] = mapped_column(Boolean, index=True)
 
-    created_at = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    ofac_confidence: Mapped[float | None] = mapped_column(Float)
 
-    kyc_attempt = relationship("KYCAttempt", back_populates="aml_check")
+    pep_match: Mapped[bool | None] = mapped_column(Boolean)
+
+    sanctions_list_version: Mapped[str | None] = mapped_column(String(100))
+
+    aml_score: Mapped[float | None] = mapped_column(Float)
+
+    flags: Mapped[dict | None] = mapped_column(JSONB)
+
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=text("now()"),
+        nullable=False,
+    )
+
+    # 🔗 Relationship back to parent
+    kyc: Mapped["KYC"] = relationship(
+        "KYC",
+        back_populates="aml_check"
+    )

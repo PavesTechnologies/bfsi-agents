@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from src.app import create_app
 from src.utils.migration_database import SessionLocal
-from src.models.kyc_attempt import KYCAttempt
+from src.models.kyc_cases import KYC
 from src.models.risk_decision import RiskDecision
 
 
@@ -18,6 +18,6 @@ def client():
 def clean_database():
     db = SessionLocal()
     db.query(RiskDecision).delete()
-    db.query(KYCAttempt).delete()
+    db.query(KYC).delete()
     db.commit()
     db.close()
