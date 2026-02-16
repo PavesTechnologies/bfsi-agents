@@ -118,3 +118,17 @@ def test_invalid_uuid(client):
 
 
 # -----------
+# ❌ 8️⃣ Missing reviewer_id
+# -----------
+
+def test_without_reivewer_id(client):
+    payload = {
+        "application_id": VALID_APPLICATION_ID,
+        "reviewer_id": "",
+        "decision": "APPROVE",
+        "reason_codes": [],
+        "comments": "Invalid UUID."
+    }
+
+    response = client.post("/human-review/submit", json=payload)
+    assert response.status_code == 422

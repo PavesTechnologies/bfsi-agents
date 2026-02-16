@@ -36,6 +36,12 @@ class HumanInLoopService:
                     detail=f"No loan application found with id {request.application_id}",
                 )
                 
+            if not request.reviewer_id:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Reviewer ID is required",
+                )
+                
             # -----------------------------
             # 1. Persist human review
             # -----------------------------
