@@ -3,7 +3,7 @@ from sqlalchemy import select, desc
 
 from src.models.kyc_cases import KYC
 from src.models.kyc_request import KYCRequest
-from src.models.enums import KYCStatus
+from src.models.enums import IdempotencyStatus, KYCStatus
 
 
 class KYCRepository:
@@ -67,7 +67,7 @@ class KYCRepository:
             idempotency_key=idempotency_key,
             payload_hash=payload_hash,
             response_payload=response_payload,
-            response_status=response_payload["kyc_status"],
+            response_status=IdempotencyStatus.SUCCESS
         )
 
         self.db.add(request)
