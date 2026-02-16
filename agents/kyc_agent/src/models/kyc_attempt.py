@@ -44,6 +44,11 @@ class KYCAttempt(Base):
         unique=True,
         nullable=False,
     )
+    payload_hash: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        index=True
+    )
 
     shadow_decision_status: Mapped[str | None] = mapped_column(String(50))
 
