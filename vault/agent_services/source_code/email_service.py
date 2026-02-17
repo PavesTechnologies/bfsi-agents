@@ -63,4 +63,4 @@ class EmailVaultService:
         return self._from_base64(response['data']['plaintext'])
     
 obj=EmailVaultService()
-print(obj.protect_email("sricharan129@gmail.com"))
+print(obj.retrieve_email("vault:v1:AHRMQ5fHldhjVPiaxotgvS/hdMbfBEpXmqDXg6KYo2E9dOzp5C1jswKsfzJEL1UW+I0="))
