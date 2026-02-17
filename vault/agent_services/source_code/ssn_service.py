@@ -1,6 +1,6 @@
 import base64
-from agent_services.utilities.approle_auth import login_to_vault
-from agent_services.utilities.env_loader import load_env
+from vault.agent_services.utilities.approle_auth import login_to_vault
+from vault.agent_services.utilities.env_loader import load_env
 
 class SSNVaultService:
     def __init__(self):

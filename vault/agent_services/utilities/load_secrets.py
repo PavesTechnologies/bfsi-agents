@@ -1,7 +1,7 @@
 import boto3
 import json
 from botocore.exceptions import ClientError
-from agent_services.utilities.env_loader import load_env
+from vault.agent_services.utilities.env_loader import load_env
 
 def get_aws_secret(parameter_name, region_name=None):
     """
