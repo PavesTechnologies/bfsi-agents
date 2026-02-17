@@ -1,6 +1,6 @@
 import base64
-from vault.agent_services.utilities.approle_auth import login_to_vault
-from vault.agent_services.utilities.env_loader import load_env
+from utilities.approle_auth import login_to_vault
+from utilities.env_loader import load_env
 
 class PhoneNumberVaultService:
     def __init__(self):
