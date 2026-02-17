@@ -1,7 +1,7 @@
 import hvac
 from requests.adapters import HTTPAdapter
 from urllib3.poolmanager import PoolManager
-from vault.vault.agent_services.utilities.mTLS_establishment import establish_mtls_context
+from vault.agent_services.utilities.mTLS_establishment import establish_mtls_context
 from vault.agent_services.utilities.load_secrets import get_aws_secret
 from vault.agent_services.utilities.env_loader import load_env
 
