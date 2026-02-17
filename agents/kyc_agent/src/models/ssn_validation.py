@@ -30,6 +30,7 @@ class SSNValidation(Base):
     # Optional fraud flags
     identity_theft_flag: Mapped[bool | None] = mapped_column(Boolean)
     
+    deceased_flag: Mapped[bool | None] = mapped_column(Boolean)
 
     ssn_score: Mapped[float | None] = mapped_column(Float)
 
