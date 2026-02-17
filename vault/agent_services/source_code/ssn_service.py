@@ -64,4 +64,4 @@ class SSNVaultService:
     
 
 obj=SSNVaultService()
-print(obj.protect_ssn("123-45-6789"))
+print(obj.retrieve_ssn("vault:v1:ju+mCD860XqM4CgD85FJQC6kBjaPoQTz75Y8I7FOfXneaH4qPFch"))
