@@ -54,14 +54,6 @@ class KYC(Base):
 
     completed_at = mapped_column(DateTime(timezone=True))
 
-    # 🔗 One-to-One relationships
-    identity_check = relationship(
-        "IdentityCheck",
-        back_populates="kyc",
-        uselist=False,
-        cascade="all, delete-orphan"
-    )
-
     document_check = relationship(
         "DocumentCheck",
         back_populates="kyc",
@@ -112,4 +104,17 @@ class KYC(Base):
         "KYCRequest",
         back_populates="kyc",
         cascade="all, delete-orphan",
+    )
+    ssn_validation = relationship(
+    "SSNValidation",
+    back_populates="kyc",
+    uselist=False,
+    cascade="all, delete-orphan",
+    )
+
+    address_verification = relationship(
+        "AddressVerification",
+        back_populates="kyc",
+        uselist=False,
+    cascade="all, delete-orphan",
     )
