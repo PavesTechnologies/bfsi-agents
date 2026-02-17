@@ -33,6 +33,7 @@ def create_app() -> FastAPI:
         title="kyc_agent",
         description="Agent microservice: kyc_agent",
         version="0.1.0",
+        root_path="/kyc"
     )
 
     setup_telemetry(app)

@@ -59,6 +59,7 @@ def create_app() -> FastAPI:
         description="Agent microservice: intake_agent",
         version="0.1.0",
         lifespan=lifespan,  # <--- CONNECTED HERE
+        root_path="/intake"
     )
 
     # -------------------------
