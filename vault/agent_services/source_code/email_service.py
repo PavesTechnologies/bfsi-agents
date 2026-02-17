@@ -1,6 +1,6 @@
 import base64
-from utilities.approle_auth import login_to_vault
-from utilities.env_loader import load_env
+from agent_services.utilities.approle_auth import login_to_vault
+from agent_services.utilities.env_loader import load_env
 
 class EmailVaultService:
     def __init__(self):
