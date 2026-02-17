@@ -61,3 +61,7 @@ class SSNVaultService:
 
         # Convert from base64 and return
         return self._from_base64(response['data']['plaintext'])
+    
+
+obj=SSNVaultService()
+print(obj.protect_ssn("123-45-6789"))
