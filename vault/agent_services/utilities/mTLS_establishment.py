@@ -1,8 +1,8 @@
 import ssl
 import tempfile
 import os
-from vault.agent_services.utilities.load_secrets import get_aws_secret
-from vault.agent_services.utilities.env_loader import load_env
+from utilities.load_secrets import get_aws_secret
+from utilities.env_loader import load_env
 
 def establish_mtls_context():
     """
