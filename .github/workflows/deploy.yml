@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main   # change if using another branch
+      - main
 
 jobs:
   deploy:
@@ -17,11 +17,23 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            echo "🚀 Starting deployment..."
+
             cd /home/ubuntu/bfsi-agents
+
+            echo "📥 Pulling latest code..."
             git pull origin main
 
+            echo "📦 Installing Intake Agent dependencies..."
             cd agents/intake_agent
+            /home/ubuntu/.local/bin/poetry install --no-interaction --no-root
 
-            /home/ubuntu/.local/bin/poetry install
+            echo "📦 Installing KYC Agent dependencies..."
+            cd ../kyc_agent
+            /home/ubuntu/.local/bin/poetry install --no-interaction --no-root
 
+            echo "🔄 Restarting services..."
             sudo systemctl restart intake-agent
+            sudo systemctl restart kyc-agent
+
+            echo "✅ Deployment completed successfully!"
