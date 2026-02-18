@@ -1,6 +1,9 @@
 import base64
-from utilities.approle_auth import login_to_vault
-from utilities.env_loader import load_env
+# from utilities.approle_auth import login_to_vault
+# from utilities.env_loader import load_env
+
+from vault.agent_services.utilities.env_loader import load_env
+from vault.agent_services.utilities.approle_auth import login_to_vault
 
 class EmailVaultService:
     def __init__(self):
@@ -62,5 +65,5 @@ class EmailVaultService:
         # Convert from base64 and return
         return self._from_base64(response['data']['plaintext'])
     
-obj=EmailVaultService()
-print(obj.retrieve_email("vault:v1:AHRMQ5fHldhjVPiaxotgvS/hdMbfBEpXmqDXg6KYo2E9dOzp5C1jswKsfzJEL1UW+I0="))
+# obj=EmailVaultService()
+# print(obj.retrieve_email("vault:v1:AHRMQ5fHldhjVPiaxotgvS/hdMbfBEpXmqDXg6KYo2E9dOzp5C1jswKsfzJEL1UW+I0="))

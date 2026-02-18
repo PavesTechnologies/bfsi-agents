@@ -13,10 +13,36 @@ class RequestNormalizer:
         return cleaned.upper() if upper else cleaned
 
     @staticmethod
-    def _clean_numeric(value: str) -> str:
-        if not value: return value
-        return re.sub(r'\D', '', value)
-    
+    def _clean_numeric(value):
+        if value is None:
+            return None
+
+        # If already numeric, return as float
+        if isinstance(value, (int, float)):
+            return float(value)
+
+        # If string, clean it properly
+        cleaned = re.sub(r"[^\d.]", "", str(value))
+
+        try:
+            return float(cleaned)
+        except ValueError:
+            return None
+
+
+    @staticmethod
+    def _clean_zip(value):
+        if value is None:
+            return None
+
+        # Always treat ZIP as string
+        value = str(value)
+
+        # Remove non-digits
+        cleaned = re.sub(r'\D', '', value)
+
+        return cleaned
+
 
     def format_international_phone(phone_str: str):
         try:
@@ -51,7 +77,7 @@ class RequestNormalizer:
                 addr.address_line2 = cls._clean_str(addr.address_line2, upper=True)
                 addr.city = cls._clean_str(addr.city, upper=True)
                 addr.state = cls._clean_str(addr.state, upper=True)
-                addr.zip_code = cls._clean_numeric(addr.zip_code)
+                addr.zip_code = cls._clean_zip(addr.zip_code)
 
             # 4. Normalize Employment
             if applicant.employment:

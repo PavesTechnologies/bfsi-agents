@@ -1,6 +1,9 @@
 import base64
-from utilities.approle_auth import login_to_vault
-from utilities.env_loader import load_env
+# from utilities.approle_auth import login_to_vault
+# from utilities.env_loader import load_env
+
+from vault.agent_services.utilities.env_loader import load_env
+from vault.agent_services.utilities.approle_auth import login_to_vault
 
 class PhoneNumberVaultService:
     def __init__(self):
@@ -57,5 +60,5 @@ class PhoneNumberVaultService:
 # obj=PhoneNumberVaultService()
 # print(obj.protect_phone_number("123-456-7890"))
 
-obj=PhoneNumberVaultService()
-print(obj.retrieve_phone_number("vault:v1:wGagbeT8ub9/F2AeREZ4VVR1hvxxmbSUS7SuyrbiVEpAMv6629fzCA=="))
+# obj=PhoneNumberVaultService()
+# print(obj.retrieve_phone_number("vault:v1:wGagbeT8ub9/F2AeREZ4VVR1hvxxmbSUS7SuyrbiVEpAMv6629fzCA=="))
