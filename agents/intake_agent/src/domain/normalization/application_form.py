@@ -15,16 +15,20 @@ class RequestNormalizer:
     @staticmethod
     def _clean_numeric(value):
         if value is None:
-            return value
+            return None
 
-        # Convert numeric types to string
+        # If already numeric, return as float
         if isinstance(value, (int, float)):
-            value = str(value)
+            return float(value)
 
-        # Ensure it's string before regex
-        value = str(value)
+        # If string, clean it properly
+        cleaned = re.sub(r"[^\d.]", "", str(value))
 
-        return re.sub(r'\D', '', value)
+        try:
+            return float(cleaned)
+        except ValueError:
+            return None
+
 
     
 
