@@ -57,7 +57,7 @@ class LoanIntakeService:
     
     async def submit_application(self, request: LoanIntakeRequest) -> LoanIntakeResponse:
         
-        res = await self.ssn_service.protect_ssn("123-45-6789")
+        res = self.ssn_service.protect_ssn("123-45-6789")
         print(f"Encrypted SSN: {res}")
         return LoanIntakeResponse(application_id=str(uuid4()), timestamp=datetime.utcnow(), validation_issues=[], validation_summary=None, ssn_encrypted=res)
         
