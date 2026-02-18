@@ -1,6 +1,8 @@
 import base64
-from utilities.approle_auth import login_to_vault
-from utilities.env_loader import load_env
+# from utilities.approle_auth import login_to_vault
+# from utilities.env_loader import load_env
+from vault.agent_services.utilities.env_loader import load_env
+from vault.agent_services.utilities.approle_auth import login_to_vault
 
 class SSNVaultService:
     def __init__(self):
@@ -63,5 +65,5 @@ class SSNVaultService:
         return self._from_base64(response['data']['plaintext'])
     
 
-obj=SSNVaultService()
-print(obj.retrieve_ssn("vault:v1:ju+mCD860XqM4CgD85FJQC6kBjaPoQTz75Y8I7FOfXneaH4qPFch"))
+# obj=SSNVaultService()
+# print(obj.retrieve_ssn("vault:v1:ju+mCD860XqM4CgD85FJQC6kBjaPoQTz75Y8I7FOfXneaH4qPFch"))

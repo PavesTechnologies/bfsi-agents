@@ -6,6 +6,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 from uuid import uuid4
 
+from vault.agent_services.source_code.ssn_service import SSNVaultService
+from vault.agent_services.source_code.email_service import EmailVaultService
+from vault.agent_services.source_code.phone_number_service import PhoneNumberVaultService
+
 # ============================
 # 🔹 ADDITIONS: Error Semantics
 # ============================
@@ -44,11 +48,18 @@ class LoanIntakeService:
         self.dao = LoanIntakeDAO(db)
         self.validation_repo = ValidationRepository()
         self.idempotency = idempotency or IdempotencyGuard(IdempotencyRepository(db))
+        self.ssn_service = SSNVaultService()
+        self.email_service = EmailVaultService()
+        self.phone_number_service = PhoneNumberVaultService()
 
     async def check(self) -> str:
         return "Loan Intake Service is operational."
     
     async def submit_application(self, request: LoanIntakeRequest) -> LoanIntakeResponse:
+        
+        res = await self.ssn_service.protect_ssn("123-45-6789")
+        print(f"Encrypted SSN: {res}")
+        return LoanIntakeResponse(application_id=str(uuid4()), timestamp=datetime.utcnow(), validation_issues=[], validation_summary=None, ssn_encrypted=res)
         
         try:
             async def first_execution():
