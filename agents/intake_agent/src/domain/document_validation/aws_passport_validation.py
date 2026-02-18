@@ -343,7 +343,7 @@ class PassportOCR:
         # Step 2: Build S3 Name
         # ----------------------------
 
-        s3_filename = f"{document_type}_{application_id}.jpg"
+        s3_filename = f"{document_type}/{document_type}_{application_id}.jpg"
 
         # ----------------------------
         # Step 3: Upload
