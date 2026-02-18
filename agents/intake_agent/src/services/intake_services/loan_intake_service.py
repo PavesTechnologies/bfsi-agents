@@ -63,8 +63,10 @@ class LoanIntakeService:
                 # 1. Create Loan Application
                 # -----------------------------
 
+                # print(f"Normalizing request: {request}")
                 normalized_req = RequestNormalizer.normalize_intake_request(request)
-
+                # print(f"Normalized request: {normalized_req}")
+                
                 loan = await self.dao.create_loan_application({
                     "loan_type": normalized_req.loan_type,
                     "credit_type": normalized_req.credit_type,
@@ -83,7 +85,9 @@ class LoanIntakeService:
                 # 2. Applicants & Children
                 # -----------------------------
                 for applicant in normalized_req.applicants:
+                    print(f"Validating applicant {applicant.first_name} {applicant.last_name} with non-blocking validators...")
                     summary = validate_applicant(applicant)
+                    print(f"Validation summary for applicant {applicant.first_name} {applicant.last_name}: {summary}")
                     print(f"Validation summary {summary}")
                     for res in summary.results:
                         print(f"Validation result {res.is_valid}")
@@ -276,3 +280,6 @@ class LoanIntakeService:
         except SQLAlchemyError as e:
             await self.db.rollback()
             raise HTTPException(status_code=500, detail=f"Database error occurred: {e}")
+        
+        except RuntimeError:
+            raise HTTPException(status_code=409, detail="Request already in progress")

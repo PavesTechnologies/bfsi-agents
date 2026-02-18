@@ -15,16 +15,13 @@ class IdempotencyGuard:
         self.repo = repo
 
     async def execute(
-        self,
-        *,
-        request_id: UUID,
-        app_id: str,
-        payload: Dict[str, Any],
-        on_first_execution: Callable[[], Awaitable[Dict[str, Any]]],
+    self,
+    *,
+    request_id: UUID,
+    app_id: str,
+    payload: Dict[str, Any],
+    on_first_execution: Callable[[], Awaitable[Dict[str, Any]]],
     ) -> Dict[str, Any]:
-        """
-        Enforces idempotency around a unit of work.
-        """
 
         payload_hash = stable_payload_hash(payload)
 
@@ -37,10 +34,8 @@ class IdempotencyGuard:
             if existing.status == "COMPLETED":
                 return existing.response_payload
 
-            return {
-                "request_id": str(request_id),
-                "status": "accepted",
-            }
+            # If request is already in progress
+            raise RuntimeError("Duplicate request is currently processing")
 
         await self.repo.create(
             request_id=request_id,

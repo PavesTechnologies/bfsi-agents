@@ -13,9 +13,19 @@ class RequestNormalizer:
         return cleaned.upper() if upper else cleaned
 
     @staticmethod
-    def _clean_numeric(value: str) -> str:
-        if not value: return value
+    def _clean_numeric(value):
+        if value is None:
+            return value
+
+        # Convert numeric types to string
+        if isinstance(value, (int, float)):
+            value = str(value)
+
+        # Ensure it's string before regex
+        value = str(value)
+
         return re.sub(r'\D', '', value)
+
     
 
     def format_international_phone(phone_str: str):
