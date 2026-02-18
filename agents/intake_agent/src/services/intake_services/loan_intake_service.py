@@ -57,10 +57,6 @@ class LoanIntakeService:
     
     async def submit_application(self, request: LoanIntakeRequest) -> LoanIntakeResponse:
         
-        res = self.ssn_service.protect_ssn("123-45-6789")
-        print(f"Encrypted SSN: {res}")
-        return LoanIntakeResponse(application_id=str(uuid4()), timestamp=datetime.utcnow(), validation_issues=[], validation_summary=None, ssn_encrypted=res)
-        
         try:
             async def first_execution():
                 # -----------------------------
@@ -119,12 +115,12 @@ class LoanIntakeService:
                         "last_name": applicant.last_name,
                         "suffix": applicant.suffix,
                         "date_of_birth": applicant.date_of_birth,
-                        "ssn_encrypted": applicant.ssn_no,
+                        "ssn_encrypted": self.ssn_service.protect_ssn(applicant.ssn_no),
                         "ssn_last4": applicant.ssn_last4,
                         "itin_number": applicant.itin_number,
                         "citizenship_status": applicant.citizenship_status,
-                        "email": applicant.email,
-                        "phone_number": applicant.phone_number,
+                        "email": self.email_service.protect_email(applicant.email),
+                        "phone_number": self.phone_number_service.protect_phone_number(applicant.phone_number),
                         "gender": applicant.gender,
                     })
 
