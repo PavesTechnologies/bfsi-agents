@@ -110,21 +110,21 @@ async def upload_drivers_license(
     )
 
 
-# -------------------------------
-# State ID
-# -------------------------------
-@router.post("/upload/state-id")
-async def upload_state_id(
-    application_id: str = Form(...),
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-):
-    return await _upload_with_document_type(
-        db=db,
-        application_id=application_id,
-        file=file,
-        document_type="state_id",
-    )
+# # -------------------------------
+# # State ID
+# # -------------------------------
+# @router.post("/upload/state-id")
+# async def upload_state_id(
+#     application_id: str = Form(...),
+#     file: UploadFile = File(...),
+#     db: AsyncSession = Depends(get_db),
+# ):
+#     return await _upload_with_document_type(
+#         db=db,
+#         application_id=application_id,
+#         file=file,
+#         document_type="state_id",
+#     )
 
 
 # -------------------------------
@@ -161,21 +161,21 @@ async def upload_pay_stub(
     )
 
 
-# -------------------------------
-# Bank Statement
-# -------------------------------
-@router.post("/upload/bank-statement")
-async def upload_bank_statement(
-    application_id: str = Form(...),
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-):
-    return await _upload_with_document_type(
-        db=db,
-        application_id=application_id,
-        file=file,
-        document_type="bank_statement",
-    )
+# # -------------------------------
+# # Bank Statement
+# # -------------------------------
+# @router.post("/upload/bank-statement")
+# async def upload_bank_statement(
+#     application_id: str = Form(...),
+#     file: UploadFile = File(...),
+#     db: AsyncSession = Depends(get_db),
+# ):
+#     return await _upload_with_document_type(
+#         db=db,
+#         application_id=application_id,
+#         file=file,
+#         document_type="bank_statement",
+#     )
 
 
 # -------------------------------
