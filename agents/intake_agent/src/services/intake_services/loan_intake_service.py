@@ -6,9 +6,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 from uuid import uuid4
 
-from vault.agent_services.source_code.ssn_service import SSNVaultService
-from vault.agent_services.source_code.email_service import EmailVaultService
-from vault.agent_services.source_code.phone_number_service import PhoneNumberVaultService
+from src.adapters.vault.source_code.ssn_service import SSNVaultService
+from src.adapters.vault.source_code.email_service import EmailVaultService
+from src.adapters.vault.source_code.phone_number_service import PhoneNumberVaultService
 
 # ============================
 # 🔹 ADDITIONS: Error Semantics
