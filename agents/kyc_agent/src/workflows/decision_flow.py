@@ -88,8 +88,8 @@ def build_graph():
 
     return graph.compile()
 
-workflow = build_graph()
+# workflow = build_graph()
 
-result = workflow.invoke({})
-print("Final KYC Result:")
-print(result)
+# result = workflow.invoke({})
+# print("Final KYC Result:")
+# print(result)
