@@ -1,0 +1,9 @@
+.venv
+__pycache__
+tests
+docs
+infra
+test_payloads
+.env
+.git
+.gitignore
