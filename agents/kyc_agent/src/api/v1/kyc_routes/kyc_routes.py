@@ -32,20 +32,20 @@ async def trigger_kyc(
 
 
 
-@router.post("/verify")
-async def verify_identity(
-    payload: KYCTriggerRequest, 
-    service: KYCOrchestratorService = Depends()
-):
-    """
-    Entry point for KYC Identity Agent (PRD Section 1.2).
-    """
-    try:
-        result = await service.run_kyc_process(payload.model_dump(mode="json"))
-        return result
-    except Exception as e:
-        # In production, log to OTel/Telemetry
-        raise HTTPException(status_code=500, detail=str(e))
+# @router.post("/verify")
+# async def verify_identity(
+#     payload: KYCTriggerRequest, 
+#     service: KYCOrchestratorService = Depends()
+# ):
+#     """
+#     Entry point for KYC Identity Agent (PRD Section 1.2).
+#     """
+#     try:
+#         result = await service.run_kyc_process(payload.model_dump(mode="json"))
+#         return result
+#     except Exception as e:
+#         # In production, log to OTel/Telemetry
+#         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/verify")
 async def verify_identity(
