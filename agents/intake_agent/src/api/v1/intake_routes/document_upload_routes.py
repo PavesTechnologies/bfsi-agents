@@ -159,6 +159,21 @@ async def upload_pay_stub(
         file=file,
         document_type="pay_stub",
     )
+#--------------------------------
+# ITR
+#--------------------------------
+@router.post("/upload/itr")
+async def upload_itr(
+    application_id: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _upload_with_document_type(
+        db=db,
+        application_id=application_id,
+        file=file,
+        document_type="itr",
+    )
 
 
 # -------------------------------
