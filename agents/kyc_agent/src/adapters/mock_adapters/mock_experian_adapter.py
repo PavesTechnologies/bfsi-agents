@@ -2,6 +2,7 @@
 
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field, field_validator
+from datetime import datetime
 
 # --- REQUEST MODELS ---
 
@@ -111,30 +112,109 @@ class MockExperianAdapter:
     """
     Mock for Experian Credit Profile API using Pydantic for validation.
     """
-
     def get_credit_report(self, raw_payload: Dict[str, Any]) -> ExperianResponse:
-        # Validate Input
         request = ExperianRequestPayload(**raw_payload)
-        
         area_number = int(request.ssn[:3])
-        
-        # Scenario Logic
-        if 545 <= area_number <= 573:
-            return self._build_response(request, score="750", fraud_code="00")
-        elif 574 <= area_number <= 576:
-            return self._build_response(request, score="580", fraud_code="01", has_bk=True)
-        else:
-            return self._build_response(request, score="680", fraud_code="00")
 
-    def _build_response(self, req: ExperianRequestPayload, score: str, fraud_code: str, has_bk: bool = False) -> ExperianResponse:    #has_bk = has bankruptcy record
+        # --- VALID PROFILE ---
+        if 545 <= area_number <= 573:
+            return self._build_response(
+                request,
+                score="750",
+                fraud_code="00"
+            )
+
+        # --- LOW SCORE / BANKRUPTCY ---
+        elif 574 <= area_number <= 576:
+            return self._build_response(
+                request,
+                score="580",
+                fraud_code="01",
+                has_bk=True
+            )
+
+        # --- SYNTHETIC SSN (ISSUED AFTER BIRTH) ---
+        elif 600 <= area_number <= 619:
+            return self._build_response(
+                request,
+                score="720",
+                fraud_code="08",
+                issued_year=str(datetime.now().year + 5)
+            )
+
+        # --- NAME MISMATCH (IDENTITY THEFT) ---
+        elif 620 <= area_number <= 639:
+            return self._build_response(
+                request,
+                score="700",
+                fraud_code="04",
+                name_override={
+                    "firstName": "MICHAEL",
+                    "surname": "SMITH"
+                }
+            )
+
+        # --- DOB MISMATCH ---
+        elif 640 <= area_number <= 659:
+            return self._build_response(
+                request,
+                score="710",
+                fraud_code="05",
+                dob_override={
+                    "day": "01",
+                    "month": "01",
+                    "year": "1965"
+                }
+            )
+
+        # --- DECEASED SSN ---
+        elif 660 <= area_number <= 679:
+            return self._build_response(
+                request,
+                score="500",
+                fraud_code="09",
+                deceased=True
+            )
+
+        # --- KNOWN FRAUD HIT ---
+        elif 680 <= area_number <= 699:
+            return self._build_response(
+                request,
+                score="450",
+                fraud_code="12"
+            )
+
+        # --- DEFAULT NORMAL ---
+        else:
+            return self._build_response(
+                request,
+                score="680",
+                fraud_code="00"
+            )
+    def _build_response(
+            self, 
+            req: ExperianRequestPayload, 
+            score: str, 
+            fraud_code: str,
+            has_bk: bool=False,
+            dob_override: Optional[str]=None,
+            name_override: Optional[str]=None,
+            deceased: bool=False,
+            issued_year: str="1980"
+        ) -> ExperianResponse:    #has_bk = has bankruptcy record
         street_parts = req.street1.split(" ", 1)
         st_num = street_parts[0] if street_parts else "123"
         st_name = street_parts[1] if len(street_parts) > 1 else "MAIN"
 
         data = {
             "consumerIdentity": {
-                "name": [{"firstName": req.firstName.upper(), "surname": req.lastName.upper()}],
-                "dob": {"day": "15", "month": "04", "year": "1980"},
+                "name": [
+                    name_override if name_override else {
+                        "firstName": req.firstName.upper(),
+                        "surname": req.lastName.upper()
+                    }
+                ],
+                "dob": dob_override if dob_override else {"day": "15", "month": "04", "year": "1980"},
                 "phone": [{"number": "5551234567", "type": "Residential"}]
             },
             "addressInformation": [{
@@ -149,7 +229,8 @@ class MockExperianAdapter:
             "fraudShield": [{
                 "addressCount": "1",
                 "socialCount": "1",
-                "ssnFirstPossibleIssuanceYear": "1980",
+                "ssnFirstPossibleIssuanceYear": issued_year,
+                "dateOfDeath": "2018-01-01" if deceased else "",
                 "fraudShieldIndicators": {"indicator": [fraud_code]}
             }],
             "riskModel": [{
@@ -174,5 +255,10 @@ class MockExperianAdapter:
 
         if has_bk:
             data["publicRecord"].append({"status": "Discharged", "type": "Bankruptcy", "filingDate": "2015-01-01"})
+        
+        if fraud_code == "01":
+            data["consumerIdentity"]["dob"] = {
+                "day": "01", "month": "01", "year": "1970"
+            }
 
         return ExperianResponse(**data)

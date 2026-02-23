@@ -28,6 +28,8 @@ def ssn_node(state: KYCState) -> KYCState:
     # 2. Service call (Business Logic Delegation)
     ssn_validation_state = IdentityService.process_ssn_verification(req, experian_data)
 
+    print(f"SSN Node Output: {ssn_validation_state}") # Debug log for output state
+
     return {
         "ssn_validation": ssn_validation_state,
         # "parallel_tasks_completed": ["ssn"],

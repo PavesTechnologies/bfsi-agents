@@ -47,3 +47,4 @@ class IdentityService:
             "issued_year": int(vendor_data.fraudShield[0].ssnFirstPossibleIssuanceYear),
             "flags": flags
         }
+    

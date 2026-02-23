@@ -42,7 +42,7 @@ Reason: SSN issued before DOB or name mismatch.
     "line2": "No where",
     "city": "Nowhere",
     "state": "KS",
-    "zip": "00000",
+    "zip": "00000"
   },
     "phone": "+12024561111",
     "email": "jq.public@example.com",

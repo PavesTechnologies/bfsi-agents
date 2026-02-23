@@ -29,11 +29,22 @@ def risk_aggregator_node(state: KYCState) -> KYCState:
         final_status = "NEEDS_HUMAN_REVIEW"
         reason = "Low face match confidence"
 
+    ssn_summary = {
+        "ssn_valid": ssn.get("ssn_valid"),
+        "ssn_plausible": ssn.get("ssn_plausible"),
+        "name_ssn_match": ssn.get("name_ssn_match"),
+        "dob_ssn_match": ssn.get("dob_ssn_match"),
+        "deceased_flag": ssn.get("deceased_flag"),
+        "issued_year": ssn.get("issued_year"),
+        "ssn_flags": ssn.get("flags", {})
+    }
+
     result = {
         "final_status": final_status,
         "aggregated_score": 0.95,
         "hard_fail_triggered": hard_fail,
         "decision_reason": reason,
+        "ssn_risk_snapshot": ssn_summary,
         "decision_rules_snapshot": {},
         "model_versions": {}
     }
