@@ -24,7 +24,7 @@ slowapi = "^0.1.9"
 sqlacodegen = "^3.2.0"
 sqlalchemy = "^2.0.46"
 uvicorn = "^0.29.0"
-psycopg2 = "^2.9.11"
+psycopg2-binary = "^2.9.11"
 asyncpg = "^0.31.0"
 
 
