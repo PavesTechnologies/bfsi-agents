@@ -2,29 +2,35 @@
 Address Verification Node
 """
 
-import time
+from src.core.telemetry import track_node
 from src.workflows.kyc_engine.kyc_state import KYCState
+from src.services.identity_service import IdentityService
+from src.adapters.mock_adapters.mock_experian_adapter import MockExperianAdapter
 
 
+@track_node("address")
 def address_node(state: KYCState) -> KYCState:
-    start = time.time()
+    """
+    Thin node: Orchestrates the sequence between Adapter and Service.
+    Uses Experian credit report data for address verification.
+    """
+    req = state["raw_request"]
 
-    # TODO: USPS / Address validation logic
-    result = {
-        "address_match": True,
-        "risk_score": 0.1,
-        "geo_risk_flag": False,
-        "high_risk_country_flag": False,
-        "usps_validated": True,
-        "deliverable": True,
-        "standardized_address": {},
-        "flags": {}
-    }
+    # 1. Adapter call (External Interaction)
+    adapter = MockExperianAdapter()
+    experian_data = adapter.get_credit_report({
+        "firstName": req["full_name"].split()[0],
+        "lastName": req["full_name"].split()[-1],
+        "street1": req["address"]["line1"],
+        "city": req["address"]["city"],
+        "state": req["address"]["state"],
+        "zip": req["address"]["zip"],
+        "ssn": req["ssn"]
+    })
 
-    duration = time.time() - start
+    # 2. Service call (Business Logic Delegation)
+    address_verification_state = IdentityService.process_address_verification(req, experian_data)
 
     return {
-        "address_verification": result,
-        "parallel_tasks_completed": ["address"],
-        "node_execution_times": {"address": duration}
+        "address_verification": address_verification_state,
     }

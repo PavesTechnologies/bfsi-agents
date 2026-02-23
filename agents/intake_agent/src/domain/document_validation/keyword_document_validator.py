@@ -4,6 +4,7 @@ from src.domain.document_classification.rules import (
     w2_rules,
     dl_rules,
     passport_rules,
+    itr_rules,
 )
 from src.domain.document_classification.document_type import DocumentType
 
@@ -21,12 +22,17 @@ class KeywordDocumentValidator:
         DocumentType.W2: w2_rules,
         DocumentType.DRIVERS_LICENSE: dl_rules,
         DocumentType.PASSPORT: passport_rules,
+        DocumentType.ITR: itr_rules,  
     }
 
     NEGATIVE_KEYWORDS = {
         DocumentType.W2: ["PAY PERIOD", "NET PAY"],
         DocumentType.PAY_STUB: ["W-2", "WAGE AND TAX STATEMENT"],
+       
+
+
     }
+
 
     @classmethod
     def validate(

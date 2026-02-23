@@ -312,6 +312,7 @@ class PgsqlDocument(Base):
             "'passport', "
             "'drivers_license', "
             "'state_id', "
+            "'itr', "
             "'w2', "
             "'pay_stub', "
             "'bank_statement', "

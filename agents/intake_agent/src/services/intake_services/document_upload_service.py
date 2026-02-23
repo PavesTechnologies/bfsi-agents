@@ -95,7 +95,7 @@ DOCUMENT_RULES = {
         "max_size_mb": 10,
     },
     "pay_stub": {
-        "mime_types": {"application/pdf"},
+        "mime_types": {"application/pdf","application/octet-stream"},
         "max_size_mb": 5,
     },
     "photo": {
@@ -104,6 +104,11 @@ DOCUMENT_RULES = {
         "max_resolution": (3000, 3000),
     },
     "w2": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg","application/octet-stream"},
+        "max_size_mb": 5,
+        "max_resolution": (4000, 4000),
+    },
+     "itr": {
         "mime_types": {"application/pdf", "image/jpeg", "image/png","image/jpg"},
         "max_size_mb": 5,
         "max_resolution": (4000, 4000),
@@ -371,13 +376,24 @@ class DocumentService:
                     file_bytes=file_bytes,
                     mime_type=file.content_type,
                 )
+<<<<<<< HEAD
+                # print(f"OCR Result for {document_type}: {ocr_result}")
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                    
+=======
                 
+>>>>>>> 6d4b371fa335d82d0b71aeb904bce0e2b4d2fea3
                 expected_type = DocumentType(document_type)
-
+                print(f"Performing keyword validation for expected type: {expected_type}")
+                print(f"OCR extracted text (truncated): {ocr_result.full_text[:200]}...")
                 is_valid, confidence = KeywordDocumentValidator.validate(
                     expected_type=expected_type,
                     ocr_text=ocr_result.full_text,
                 )
+<<<<<<< HEAD
+                print(f"Keyword validation result: is_valid={is_valid}, confidence={confidence}")
+=======
 
                 if is_valid:
                     
@@ -387,6 +403,7 @@ class DocumentService:
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
                     
+>>>>>>> 6d4b371fa335d82d0b71aeb904bce0e2b4d2fea3
                 if not is_valid:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,

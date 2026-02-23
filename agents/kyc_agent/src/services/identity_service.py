@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from src.adapters.mock_adapters.mock_experian_adapter import ExperianResponse
 # Assuming the state classes are imported from the domain/models layer
-from src.workflows.kyc_engine.kyc_state import RawKYCRequest, SSNValidationState
+from src.workflows.kyc_engine.kyc_state import RawKYCRequest, SSNValidationState, AddressVerificationState
 
 class IdentityService:
     """
@@ -47,4 +47,69 @@ class IdentityService:
             "issued_year": int(vendor_data.fraudShield[0].ssnFirstPossibleIssuanceYear),
             "flags": flags
         }
-    
+
+    @staticmethod
+    def process_address_verification(request: RawKYCRequest, vendor_data: ExperianResponse) -> AddressVerificationState:
+        """
+        Coordinates address verification logic (PRD 5.1, 10.1).
+        Compares applicant-submitted address against Experian's on-file address.
+        Returns a complete AddressVerificationState dictionary.
+        """
+        req_addr = request["address"]
+        exp_addr = vendor_data.addressInformation[0]
+
+        # 1. Normalize for comparison
+        req_line1 = req_addr.get("line1", "").strip().upper()
+        exp_line1 = f"{exp_addr.streetNumber} {exp_addr.streetName}".strip().upper()
+        if exp_addr.streetSuffix:
+            exp_line1 += f" {exp_addr.streetSuffix.upper()}"
+
+        req_city = req_addr.get("city", "").strip().upper()
+        req_state = req_addr.get("state", "").strip().upper()
+        req_zip = req_addr.get("zip", "").strip()
+
+        # 2. Field-level matching
+        city_match = req_city == exp_addr.city.upper()
+        state_match = req_state == exp_addr.state.upper()
+        zip_match = req_zip[:5] == exp_addr.zipCode[:5]
+        street_match = req_line1 == exp_line1
+
+        # 3. Compute risk score (0.0 = perfect, 1.0 = worst)
+        match_count = sum([street_match, city_match, state_match, zip_match])
+        risk_score = round(1.0 - (match_count / 4.0), 2)
+
+        address_match = match_count >= 3  # At least 3 of 4 fields must match
+
+        # 4. Flags
+        flags = {}
+        if not street_match:
+            flags["STREET_MISMATCH"] = f"Request: {req_line1} vs Vendor: {exp_line1}"
+        if not city_match:
+            flags["CITY_MISMATCH"] = f"Request: {req_city} vs Vendor: {exp_addr.city}"
+        if not state_match:
+            flags["STATE_MISMATCH"] = f"Request: {req_state} vs Vendor: {exp_addr.state}"
+        if not zip_match:
+            flags["ZIP_MISMATCH"] = f"Request: {req_zip} vs Vendor: {exp_addr.zipCode}"
+
+        # 5. Standardized address from vendor
+        standardized_address = {
+            "line1": exp_line1,
+            "city": exp_addr.city.upper(),
+            "state": exp_addr.state.upper(),
+            "zip": exp_addr.zipCode,
+        }
+
+        # 6. Address type from vendor source field
+        address_type = exp_addr.source  # e.g. "Residential", "Commercial"
+
+        return {
+            "address_match": address_match,
+            "risk_score": risk_score,
+            "geo_risk_flag": False,
+            "high_risk_country_flag": False,
+            "address_type": address_type,
+            "usps_validated": False,
+            "deliverable": address_match,
+            "standardized_address": standardized_address,
+            "flags": flags,
+        }
