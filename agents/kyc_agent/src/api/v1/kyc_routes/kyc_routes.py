@@ -17,21 +17,20 @@ from src.services.kyc_services.kyc_orchestrator import KYCOrchestratorService
 router = APIRouter(prefix="/kyc", tags=["KYC_Intake"])
 
 
-# @router.post("/trigger", response_model=KYCTriggerResponse)
-# async def trigger_kyc(
-#     payload: KYCTriggerRequest,
-#     db: AsyncSession = Depends(get_db),
-# ):
-#     service = KYCService(db)
+@router.post("/trigger", response_model=KYCTriggerResponse)
+async def trigger_kyc(
+    payload: KYCTriggerRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    service = KYCService(db)
 
-#     response_payload = await service.trigger_kyc(
-#         payload=payload.model_dump(mode="json"),
-#     )
+    response_payload = await service.trigger_kyc(
+        payload=payload.model_dump(mode="json"),
+    )
 
-#     return KYCTriggerResponse(**response_payload)
+    return KYCTriggerResponse(**response_payload)
 
 
-# router = APIRouter(prefix="/v1/kyc", tags=["KYC"])
 
 @router.post("/verify")
 async def verify_identity(
@@ -47,3 +46,15 @@ async def verify_identity(
     except Exception as e:
         # In production, log to OTel/Telemetry
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/verify")
+async def verify_identity(
+    payload: KYCTriggerRequest, 
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Consolidated entry point: Handles idempotency, persistence, and 
+    parallel graph execution using typed models.
+    """
+    service = KYCOrchestratorService(db)
+    return await service.verify_identity(payload)

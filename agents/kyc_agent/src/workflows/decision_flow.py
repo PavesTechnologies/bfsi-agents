@@ -1,6 +1,6 @@
 # src/workflows/decision_flow.py
 """
-KYC Agent – Parallel Execution Graph
+KYC Agent - Parallel Execution Graph
 """
 
 from langgraph.graph import StateGraph, END
