@@ -73,6 +73,7 @@ class KYCService:
         kyc_case = await self.repo.create_kyc_case(
             applicant_id=payload["applicant_id"],
             payload_hash=payload_hash,
+            raw_request_payload=payload,  # ✅ NEW
         )
 
         response_payload = {

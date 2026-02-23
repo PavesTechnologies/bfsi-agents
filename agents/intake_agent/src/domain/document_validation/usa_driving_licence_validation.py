@@ -6,11 +6,15 @@ from dynamsoft_barcode_reader_bundle import *
 from src.core.config import get_settings
 from src.services.cross_validation_service import CrossValidationService
 from src.domain.normalization.drivers_license import DriversLicenseNormalizer
-
+import boto3
 
 settings = get_settings()
 LICENSE_KEY = settings.BARCODE_LICENSE_KEY
 
+BUCKET_NAME = "ajay-ocr-bucket-12345"
+REGION = "us-east-1"
+
+s3_client = boto3.client("s3", region_name=REGION)
 
 # --- 1. AAMVA CONFIGURATION & PARSING ---
 AAMVA_FIELDS = {
@@ -22,6 +26,28 @@ AAMVA_FIELDS = {
 
 REQUIRED_FIELDS = ["license_number", "first_name", "last_name", "date_of_birth", "expiry_date", "state"]
 OPTIONAL_FIELDS = ["issue_date", "street_address", "city", "postal_code", "sex"]
+
+def upload_to_s3(local_path: str, application_id: str) -> str:
+    
+    try:
+        # Extract file extension (.jpg, .png, etc.)
+        _, ext = os.path.splitext(local_path)
+
+        if not ext:
+            raise ValueError("File has no extension")
+        
+        
+        s3_key = f"drivers_license/_drivers_license_{application_id}{ext.lower()}"
+
+        s3_client.upload_file(local_path, BUCKET_NAME, s3_key)
+
+        print(f"✅ Uploaded to S3: {s3_key}")
+        return s3_key
+
+    except Exception as e:
+        print(f"❌ S3 Upload failed: {e}")
+        return None
+
 
 def parse_aamva_payload(payload: str) -> dict:
     data = {}
@@ -93,7 +119,13 @@ async def process_single_dl(application_id: str, image_path: str, applicant_dao=
             print(f"Parsed Data: {parsed}")
             normalizer = DriversLicenseNormalizer()
             validation_result = validate_dl(parsed)
-
+            
+            if validation_result["valid"]:
+                s3_path = upload_to_s3(image_path, application_id)
+                validation_result["s3_path"] = s3_path
+            else:
+                validation_result["s3_path"] = None
+                        
             normalized = normalizer.normalize(parsed)
 
             print(f"Normalized Data: {normalized}")

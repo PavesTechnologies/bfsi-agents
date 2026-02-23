@@ -30,6 +30,12 @@ class KYC(Base):
         index=True
     )
 
+     # 🔹 NEW COLUMN
+    raw_request_payload = mapped_column(
+        JSONB,
+        nullable=False
+    )
+    
     status = mapped_column(
         Enum(KYCStatus, name="kyc_status_enum"),
         nullable=False,

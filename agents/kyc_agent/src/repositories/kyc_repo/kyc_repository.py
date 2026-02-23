@@ -36,12 +36,14 @@ class KYCRepository:
         self,
         applicant_id: str,
         payload_hash: str,
+        raw_request_payload: dict,
     ) -> KYC:
 
         kyc_case = KYC(
             applicant_id=applicant_id,
             payload_hash=payload_hash,
             status=KYCStatus.PENDING,
+            raw_request_payload=raw_request_payload,  # ✅ NEW
         )
 
         self.db.add(kyc_case)
