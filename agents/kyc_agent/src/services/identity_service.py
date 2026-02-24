@@ -1,16 +1,18 @@
 from datetime import date, datetime
+
+import dns.exception
+import dns.resolver
 import phonenumbers
+
 from src.adapters.mock_adapters.mock_experian_adapter import ExperianResponse
 
 # Assuming the state classes are imported from the domain/models layer
 from src.workflows.kyc_engine.kyc_state import (
+    AddressVerificationState,
     ContactVerificationState,
     RawKYCRequest,
     SSNValidationState,
-    AddressVerificationState,
 )
-import dns.resolver
-import dns.exception
 
 
 class IdentityService:
@@ -52,7 +54,9 @@ class IdentityService:
             flags["DOB_ERROR"] = "Age logic violation"
 
         # 2. Name-DOB-SSN Correlation (PRD 6.1)
-        print(f"Comparing Vendor DOB: {vendor_dob_str} with Request DOB: {request['dob']}")  # Debug log
+        print(
+            f"Comparing Vendor DOB: {vendor_dob_str} with Request DOB: {request['dob']}"
+        )  # Debug log
         dob_match = vendor_dob_str == request["dob"]
         name_match = request["full_name"].lower() in vendor_full_name
 

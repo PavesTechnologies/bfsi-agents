@@ -1,20 +1,18 @@
-from typing import Dict, Any
+from typing import Any
+
 
 class MockSSNAdapter:
     """
-    Mock for SSN Identity Trace. 
+    Mock for SSN Identity Trace.
     Retrieves the full identity record associated with the SSN prefix.
     """
-    
-    def get_ssn_details(self, ssn: str) -> Dict[str, Any]:
+
+    def get_ssn_details(self, ssn: str) -> dict[str, Any]:
         clean_ssn = ssn.replace("-", "").strip()
-        
+
         # Validation for the adapter itself (PRD Section 5.1)
         if not clean_ssn.isdigit() or len(clean_ssn) != 9:
-            return {
-                "ssn_valid": False,
-                "error": "Invalid SSN format"
-            }
+            return {"ssn_valid": False, "error": "Invalid SSN format"}
 
         area_number = int(clean_ssn[:3])
 
@@ -31,7 +29,7 @@ class MockSSNAdapter:
                 "issuance_range": "1950-1952",
                 "name_match_score": 0.10,
                 "deceased_flag": False,
-                "synthetic_fraud_indicator": "HIGH"
+                "synthetic_fraud_indicator": "HIGH",
             }
 
         # Scenario: West Coast / California Prefix
@@ -47,7 +45,7 @@ class MockSSNAdapter:
                 "issuance_range": "1990-1992",
                 "name_match_score": 0.95,
                 "deceased_flag": False,
-                "synthetic_fraud_indicator": "LOW"
+                "synthetic_fraud_indicator": "LOW",
             }
 
         # Scenario: East Coast / DC (Matches Golden Path Document Data)
@@ -63,7 +61,7 @@ class MockSSNAdapter:
                 "issuance_range": "1984-1986",
                 "name_match_score": 0.98,
                 "deceased_flag": False,
-                "synthetic_fraud_indicator": "LOW"
+                "synthetic_fraud_indicator": "LOW",
             }
 
         # Default Fallback (Randomization Era)
@@ -78,5 +76,5 @@ class MockSSNAdapter:
             "issuance_range": "2011-Present",
             "name_match_score": 0.50,
             "deceased_flag": False,
-            "synthetic_fraud_indicator": "MEDIUM"
+            "synthetic_fraud_indicator": "MEDIUM",
         }

@@ -3,15 +3,17 @@ Risk Aggregator Node
 """
 
 import time
+
 from src.core.telemetry import track_node
 from src.workflows.kyc_engine.kyc_state import KYCState
+
 
 @track_node("aggregate")
 def risk_aggregator_node(state: KYCState) -> KYCState:
     start = time.time()
 
     ssn = state.get("ssn_validation", {})
-    doc = state.get("document_check", {})
+    # doc = state.get("document_check", {})
     face = state.get("face_check", {})
     aml = state.get("aml_check", {})
 
@@ -37,7 +39,7 @@ def risk_aggregator_node(state: KYCState) -> KYCState:
         "dob_ssn_match": ssn.get("dob_ssn_match"),
         "deceased_flag": ssn.get("deceased_flag"),
         "issued_year": ssn.get("issued_year"),
-        "ssn_flags": ssn.get("flags", {})
+        "ssn_flags": ssn.get("flags", {}),
     }
 
     result = {
@@ -48,12 +50,9 @@ def risk_aggregator_node(state: KYCState) -> KYCState:
         "ssn_risk_snapshot": ssn_summary,
         "contact_risk_snapshot": state.get("contact_verification", {}),
         "decision_rules_snapshot": {},
-        "model_versions": {}
+        "model_versions": {},
     }
 
     duration = time.time() - start
 
-    return {
-        "risk_decision": result,
-        "node_execution_times": {"aggregate": duration}
-    }
+    return {"risk_decision": result, "node_execution_times": {"aggregate": duration}}

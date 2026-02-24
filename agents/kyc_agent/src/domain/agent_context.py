@@ -5,11 +5,11 @@ Represents business facts and decisions.
 Independent of LangGraph and LLM vendors.
 """
 
-from typing import TypedDict, Optional
-from enum import Enum
+from enum import StrEnum
+from typing import TypedDict
 
 
-class Decision(str, Enum):
+class Decision(StrEnum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
 
@@ -17,4 +17,4 @@ class Decision(str, Enum):
 class AgentContext(TypedDict, total=False):
     input_text: str
     decision: Decision
-    reason: Optional[str]
+    reason: str | None

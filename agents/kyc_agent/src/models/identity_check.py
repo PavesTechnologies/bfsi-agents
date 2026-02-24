@@ -1,7 +1,8 @@
 # src/models/identity_check.py
-from sqlalchemy import Column, String, JSON, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
+
+from sqlalchemy import JSON, Column, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
 
 from src.utils.migration_database import Base
 

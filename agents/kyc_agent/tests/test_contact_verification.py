@@ -1,14 +1,14 @@
-import pytest
-from datetime import date
 from src.services.identity_service import IdentityService
+
 # from tests.fixtures.identity_fixtures import synthetic_fraud_fixture
 
 # -- Additional Fixtures --
 
 CONTACT_REQUEST = {
-    "phone": "+12024561111",      # Valid E.164
-    "email": "jq.public@gmail.com" # Valid domain
+    "phone": "+12024561111",  # Valid E.164
+    "email": "jq.public@gmail.com",  # Valid domain
 }
+
 
 class TestContactVerificationService:
     """Tests for IdentityService.process_contact_verification"""
@@ -27,7 +27,7 @@ class TestContactVerificationService:
     def test_voip_burner_phone_detection(self):
         """VOIP/Burner numbers should be flagged as high risk (PRD 6.1)."""
         # Note: In a real test, use a known VOIP range or mock the carrier lookup
-        request = {**CONTACT_REQUEST, "phone": "+15005550006"} 
+        request = {**CONTACT_REQUEST, "phone": "+15005550006"}
         result = IdentityService.process_contact_verification(request)
 
         # Requirement: Flag high-risk phone types
@@ -44,7 +44,10 @@ class TestContactVerificationService:
 
     def test_invalid_email_mx_records(self):
         """Emails with non-existent domains should fail MX verification."""
-        request = {**CONTACT_REQUEST, "email": "user@this-domain-does-not-exist-123.com"}
+        request = {
+            **CONTACT_REQUEST,
+            "email": "user@this-domain-does-not-exist-123.com",
+        }
         result = IdentityService.process_contact_verification(request)
 
         assert result["email_valid"] is False

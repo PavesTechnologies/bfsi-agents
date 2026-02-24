@@ -3,8 +3,10 @@ Face Match + Liveness Node
 """
 
 import time
+
 from src.core.telemetry import track_node
 from src.workflows.kyc_engine.kyc_state import KYCState
+
 
 @track_node("face")
 def face_node(state: KYCState) -> KYCState:
@@ -18,7 +20,7 @@ def face_node(state: KYCState) -> KYCState:
         "spoof_detected": False,
         "deepfake_score": 0.02,
         "replay_attack_detected": False,
-        "flags": {}
+        "flags": {},
     }
 
     duration = time.time() - start
@@ -26,5 +28,5 @@ def face_node(state: KYCState) -> KYCState:
     return {
         "face_check": result,
         "parallel_tasks_completed": ["face"],
-        "node_execution_times": {"face": duration}
+        "node_execution_times": {"face": duration},
     }

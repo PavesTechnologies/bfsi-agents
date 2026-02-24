@@ -2,6 +2,7 @@
 
 from src.models.identity_check import IdentityCheck
 
+
 class KYCRepository:
     ...
 

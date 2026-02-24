@@ -1,13 +1,17 @@
 # src/models/risk_decision.py
 
-import uuid
 import datetime
+import uuid
+
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Text, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Boolean, Float, DateTime, ForeignKey, text, Enum, Text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+
 from src.utils.migration_database import Base
+
 from .enums import FinalDecision
 from .kyc_cases import KYC
+
 
 class RiskDecision(Base):
     __tablename__ = "risk_decisions"
@@ -21,7 +25,7 @@ class RiskDecision(Base):
     kyc_id: Mapped[uuid.UUID] = mapped_column(
         UUID,
         ForeignKey("kyc_cases.id", ondelete="CASCADE"),
-        unique=True,   # 1:1 relationship
+        unique=True,  # 1:1 relationship
         nullable=False,
         index=True,
     )
@@ -50,7 +54,4 @@ class RiskDecision(Base):
     )
 
     # 🔗 Relationship
-    kyc: Mapped["KYC"] = relationship(
-        "KYC",
-        back_populates="risk_decision"
-    )
+    kyc: Mapped["KYC"] = relationship("KYC", back_populates="risk_decision")

@@ -6,11 +6,11 @@ Independent of LangGraph and LLM vendors.
 """
 
 from typing import TypedDict, Optional
-from enum import Enum
+from enum import StrEnum
 from uuid import UUID
 
 
-class Decision(str, Enum):
+class Decision(StrEnum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
 
@@ -21,6 +21,7 @@ class AgentContext(TypedDict, total=False):
     Metadata is REQUIRED for all requests (no Optional).
     Downstream always receives metadata.
     """
+
     request_id: UUID
     app_id: UUID
     input_text: str

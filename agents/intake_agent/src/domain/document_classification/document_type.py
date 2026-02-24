@@ -1,6 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
-class DocumentType(str, Enum):
+
+class DocumentType(StrEnum):
     DRIVERS_LICENSE = "drivers_license"
     PASSPORT = "passport"
     SSN_CARD = "ssn_card"

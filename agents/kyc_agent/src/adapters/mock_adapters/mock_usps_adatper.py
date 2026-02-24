@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any
 
 
 class MockUSPSAdapter:
@@ -8,7 +8,7 @@ class MockUSPSAdapter:
     and deliverability status.
     """
 
-    def get_address_details(self, address_data: Dict[str, str]) -> Dict[str, Any]:
+    def get_address_details(self, address_data: dict[str, str]) -> dict[str, Any]:
         # Cleanup and extraction (Section 5.1)
         line1 = address_data.get("line1", "").strip().upper()
         city = address_data.get("city", "").strip().upper()

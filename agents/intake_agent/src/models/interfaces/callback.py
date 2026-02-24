@@ -1,10 +1,10 @@
-from enum import Enum
-from pydantic import BaseModel, HttpUrl
+from enum import StrEnum
+from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
 
-class CallbackStatus(str, Enum):
+class CallbackStatus(StrEnum):
     PENDING = "PENDING"
     SENT = "SENT"
     FAILED = "FAILED"

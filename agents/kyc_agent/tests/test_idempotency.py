@@ -1,8 +1,11 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock,patch
 from fastapi import HTTPException
-from src.services.kyc_services.kyc_orchestrator import KYCOrchestratorService
+
 from src.models.enums import IdempotencyStatus
+from src.services.kyc_services.kyc_orchestrator import KYCOrchestratorService
+
 
 # Mocking the Pydantic request model
 class MockAddress:
@@ -11,6 +14,7 @@ class MockAddress:
     city = "New York"
     state = "NY"
     zip = "10001"
+
 
 class MockKYCRequest:
     idempotency_key = "test-key-123"
@@ -21,9 +25,13 @@ class MockKYCRequest:
     phone = "+1234567890"
     email = "john@example.com"
     address = MockAddress()
-    
+
     def model_dump(self, mode="json"):
-        return {"idempotency_key": self.idempotency_key, "applicant_id": self.applicant_id}
+        return {
+            "idempotency_key": self.idempotency_key,
+            "applicant_id": self.applicant_id,
+        }
+
 
 @pytest.fixture
 def service():
@@ -33,8 +41,8 @@ def service():
     service.graph = AsyncMock()
     return service
 
+
 class TestKYCIdempotency:
-    
     @pytest.mark.asyncio
     async def test_first_time_execution_success(self, service):
         """Standard flow: No existing record, should run graph and return result."""
@@ -42,7 +50,9 @@ class TestKYCIdempotency:
         payload = MockKYCRequest()
         service.repo.get_request_by_idempotency.return_value = None
         service.repo.create_kyc_case.return_value = MagicMock(id="kyc_001")
-        service.graph.ainvoke.return_value = {"risk_decision": {"final_status": "APPROVED"}}
+        service.graph.ainvoke.return_value = {
+            "risk_decision": {"final_status": "APPROVED"}
+        }
 
         # Execute
         result = await service.verify_identity(payload)
@@ -66,7 +76,10 @@ class TestKYCIdempotency:
         service.repo.get_request_by_idempotency.return_value = mock_record
 
         # FIX: Patch the hash function specifically inside the service module
-        with patch("src.services.kyc_services.kyc_orchestrator.generate_payload_hash", return_value=target_hash):
+        with patch(
+            "src.services.kyc_services.kyc_orchestrator.generate_payload_hash",
+            return_value=target_hash,
+        ):
             result = await service.verify_identity(payload)
 
         assert result == cached_response
@@ -85,25 +98,27 @@ class TestKYCIdempotency:
         service.repo.get_request_by_idempotency.return_value = mock_record
 
         # FIX: Patch the hash function specifically inside the service module
-        with patch("src.services.kyc_services.kyc_orchestrator.generate_payload_hash", return_value=target_hash):
+        with patch(
+            "src.services.kyc_services.kyc_orchestrator.generate_payload_hash",
+            return_value=target_hash,
+        ):
             with pytest.raises(HTTPException) as exc:
                 await service.verify_identity(payload)
 
         assert exc.value.status_code == 202
+
     @pytest.mark.asyncio
     async def test_idempotency_key_collision_different_payload(self, service):
         """Should raise 409 Conflict if same key is used for different data."""
         # Setup
         payload = MockKYCRequest()
         mock_record = MagicMock()
-        mock_record.payload_hash = "DIFFERENT_HASH" # Hash mismatch
+        mock_record.payload_hash = "DIFFERENT_HASH"  # Hash mismatch
         service.repo.get_request_by_idempotency.return_value = mock_record
 
         # Execute & Verify
         with pytest.raises(HTTPException) as exc:
             await service.verify_identity(payload)
-        
+
         assert exc.value.status_code == 409
         assert "different payload" in exc.value.detail
-
-    

@@ -1,8 +1,9 @@
 # src/adapters/mock-adapters/mock_experian_adapter.py
 
-from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, Field, field_validator
 
 # --- REQUEST MODELS ---
 
@@ -11,7 +12,7 @@ class ExperianRequestPayload(BaseModel):
     firstName: str
     lastName: str
     street1: str
-    street2: Optional[str] = None
+    street2: str | None = None
     city: str
     state: str = Field(..., min_length=2, max_length=2)
     zip: str
@@ -44,9 +45,9 @@ class Phone(BaseModel):
 
 
 class ConsumerIdentity(BaseModel):
-    name: List[Name]
+    name: list[Name]
     dob: DOB
-    phone: List[Phone]
+    phone: list[Phone]
 
 
 class AddressInformation(BaseModel):
@@ -66,7 +67,7 @@ class SSNRecord(BaseModel):
 
 
 class FraudShieldIndicators(BaseModel):
-    indicator: List[str]
+    indicator: list[str]
 
 
 class FraudShield(BaseModel):
@@ -85,7 +86,7 @@ class ScoreFactor(BaseModel):
 class RiskModel(BaseModel):
     modelIndicator: str
     score: str
-    scoreFactors: List[ScoreFactor]
+    scoreFactors: list[ScoreFactor]
 
 
 class Attribute(BaseModel):
@@ -95,7 +96,7 @@ class Attribute(BaseModel):
 
 class Summary(BaseModel):
     summaryType: str
-    attributes: List[Attribute]
+    attributes: list[Attribute]
 
 
 class Tradeline(BaseModel):
@@ -114,14 +115,14 @@ class PublicRecord(BaseModel):
 
 class ExperianResponse(BaseModel):
     consumerIdentity: ConsumerIdentity
-    addressInformation: List[AddressInformation]
-    ssn: List[SSNRecord]
-    fraudShield: List[FraudShield]
-    riskModel: List[RiskModel]
-    summaries: List[Summary]
-    tradeline: List[Tradeline]
-    publicRecord: List[PublicRecord]
-    inquiry: List[Dict[str, str]] = []
+    addressInformation: list[AddressInformation]
+    ssn: list[SSNRecord]
+    fraudShield: list[FraudShield]
+    riskModel: list[RiskModel]
+    summaries: list[Summary]
+    tradeline: list[Tradeline]
+    publicRecord: list[PublicRecord]
+    inquiry: list[dict[str, str]] = []
 
 
 # --- ADAPTER ---
@@ -132,7 +133,7 @@ class MockExperianAdapter:
     Mock for Experian Credit Profile API using Pydantic for validation.
     """
 
-    def get_credit_report(self, raw_payload: Dict[str, Any]) -> ExperianResponse:
+    def get_credit_report(self, raw_payload: dict[str, Any]) -> ExperianResponse:
         request = ExperianRequestPayload(**raw_payload)
         area_number = int(request.ssn[:3])
 
@@ -202,8 +203,8 @@ class MockExperianAdapter:
         score: str,
         fraud_code: str,
         has_bk: bool = False,
-        dob_override: Optional[Dict[str, str]] = None,
-        name_override: Optional[Dict[str, str]] = None,
+        dob_override: dict[str, str] | None = None,
+        name_override: dict[str, str] | None = None,
         deceased: bool = False,
         issued_year: str = "1980",
     ) -> ExperianResponse:  # has_bk = has bankruptcy record
@@ -211,7 +212,7 @@ class MockExperianAdapter:
         st_num = street_parts[0] if street_parts else "123"
         st_name = street_parts[1] if len(street_parts) > 1 else "MAIN"
 
-        data = {
+        data: dict[str, Any] = {
             "consumerIdentity": {
                 "name": [
                     name_override
