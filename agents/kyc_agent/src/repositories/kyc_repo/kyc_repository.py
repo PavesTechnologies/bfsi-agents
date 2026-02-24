@@ -13,6 +13,7 @@ class KYCRepository:
     """
 
     def __init__(self, db: AsyncSession):
+        # self.session=session
         self.db = db
 
     # ---------------------------------------------------------
@@ -135,8 +136,8 @@ class KYCRepository:
         model_versions=model_versions,
         audit_payload=audit_payload,
     )
-     self.session.add(record)
-     await self.session.flush()
+     self.db.add(record)
+     await self.db.flush()
      return record
     
     # ---------------------------------------------------------
