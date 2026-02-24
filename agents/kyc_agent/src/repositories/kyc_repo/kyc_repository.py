@@ -4,6 +4,7 @@ from sqlalchemy import select, desc
 from src.models.kyc_cases import KYC
 from src.models.kyc_request import KYCRequest
 from src.models.enums import IdempotencyStatus, KYCStatus
+from src.models.identity_check import IdentityCheck
 
 
 class KYCRepository:
@@ -97,3 +98,68 @@ class KYCRepository:
         )
 
         return result.scalar_one_or_none()
+    # ---------------------------------------------------------
+# Create Identity Check
+# ---------------------------------------------------------
+    async def create_identity_check(
+    self,
+    *,
+    kyc_id,
+    applicant_id: str,
+    final_status: str,
+    aggregated_score: float | None = None,
+    hard_fail_triggered: bool | None = None,
+    ssn_valid: bool | None = None,
+    ssn_plausible: bool | None = None,
+    name_ssn_match: bool | None = None,
+    dob_ssn_match: bool | None = None,
+    deceased_flag: bool | None = None,
+    ssn_risk_snapshot: dict | None = None,
+    decision_rules_snapshot: dict | None = None,
+    model_versions: dict | None = None,
+    audit_payload: dict | None = None,
+) -> IdentityCheck:
+     record = IdentityCheck(
+        kyc_id=kyc_id,
+        applicant_id=applicant_id,
+        final_status=final_status,
+        aggregated_score=aggregated_score,
+        hard_fail_triggered=hard_fail_triggered,
+        ssn_valid=ssn_valid,
+        ssn_plausible=ssn_plausible,
+        name_ssn_match=name_ssn_match,
+        dob_ssn_match=dob_ssn_match,
+        deceased_flag=deceased_flag,
+        ssn_risk_snapshot=ssn_risk_snapshot,
+        decision_rules_snapshot=decision_rules_snapshot,
+        model_versions=model_versions,
+        audit_payload=audit_payload,
+    )
+     self.session.add(record)
+     await self.session.flush()
+     return record
+    
+    # ---------------------------------------------------------
+# Update Idempotency Response
+# ---------------------------------------------------------
+    async def update_kyc_request_response(
+    self,
+    *,
+    kyc_id,
+    response_payload: dict,
+    status: IdempotencyStatus,
+) -> KYCRequest | None:
+        result = await self.db.execute(
+        select(KYCRequest).where(KYCRequest.kyc_id == kyc_id)
+    )
+        record = result.scalar_one_or_none()
+
+        if not record:
+            return None
+
+        record.response_payload = response_payload
+        record.response_status = status
+
+        await self.db.flush()
+        await self.db.refresh(record)
+        return record
