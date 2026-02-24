@@ -68,9 +68,10 @@ class KYCOrchestratorService:
 
     # 🔹 JSON payloads
     ssn_risk_snapshot=ssn_snapshot,
-    decision_rules_snapshot=kyc_result.get("decision_rules_snapshot"),
+    decision_rules_snapshot=kyc_result.get("decision_rules_snapshot"),  
     model_versions=kyc_result.get("model_versions"),
     audit_payload=result.get("audit"),
+
 ) # 5. Finalize idempotency record
         await self.repo.update_kyc_request_response(
             kyc_id=kyc_case.id,
