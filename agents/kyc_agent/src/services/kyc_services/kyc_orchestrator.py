@@ -38,6 +38,7 @@ class KYCOrchestratorService:
 
         # 4. Execution: Run the Parallel LangGraph workflow
         result = await self._run_graph_execution(payload)
+        print("Graph execution result:", result)  # For debugging; replace with proper logging
 
         # 5. Finalize: Update DB with results for audit artifacts
         # await self.repo.update_kyc_request_response(
@@ -45,6 +46,18 @@ class KYCOrchestratorService:
         #     response_payload=result,
         #     status=IdempotencyStatus.SUCCESS
         # )
+        # ⭐ NEW — persist identity check
+        await self.repo.create_identity_check(
+    kyc_id=kyc_case.id,
+    applicant_id=payload.applicant_id,
+    final_status=result.get("status"),
+    risk_payload=result.get("kyc_result"),
+)  # 5. Finalize idempotency record
+        await self.repo.update_kyc_request_response(
+    kyc_id=kyc_case.id,
+    response_payload=result,
+    status=IdempotencyStatus.SUCCESS
+)
 
         return result
 

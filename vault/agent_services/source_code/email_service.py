@@ -4,6 +4,7 @@ import base64
 
 from vault.agent_services.utilities.env_loader import load_env
 from vault.agent_services.utilities.approle_auth import login_to_vault
+from vault.agent_services.utilities.data_masker import SupportDataMasker
 
 class EmailVaultService:
     def __init__(self):
@@ -65,5 +66,41 @@ class EmailVaultService:
         # Convert from base64 and return
         return self._from_base64(response['data']['plaintext'])
     
+    # --- Support Visibility Flow ---
+
+    def retrieve_email_support(self, ciphertext):
+        """
+        Flow: gets plaintext via retrieve_email -> 
+        initializes masker -> masks plaintext -> returns masked data to caller.
+        """
+        # 1. Unpack the ciphertext using the existing operational function
+        plaintext_email = self.retrieve_email(ciphertext)
+
+        # 2. Initialize the masker (This reads the JSON configuration)
+        masker = SupportDataMasker()
+
+        # 3. Apply the mask and return
+        return masker.mask_email(plaintext_email)
+    
 # obj=EmailVaultService()
 # print(obj.retrieve_email("vault:v1:AHRMQ5fHldhjVPiaxotgvS/hdMbfBEpXmqDXg6KYo2E9dOzp5C1jswKsfzJEL1UW+I0="))
+
+# --- End-to-End Testing (Mocked Vault) ---
+# if __name__ == "__main__":
+#     from unittest.mock import MagicMock
+
+#     # 1. Instantiate your service
+#     service = EmailVaultService()
+
+#     # 2. Mock the Vault retrieval step
+#     # This bypasses the Vault HTTP call and immediately returns the raw email
+#     mock_raw_email = "johndoe@fintech.com"
+#     service.retrieve_email = MagicMock(return_value=mock_raw_email)
+
+#     # 3. Execute the support function
+#     dummy_ciphertext = "vault:v1:fake_data_string"
+#     masked_result = service.retrieve_email_support(dummy_ciphertext)
+
+#     # 4. Output the results to verify the integration
+#     print(f"Mocked Raw Data Input: {mock_raw_email}")
+#     print(f"Masked Support Output: {masked_result}")
