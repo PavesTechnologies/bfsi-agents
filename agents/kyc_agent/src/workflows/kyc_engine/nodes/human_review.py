@@ -2,9 +2,10 @@
 Human Review Node
 """
 
+from src.core.telemetry import track_node
 from src.workflows.kyc_engine.kyc_state import KYCState
 
-
+@track_node("human_review")
 def human_review_node(state: KYCState) -> KYCState:
     # Placeholder: would integrate with Human UI system
     return {

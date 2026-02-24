@@ -22,7 +22,8 @@ from src.api.routes import router
 from src.api.middleware.idempotency import IdempotencyMiddleware
 from src.repositories.idempotency_repository import RedisIdempotencyRepository
 from src.api.v1.kyc_routes import kyc_routes
-
+from dotenv import load_dotenv
+load_dotenv()
 # test logging  
 logger = logging.getLogger(__name__)
 

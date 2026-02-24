@@ -3,9 +3,10 @@ Risk Aggregator Node
 """
 
 import time
+from src.core.telemetry import track_node
 from src.workflows.kyc_engine.kyc_state import KYCState
 
-
+@track_node("aggregate")
 def risk_aggregator_node(state: KYCState) -> KYCState:
     start = time.time()
 
@@ -45,6 +46,7 @@ def risk_aggregator_node(state: KYCState) -> KYCState:
         "hard_fail_triggered": hard_fail,
         "decision_reason": reason,
         "ssn_risk_snapshot": ssn_summary,
+        "contact_risk_snapshot": state.get("contact_verification", {}),
         "decision_rules_snapshot": {},
         "model_versions": {}
     }

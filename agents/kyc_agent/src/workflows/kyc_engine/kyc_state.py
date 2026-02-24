@@ -87,6 +87,14 @@ class Address:
     state: str
     zip: str
 
+class ContactVerificationState(TypedDict):
+    phone_valid: bool
+    email_valid: bool
+    is_high_risk_phone: bool
+    is_disposable_email: bool
+    formatted_phone: str
+    flags: Dict[str, str]
+
 
 # @dataclass(frozen=True)
 class RawKYCRequest:
@@ -106,6 +114,7 @@ class KYCState(TypedDict, total=False):
     # Submodules
     ssn_validation: Optional[SSNValidationState]
     address_verification: Optional[AddressVerificationState]
+    contact_verification: Optional[ContactVerificationState]
     document_check: Optional[DocumentCheckState]
     face_check: Optional[FaceCheckState]
     aml_check: Optional[AMLCheckState]

@@ -1,7 +1,10 @@
 from datetime import date, datetime
+import phonenumbers
 from src.adapters.mock_adapters.mock_experian_adapter import ExperianResponse
 # Assuming the state classes are imported from the domain/models layer
-from src.workflows.kyc_engine.kyc_state import RawKYCRequest, SSNValidationState, AddressVerificationState
+from src.workflows.kyc_engine.kyc_state import ContactVerificationState, RawKYCRequest, SSNValidationState, AddressVerificationState
+import dns.resolver
+import dns.exception
 
 class IdentityService:
     """
@@ -112,4 +115,65 @@ class IdentityService:
             "deliverable": address_match,
             "standardized_address": standardized_address,
             "flags": flags,
+        }
+    
+    @staticmethod
+    def process_contact_verification(request: RawKYCRequest) -> ContactVerificationState:
+        """
+        Implements PRD 5.1 & 6.1: Phone/Email ownership and validity checks.
+        Handles E.164 formatting, VOIP detection, and MX record verification.
+        """
+        phone = request.get("phone", "")
+        email = request.get("email", "")
+        flags = {}
+        
+        # --- 1. Phone Validation (Libphonenumber) ---
+        phone_valid = False
+        is_high_risk_phone = False
+        formatted_phone = phone
+
+        try:
+            # Assumes default region US for parsing (PRD 5.1)
+            parsed_phone = phonenumbers.parse(phone, "US")
+            phone_valid = phonenumbers.is_valid_number(parsed_phone)
+            formatted_phone = phonenumbers.format_number(parsed_phone, phonenumbers.PhoneNumberFormat.E164)
+            
+            # Burner/VOIP Detection logic (PRD 6.1)
+            p_type = phonenumbers.number_type(parsed_phone)
+            if p_type in [phonenumbers.PhoneNumberType.VOIP, phonenumbers.PhoneNumberType.PERSONAL_NUMBER]:
+                is_high_risk_phone = True
+                flags["PHONE_RISK"] = "VOIP or Burner number detected"
+
+        except Exception:
+            flags["PHONE_ERROR"] = "Invalid phone format"
+
+        # --- 2. Email Validation (MX & Disposable) ---
+        email_valid = False
+        is_disposable_email = False
+        
+        # Example disposable domain list (In production, move to a Repository/Adapter)
+        disposable_domains = {"mailinator.com", "guerrillamail.com", "tempmail.com"}
+        domain = email.split('@')[-1].lower() if '@' in email else ""
+
+        if domain:
+            # Check Disposable Blacklist (PRD 6.1)
+            if domain in disposable_domains:
+                is_disposable_email = True
+                flags["EMAIL_DISPOSABLE"] = "Disposable email service detected"
+            
+            # MX Record Verification
+            try:
+                dns.resolver.resolve(domain, 'MX')
+                email_valid = True
+            except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, Exception):
+                email_valid = False
+                flags["EMAIL_DOMAIN_ERROR"] = "No valid MX records found"
+
+        return {
+            "phone_valid": phone_valid,
+            "email_valid": email_valid,
+            "is_high_risk_phone": is_high_risk_phone,
+            "is_disposable_email": is_disposable_email,
+            "formatted_phone": formatted_phone,
+            "flags": flags
         }
