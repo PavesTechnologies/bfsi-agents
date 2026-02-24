@@ -8,7 +8,6 @@ Handles:
 """
 
 import re
-from typing import Optional
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -112,7 +111,7 @@ class MetadataParser:
     }
 
     @staticmethod
-    def extract_ip(headers: dict[str, str], remote_addr: Optional[str] = None) -> str:
+    def extract_ip(headers: dict[str, str], remote_addr: str | None = None) -> str:
         """
         Extract client IP address from headers, checking proxy headers first.
 
@@ -183,7 +182,7 @@ class MetadataParser:
     def extract_metadata(
         headers: dict[str, str],
         user_agent: str,
-        remote_addr: Optional[str] = None,
+        remote_addr: str | None = None,
     ) -> RequestMetadata:
         """
         Extract complete request metadata from headers.
@@ -201,7 +200,7 @@ class MetadataParser:
             >>> metadata = MetadataParser.extract_metadata(headers, headers["user-agent"])
             >>> metadata.ip_address
             '1.2.3.4'
-        """
+        """  # noqa: E501
         ip_address = MetadataParser.extract_ip(headers, remote_addr)
         device_metadata = MetadataParser.extract_device_metadata(user_agent)
 

@@ -1,6 +1,3 @@
-from src.domain.document_classification.document_type import DocumentType
-
-
 PAYSTUB_KEYWORDS = [
     "PAY BEGIN DATE",
     "PAY END DATE",

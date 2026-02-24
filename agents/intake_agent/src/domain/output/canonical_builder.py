@@ -13,7 +13,7 @@ Requirements:
 - Deterministic output only
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 def _sort_dict_keys(obj: Any) -> Any:
@@ -29,7 +29,7 @@ def _sort_dict_keys(obj: Any) -> Any:
         return obj
 
 
-def _sort_applicants(applicants: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _sort_applicants(applicants: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Sort applicants by stable key for consistent ordering.
     Prefers applicant_id, falls back to role or index.
@@ -37,7 +37,7 @@ def _sort_applicants(applicants: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     if not applicants:
         return []
 
-    def get_sort_key(applicant: Dict[str, Any]) -> tuple:
+    def get_sort_key(applicant: dict[str, Any]) -> tuple:
         # Use applicant_id as primary sort key
         applicant_id = applicant.get("applicant_id")
         if applicant_id is not None:
@@ -54,14 +54,14 @@ def _sort_applicants(applicants: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return sorted(applicants, key=get_sort_key)
 
 
-def _sort_evidence(evidence: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _sort_evidence(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Sort evidence by path for stable ordering.
     """
     if not evidence:
         return []
 
-    def get_sort_key(item: Dict[str, Any]) -> str:
+    def get_sort_key(item: dict[str, Any]) -> str:
         return item.get("path", "")
 
     return sorted(evidence, key=get_sort_key)
@@ -69,12 +69,12 @@ def _sort_evidence(evidence: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 def assemble_canonical_output(
     *,
-    application: Optional[Dict[str, Any]] = None,
-    applicants: Optional[List[Dict[str, Any]]] = None,
-    enrichments: Optional[Dict[str, Any]] = None,
-    evidence_refs: Optional[List[Dict[str, Any]]] = None,
+    application: dict[str, Any] | None = None,
+    applicants: list[dict[str, Any]] | None = None,
+    enrichments: dict[str, Any] | None = None,
+    evidence_refs: list[dict[str, Any]] | None = None,
     generated_at: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Assemble the final canonical output JSON for LOS consumption.
 
@@ -112,29 +112,21 @@ def assemble_canonical_output(
     """
 
     # Build output with deterministic structure
-    output: Dict[str, Any] = {}
+    output: dict[str, Any] = {}
 
     # Application section
-    output["application"] = (
-        _sort_dict_keys(application) if application else {}
-    )
+    output["application"] = _sort_dict_keys(application) if application else {}
 
     # Applicants section - sorted for stability
     sorted_applicants = _sort_applicants(applicants or [])
-    output["applicants"] = [
-        _sort_dict_keys(app) for app in sorted_applicants
-    ]
+    output["applicants"] = [_sort_dict_keys(app) for app in sorted_applicants]
 
     # Enrichments section
-    output["enrichments"] = (
-        _sort_dict_keys(enrichments) if enrichments else {}
-    )
+    output["enrichments"] = _sort_dict_keys(enrichments) if enrichments else {}
 
     # Evidence section - sorted by path for stability
     sorted_evidence = _sort_evidence(evidence_refs or [])
-    output["evidence"] = [
-        _sort_dict_keys(ev) for ev in sorted_evidence
-    ]
+    output["evidence"] = [_sort_dict_keys(ev) for ev in sorted_evidence]
 
     # Generated timestamp (passed in, not generated here)
     output["generated_at"] = generated_at

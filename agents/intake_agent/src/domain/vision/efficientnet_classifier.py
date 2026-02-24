@@ -1,10 +1,8 @@
 import torch
 from PIL import Image
-
 from src.domain.vision.efficientnet_model import EfficientNetB0
 from src.domain.vision.image_preprocessing import preprocess_image
 from src.domain.vision.vision_result import VisionClassificationResult
-
 
 DOCUMENT_LABELS = [
     "passport",
@@ -26,9 +24,7 @@ class EfficientNetClassifier:
         self.model.eval()
 
         if model_path:
-            self.model.load_state_dict(
-                torch.load(model_path, map_location=self.device)
-            )
+            self.model.load_state_dict(torch.load(model_path, map_location=self.device))
 
     def classify(self, image: Image.Image) -> VisionClassificationResult:
         tensor = preprocess_image(image).to(self.device)

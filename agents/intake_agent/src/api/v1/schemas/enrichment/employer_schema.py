@@ -1,19 +1,35 @@
 """Employer enrichment API schemas."""
-from typing import Optional
-from pydantic import ConfigDict, BaseModel, Field
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class EmployerRequestSchema(BaseModel):
     """Request schema for employer verification."""
-    employer_name: str = Field(..., description="Company or business name")
-    state: Optional[str] = Field(None, description="State of operation")
-    naics_code: Optional[str] = Field(None, description="NAICS industry code")
 
-    model_config = ConfigDict(json_schema_extra={"example": {"employer_name": "Acme Corporation Inc", "state": "CA", "naics_code": "541512"}})
+    employer_name: str = Field(..., description="Company or business name")
+    state: str | None = Field(None, description="State of operation")
+    naics_code: str | None = Field(None, description="NAICS industry code")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "employer_name": "Acme Corporation Inc",
+                "state": "CA",
+                "naics_code": "541512",
+            }
+        }
+    )
+
+
 class EmployerResponseSchema(BaseModel):
     """Response schema for employer verification."""
+
     verified: bool = Field(..., description="Whether employer was verified")
-    naics_code: Optional[str] = Field(None, description="NAICS code assigned")
+    naics_code: str | None = Field(None, description="NAICS code assigned")
     confidence: float = Field(..., description="Confidence score (0.0-1.0)")
 
-    model_config = ConfigDict(json_schema_extra={"example": {"verified": True, "naics_code": "541512", "confidence": 0.85}})
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"verified": True, "naics_code": "541512", "confidence": 0.85}
+        }
+    )

@@ -1,12 +1,11 @@
 import re
-from typing import Optional
-
 
 # -----------------------------
 # Name helpers
 # -----------------------------
 
-def normalize_name(value: Optional[str]) -> Optional[str]:
+
+def normalize_name(value: str | None) -> str | None:
     """
     Uppercase, strip punctuation, collapse spaces.
     """
@@ -19,7 +18,8 @@ def normalize_name(value: Optional[str]) -> Optional[str]:
 
     return value
 
-def normalize_sex(value: Optional[str]) -> Optional[str]:
+
+def normalize_sex(value: str | None) -> str | None:
     """
     Normalize sex/gender values.
     Common DL values:
@@ -38,7 +38,8 @@ def normalize_sex(value: Optional[str]) -> Optional[str]:
 
     return value
 
-def split_full_name(full_name: Optional[str]) -> dict:
+
+def split_full_name(full_name: str | None) -> dict:
     """
     Split FULL NAME into first / middle / last (best-effort).
     """
@@ -73,7 +74,9 @@ ADDRESS_ABBREVIATIONS = {
     "LANE": "LN",
     "COURT": "CT",
 }
-def normalize_country(value: Optional[str]) -> Optional[str]:
+
+
+def normalize_country(value: str | None) -> str | None:
     """
     Normalize country names to ISO-style uppercase.
     """
@@ -92,7 +95,7 @@ def normalize_country(value: Optional[str]) -> Optional[str]:
     return COUNTRY_MAP.get(value, value)
 
 
-def expand_address_abbreviations(address: Optional[str]) -> Optional[str]:
+def expand_address_abbreviations(address: str | None) -> str | None:
     """
     Normalize address words (STREET -> ST, ROAD -> RD, etc).
     """
@@ -108,7 +111,7 @@ def expand_address_abbreviations(address: Optional[str]) -> Optional[str]:
     return address
 
 
-def normalize_zip(zip_code: Optional[str]) -> Optional[str]:
+def normalize_zip(zip_code: str | None) -> str | None:
     """
     Normalize ZIP to:
     - 12345
@@ -129,10 +132,10 @@ def normalize_zip(zip_code: Optional[str]) -> Optional[str]:
 
 
 def canonical_address(
-    line1: Optional[str],
-    city: Optional[str],
-    state: Optional[str],
-    zip_code: Optional[str],
+    line1: str | None,
+    city: str | None,
+    state: str | None,
+    zip_code: str | None,
 ) -> dict:
     """
     Canonical structured address format.
@@ -143,7 +146,9 @@ def canonical_address(
         "state": normalize_name(state),
         "zip": normalize_zip(zip_code),
     }
-def normalize_date(value: Optional[str]) -> Optional[str]:
+
+
+def normalize_date(value: str | None) -> str | None:
     """
     Ensures YYYY-MM-DD format if already close.
     (Assumes OCR gives ISO-ish values)

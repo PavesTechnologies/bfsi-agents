@@ -1,19 +1,18 @@
 import logging
+from typing import Any
 from uuid import UUID, uuid4
-from typing import Dict, Any
 
-from src.models.job import Job
 from src.core.container import job_executor
+from src.models.job import Job
+from src.models.metadata import RequestMetadata
 from src.repositories.callback_repository import CallbackRepository
 from src.repositories.metadata_repository import MetadataRepository
 from src.services.idempotency_guard import IdempotencyGuard
-from src.models.metadata import RequestMetadata
 
 logger = logging.getLogger(__name__)
 
 
 class IntakeService:
-
     def __init__(
         self,
         idempotency: IdempotencyGuard,
@@ -31,15 +30,14 @@ class IntakeService:
         self.callback_repo = callback_repo
         self.metadata_repo = metadata_repo
 
-
     async def intake(
         self,
         request_id: UUID,
         app_id: str,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         callback_url: str | None,
         metadata: RequestMetadata,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Process intake request with mandatory metadata capture.
 
@@ -80,7 +78,7 @@ class IntakeService:
                     request_id=request_id,
                     callback_url=str(callback_url),
                 )
-            
+
             job = Job(
                 job_id=uuid4(),
                 request_id=request_id,

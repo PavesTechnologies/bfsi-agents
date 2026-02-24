@@ -1,4 +1,5 @@
 from typing import Any
+
 import httpx
 
 
@@ -6,7 +7,9 @@ class CallbackDeliveryError(Exception):
     """Raised when callback delivery fails."""
 
 
-async def send_success_callback(callback_url: str, payload: Any, timeout: float = 5.0) -> None:
+async def send_success_callback(
+    callback_url: str, payload: Any, timeout: float = 5.0
+) -> None:
     """
     Send a success callback to the given URL with the provided payload.
 
@@ -38,14 +41,17 @@ async def send_success_callback(callback_url: str, payload: Any, timeout: float 
 
             if not (200 <= response.status_code < 300):
                 raise CallbackDeliveryError(
-                    f"Callback delivery failed with status {response.status_code}: {response.text}"
+                    f"Callback delivery failed with status\
+                          {response.status_code}: {response.text}"
                 )
 
     except (httpx.RequestError, httpx.TimeoutException) as exc:
         raise CallbackDeliveryError(f"Callback delivery error: {exc}") from exc
 
 
-async def send_partial_success_callback(callback_url: str, payload: Any, timeout: float = 5.0) -> None:
+async def send_partial_success_callback(
+    callback_url: str, payload: Any, timeout: float = 5.0
+) -> None:
     """
     Send a partial success callback with warnings and generated_at.
 
@@ -77,7 +83,8 @@ async def send_partial_success_callback(callback_url: str, payload: Any, timeout
 
             if not (200 <= response.status_code < 300):
                 raise CallbackDeliveryError(
-                    f"Callback delivery failed with status {response.status_code}: {response.text}"
+                    f"Callback delivery failed with status \
+                        {response.status_code}: {response.text}"
                 )
 
     except (httpx.RequestError, httpx.TimeoutException) as exc:

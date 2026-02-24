@@ -57,6 +57,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+extend-exclude = ["alembic"]
 
 # Move these here to stop the warning
 [tool.ruff.lint]

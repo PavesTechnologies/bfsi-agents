@@ -1,7 +1,7 @@
 import logging
+
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
-
 from src.core.deps import db_client
 
 router = APIRouter()

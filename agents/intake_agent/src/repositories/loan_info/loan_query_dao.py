@@ -1,7 +1,8 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from src.models.models import LoanApplication
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from src.models.models import LoanApplication
+
 
 class LoanQueryDAO:
     def __init__(self, db: AsyncSession):

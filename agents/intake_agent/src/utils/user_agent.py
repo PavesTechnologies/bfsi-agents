@@ -2,11 +2,11 @@
 
 No regexes — rely on the library for accurate parsing.
 """
-from typing import Tuple
+
 from ua_parser.user_agent_parser import Parse
 
 
-def parse_user_agent(user_agent: str) -> Tuple[str, str, str]:
+def parse_user_agent(user_agent: str) -> tuple[str, str, str]:
     """Parse user-agent and return (browser, os, device_type)
 
     device_type is one of: 'mobile', 'tablet', 'desktop', 'unknown'

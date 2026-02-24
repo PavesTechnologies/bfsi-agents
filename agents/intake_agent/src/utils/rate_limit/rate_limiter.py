@@ -1,6 +1,6 @@
 import time
-import redis
 
+import redis
 from src.core.config import get_settings
 
 settings = get_settings()
@@ -12,6 +12,8 @@ redis_client = r = redis.Redis(
     username=settings.REDIS_USERNAME,
     password=settings.REDIS_PASSWORD,
 )
+
+
 class RateLimiter:
     def __init__(self, limit: int, window_seconds: int):
         self.limit = limit
@@ -32,11 +34,12 @@ class RateLimiter:
 
         return count <= self.limit
 
+
 # redis_client.set('foo', 'bar')
 # print(redis_client.get('foo'))  # Output: b'bar'
 
 # redis_client.flushdb()  # Clear the database for testing
-# print("Database cleared. Current keys:", redis_client.keys())  # Should print an empty list
+# print("Database cleared. Current keys:", redis_client.keys())  # Should print an empty list  # noqa: E501
 
 
 # keys = redis_client.keys("*") # Fetch all keys in the database

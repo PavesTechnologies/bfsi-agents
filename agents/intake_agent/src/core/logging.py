@@ -1,7 +1,7 @@
 # src/core/logging.py
 
-import logging
 import json
+import logging
 import sys
 from contextvars import ContextVar
 from datetime import datetime

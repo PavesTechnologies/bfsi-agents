@@ -1,6 +1,6 @@
 # domain/normalization/base.py
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Any
 
 
 class BaseNormalizer(ABC):
@@ -11,7 +11,7 @@ class BaseNormalizer(ABC):
     """
 
     @abstractmethod
-    def normalize(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def normalize(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Normalize extracted document data into canonical form.
         Must be implemented by each document normalizer.

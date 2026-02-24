@@ -1,16 +1,13 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import UUID
-from src.utils.intake_database.db_session import get_db
-from src.services.loan_info_services.loan_query_service import LoanQueryService
 from src.models.interfaces.loan_query_response_interface import LoanDetailsResponse
+from src.services.loan_info_services.loan_query_service import LoanQueryService
+from src.utils.intake_database.db_session import get_db
 
 router = APIRouter(prefix="/loans", tags=["Loan Information"])
 
-@router.get(
-    "/{application_id}",
-    response_model=LoanDetailsResponse
-)
+
+@router.get("/{application_id}", response_model=LoanDetailsResponse)
 async def get_loan_details(
     application_id: str,
     db: AsyncSession = Depends(get_db),

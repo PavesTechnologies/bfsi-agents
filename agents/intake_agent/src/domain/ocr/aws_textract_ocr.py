@@ -1,15 +1,14 @@
-import boto3
-from typing import Union
-from PIL import Image
 import io
 
-from src.domain.ocr.ocr_types import OCRResult, OCRBlock
+import boto3
+from PIL import Image
+from src.domain.ocr.ocr_types import OCRBlock, OCRResult
 
 # Create Textract client once
 _textract = boto3.client("textract")
 
 
-def extract_ocr(image_or_bytes: Union[bytes, Image.Image]) -> OCRResult:
+def extract_ocr(image_or_bytes: bytes | Image.Image) -> OCRResult:
     """
     AWS Textract OCR for images (JPEG / PNG).
 
@@ -34,9 +33,7 @@ def extract_ocr(image_or_bytes: Union[bytes, Image.Image]) -> OCRResult:
     # -----------------------------
     # Call Textract
     # -----------------------------
-    response = _textract.detect_document_text(
-        Document={"Bytes": image_bytes}
-    )
+    response = _textract.detect_document_text(Document={"Bytes": image_bytes})
 
     blocks: list[OCRBlock] = []
     text_parts: list[str] = []

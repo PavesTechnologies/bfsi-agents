@@ -1,8 +1,9 @@
 import asyncio
 import logging
+
+from src.core.database import AsyncSessionLocal
 from src.models.job import Job
 from src.services.callback_service import CallbackService
-from src.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ async def process_intake(job: Job) -> None:
         extra={
             "job_id": str(job.job_id),
             "request_id": str(job.request_id),
-        }
+        },
     )
     # sleep to simulate processing
     await asyncio.sleep(10)
@@ -27,18 +28,13 @@ async def process_intake(job: Job) -> None:
         callback_service = CallbackService(session)
 
     await callback_service.send_success(
-                request_id=str(job.request_id),
-                data={
-                    "message": "Intake processing completed successfully"
-                },
-            )
+        request_id=str(job.request_id),
+        data={"message": "Intake processing completed successfully"},
+    )
 
     # Placeholder for real pipeline
     # Example:
     # from src.workflows.intake_pipeline import run_intake_pipeline
     # result = await run_intake_pipeline(job.payload)
 
-    logger.info(
-        "intake_processing_completed",
-        extra={"job_id": str(job.job_id)}
-    )
+    logger.info("intake_processing_completed", extra={"job_id": str(job.job_id)})

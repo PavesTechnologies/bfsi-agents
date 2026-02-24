@@ -1,8 +1,9 @@
 """Enrichment API schemas."""
-from .usps_schema import USPSAddressRequestSchema, USPSAddressResponseSchema
+
+from .email_schema import EmailRequestSchema, EmailResponseSchema
 from .employer_schema import EmployerRequestSchema, EmployerResponseSchema
 from .phone_schema import PhoneRequestSchema, PhoneResponseSchema
-from .email_schema import EmailRequestSchema, EmailResponseSchema
+from .usps_schema import USPSAddressRequestSchema, USPSAddressResponseSchema
 
 __all__ = [
     "USPSAddressRequestSchema",

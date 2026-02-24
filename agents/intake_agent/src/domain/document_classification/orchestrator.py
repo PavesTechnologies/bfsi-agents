@@ -1,7 +1,7 @@
-from src.domain.document_classification.document_type import DocumentType
 from src.domain.document_classification.classification_result import (
     DocumentClassificationResult,
 )
+from src.domain.document_classification.document_type import DocumentType
 from src.domain.document_classification.rule_based_classifier import (
     RuleBasedDocumentClassifier,
 )
@@ -52,10 +52,7 @@ class DocumentTypeIdentifier:
         is_id_shape = looks_like_id_card(width, height)
 
         # ❗ IMPORTANT: EfficientNet does NOT veto ID cards
-        if (
-            vision_conf < MIN_VISION_CONFIDENCE
-            and not is_id_shape
-        ):
+        if vision_conf < MIN_VISION_CONFIDENCE and not is_id_shape:
             return DocumentClassificationResult(
                 document_type=DocumentType.UNKNOWN,
                 confidence=vision_conf,

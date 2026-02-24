@@ -1,9 +1,10 @@
-from pydantic import ConfigDict, BaseModel
-from typing import List, Optional
-from uuid import UUID
-from datetime import datetime
-from src.models.enums import ApplicantStatus, Gender
 import decimal
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
+from src.models.enums import ApplicantStatus, Gender
+
 
 class PgsqlDocumentResponse(BaseModel):
     id: UUID
@@ -13,18 +14,22 @@ class PgsqlDocumentResponse(BaseModel):
     file_size: int
     uploaded_at: datetime
     is_low_quality: bool
-    quality_metadata: Optional[dict]
+    quality_metadata: dict | None
 
     model_config = ConfigDict(from_attributes=True)
+
+
 class ApplicantResponse(BaseModel):
     applicant_id: UUID
     first_name: str
     last_name: str
-    email: Optional[str]
+    email: str | None
     phone_number: str
     gender: Gender
 
     model_config = ConfigDict(from_attributes=True)
+
+
 class LoanDetailsResponse(BaseModel):
     application_id: UUID
     loan_type: str
@@ -38,7 +43,7 @@ class LoanDetailsResponse(BaseModel):
     preferred_payment_day: int
     origination_channel: str
 
-    applicants: List[ApplicantResponse]
-    documents: List[PgsqlDocumentResponse]
+    applicants: list[ApplicantResponse]
+    documents: list[PgsqlDocumentResponse]
 
     model_config = ConfigDict(from_attributes=True)

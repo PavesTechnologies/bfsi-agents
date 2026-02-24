@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.utils.intake_database.db_session import get_db
 from src.services.intake_services.document_upload_service import DocumentService
+from src.utils.intake_database.db_session import get_db
 
 router = APIRouter(
     prefix="/documents",
@@ -29,11 +28,11 @@ async def _upload_with_document_type(
     )
 
     # Debug logging
-    
+
     # if isinstance(document, dict):
     #     for k, v in document.items():
     #         print(f"DEBUG: document[{k}] = {v}")
-            
+
     # Support both ORM object and dict (idempotency cache)
     # Robustly handle both dict and object, fallback if key missing
     if isinstance(document, dict):
@@ -159,9 +158,11 @@ async def upload_pay_stub(
         file=file,
         document_type="pay_stub",
     )
-#--------------------------------
+
+
+# --------------------------------
 # ITR
-#--------------------------------
+# --------------------------------
 @router.post("/upload/itr")
 async def upload_itr(
     application_id: str = Form(...),

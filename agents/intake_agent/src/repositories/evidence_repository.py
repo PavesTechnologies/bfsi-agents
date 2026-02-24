@@ -5,8 +5,8 @@ Stores evidence file paths and metadata.
 Repository layer - persistence only, no business logic.
 """
 
-from typing import Optional, List, Dict, Any
 from datetime import datetime
+from typing import Any
 
 
 class EvidenceFileNotFoundError(Exception):
@@ -15,15 +15,13 @@ class EvidenceFileNotFoundError(Exception):
     def __init__(self, evidence_id: str, path: str):
         self.evidence_id = evidence_id
         self.path = path
-        super().__init__(
-            f"Evidence file not found: {evidence_id} at {path}"
-        )
+        super().__init__(f"Evidence file not found: {evidence_id} at {path}")
 
 
 class EvidenceRepository:
     """
     Repository for persisting evidence paths and metadata.
-    
+
     In production, this would interact with a database or object store.
     For now, this is an abstract interface that tests can mock.
     """
@@ -35,10 +33,10 @@ class EvidenceRepository:
         evidence_type: str,
         path: str,
         source: str,
-        entity_type: Optional[str] = None,
-        entity_id: Optional[str] = None,
-        rule_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+        rule_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Store evidence path in repository.
 
@@ -58,14 +56,12 @@ class EvidenceRepository:
         Raises:
             RepositoryError: If storing fails
         """
-        raise NotImplementedError(
-            "Subclass must implement store_evidence_path"
-        )
+        raise NotImplementedError("Subclass must implement store_evidence_path")
 
     async def get_evidence_by_application(
         self,
         application_id: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Retrieve all evidence paths for an application.
 
@@ -78,14 +74,12 @@ class EvidenceRepository:
         Raises:
             RepositoryError: If retrieval fails
         """
-        raise NotImplementedError(
-            "Subclass must implement get_evidence_by_application"
-        )
+        raise NotImplementedError("Subclass must implement get_evidence_by_application")
 
     async def get_evidence_by_id(
         self,
         evidence_id: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Retrieve evidence by ID.
 
@@ -98,9 +92,7 @@ class EvidenceRepository:
         Raises:
             RepositoryError: If retrieval fails
         """
-        raise NotImplementedError(
-            "Subclass must implement get_evidence_by_id"
-        )
+        raise NotImplementedError("Subclass must implement get_evidence_by_id")
 
     async def delete_evidence(
         self,
@@ -118,21 +110,19 @@ class EvidenceRepository:
         Raises:
             RepositoryError: If deletion fails
         """
-        raise NotImplementedError(
-            "Subclass must implement delete_evidence"
-        )
+        raise NotImplementedError("Subclass must implement delete_evidence")
 
 
 class InMemoryEvidenceRepository(EvidenceRepository):
     """
     In-memory evidence repository for testing.
-    
+
     This is NOT for production use - it's a reference implementation.
     """
 
     def __init__(self):
         """Initialize in-memory storage."""
-        self._storage: Dict[str, Dict[str, Any]] = {}
+        self._storage: dict[str, dict[str, Any]] = {}
 
     async def store_evidence_path(
         self,
@@ -141,10 +131,10 @@ class InMemoryEvidenceRepository(EvidenceRepository):
         evidence_type: str,
         path: str,
         source: str,
-        entity_type: Optional[str] = None,
-        entity_id: Optional[str] = None,
-        rule_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+        rule_id: str | None = None,
+    ) -> dict[str, Any]:
         """Store evidence in memory."""
         record = {
             "id": evidence_id,
@@ -163,7 +153,7 @@ class InMemoryEvidenceRepository(EvidenceRepository):
     async def get_evidence_by_application(
         self,
         application_id: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Retrieve evidence by application ID."""
         return [
             record
@@ -174,7 +164,7 @@ class InMemoryEvidenceRepository(EvidenceRepository):
     async def get_evidence_by_id(
         self,
         evidence_id: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Retrieve evidence by ID."""
         return self._storage.get(evidence_id)
 

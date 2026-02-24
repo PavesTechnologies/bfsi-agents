@@ -1,10 +1,9 @@
 import torch
-from transformers import LayoutLMv3Processor, LayoutLMv3ForSequenceClassification
-
-from src.domain.document_classification.document_type import DocumentType
 from src.domain.document_classification.classification_result import (
     DocumentClassificationResult,
 )
+from src.domain.document_classification.document_type import DocumentType
+from transformers import LayoutLMv3ForSequenceClassification, LayoutLMv3Processor
 
 IDX_TO_DOC_TYPE = {
     0: DocumentType.DRIVERS_LICENSE,

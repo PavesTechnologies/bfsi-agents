@@ -9,23 +9,19 @@ Rules:
 """
 
 import httpx
-from typing import Optional
 
 
 class HTTPClient:
     def __init__(self):
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     # ---------- lifecycle ----------
     async def startup(self):
         """Create reusable connection pool"""
         self._client = httpx.AsyncClient(
             timeout=httpx.Timeout(10.0, connect=5.0),
-            limits=httpx.Limits(
-                max_keepalive_connections=20,
-                max_connections=100
-            ),
-            headers={"Content-Type": "application/json"}
+            limits=httpx.Limits(max_keepalive_connections=20, max_connections=100),
+            headers={"Content-Type": "application/json"},
         )
 
     async def shutdown(self):

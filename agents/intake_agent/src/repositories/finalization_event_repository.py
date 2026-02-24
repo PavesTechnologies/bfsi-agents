@@ -7,12 +7,10 @@ No domain or framework imports; insert/update logic only.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.models.models import LoanFinalizationEvent
 
 
@@ -25,8 +23,8 @@ class FinalizationEventRepository:
         *,
         application_id: UUID,
         status: str,
-        response_payload: Dict[str, Any],
-        callback_result: Optional[Dict[str, Any]] = None,
+        response_payload: dict[str, Any],
+        callback_result: dict[str, Any] | None = None,
     ) -> LoanFinalizationEvent:
         """
         Create a new finalization event audit record.
@@ -42,4 +40,3 @@ class FinalizationEventRepository:
         session.add(event)
         await session.flush()
         return event
-

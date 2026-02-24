@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.utils.intake_database.db_session import get_db
-from src.services.human_in_loop_services.human_in_loop_appli_service import ApplicationGetService
 from src.models.interfaces.human_in_loop_interface import GetApplicationResponse
+from src.services.human_in_loop_services.human_in_loop_appli_service import (
+    ApplicationGetService,
+)
+from src.utils.intake_database.db_session import get_db
 
 router = APIRouter(
     prefix="/human_review/applications",

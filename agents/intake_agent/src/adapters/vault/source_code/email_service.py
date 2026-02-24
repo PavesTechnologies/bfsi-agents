@@ -1,9 +1,11 @@
 import base64
+
+from src.adapters.vault.utilities.approle_auth import login_to_vault
+
 # from utilities.approle_auth import login_to_vault
 # from utilities.env_loader import load_env
-
 from src.adapters.vault.utilities.env_loader import load_env
-from src.adapters.vault.utilities.approle_auth import login_to_vault
+
 
 class EmailVaultService:
     def __init__(self):
@@ -13,12 +15,12 @@ class EmailVaultService:
         """
         # Load the Transit Key Name specifically for this service environment
         self.key_name = load_env("VAULT_TRANSIT_EMAIL_KEY_NAME")
-        
+
         # Get the RoleID to be passed for authentication
         self.role_id = load_env("VAULT_EMAIL_ROLE_ID")
 
     # --- Formatting Utilities ---
-    
+
     def _to_base64(self, plain_text):
         return base64.b64encode(plain_text.encode()).decode()
 
@@ -41,11 +43,10 @@ class EmailVaultService:
 
         # 8. Perform action using the transit key
         response = client.secrets.transit.encrypt_data(
-            name=self.key_name,
-            plaintext=b64_data
+            name=self.key_name, plaintext=b64_data
         )
 
-        return response['data']['ciphertext']
+        return response["data"]["ciphertext"]
 
     def retrieve_email(self, ciphertext):
         """
@@ -58,12 +59,13 @@ class EmailVaultService:
 
         # 8. Perform action using the transit key
         response = client.secrets.transit.decrypt_data(
-            name=self.key_name,
-            ciphertext=ciphertext
+            name=self.key_name, ciphertext=ciphertext
         )
 
         # Convert from base64 and return
-        return self._from_base64(response['data']['plaintext'])
-    
+        return self._from_base64(response["data"]["plaintext"])
+
+
 # obj=EmailVaultService()
-# print(obj.retrieve_email("vault:v1:AHRMQ5fHldhjVPiaxotgvS/hdMbfBEpXmqDXg6KYo2E9dOzp5C1jswKsfzJEL1UW+I0="))
+# print(obj.retrieve_email("vault:v1:AHRMQ5fHldhjVPiaxotgvS/hdMbfBEpXmqDXg6KYo2E9dOzp5C\
+# 1jswKsfzJEL1UW+I0="))

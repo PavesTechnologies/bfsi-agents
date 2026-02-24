@@ -1,12 +1,11 @@
-from typing import Tuple
+from src.domain.document_classification.document_type import DocumentType
 from src.domain.document_classification.rules import (
+    dl_rules,
+    itr_rules,
+    passport_rules,
     paystub_rules,
     w2_rules,
-    dl_rules,
-    passport_rules,
-    itr_rules,
 )
-from src.domain.document_classification.document_type import DocumentType
 
 
 class KeywordDocumentValidator:
@@ -22,17 +21,13 @@ class KeywordDocumentValidator:
         DocumentType.W2: w2_rules,
         DocumentType.DRIVERS_LICENSE: dl_rules,
         DocumentType.PASSPORT: passport_rules,
-        DocumentType.ITR: itr_rules,  
+        DocumentType.ITR: itr_rules,
     }
 
     NEGATIVE_KEYWORDS = {
         DocumentType.W2: ["PAY PERIOD", "NET PAY"],
         DocumentType.PAY_STUB: ["W-2", "WAGE AND TAX STATEMENT"],
-       
-
-
     }
-
 
     @classmethod
     def validate(
@@ -40,7 +35,7 @@ class KeywordDocumentValidator:
         *,
         expected_type: DocumentType,
         ocr_text: str,
-    ) -> Tuple[bool, float]:
+    ) -> tuple[bool, float]:
         if expected_type not in cls.RULE_MAP:
             return False, 0.0
 

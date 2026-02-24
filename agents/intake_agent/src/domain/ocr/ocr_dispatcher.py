@@ -1,10 +1,11 @@
+import io
+
+from PIL import Image
 from src.domain.ocr.aws_textract_ocr import (
-    extract_ocr_from_bytes,
     OCRResult,
+    extract_ocr_from_bytes,
 )
 from src.domain.ocr.pdf_utils import pdf_bytes_to_images
-from PIL import Image
-import io
 
 
 def extract_ocr(file_bytes: bytes, mime_type: str) -> OCRResult:
@@ -16,10 +17,7 @@ def extract_ocr(file_bytes: bytes, mime_type: str) -> OCRResult:
     if mime_type == "application/pdf":
         images = pdf_bytes_to_images(file_bytes)
 
-        results = [
-            extract_ocr_from_bytes(_image_to_bytes(img))
-            for img in images
-        ]
+        results = [extract_ocr_from_bytes(_image_to_bytes(img)) for img in images]
 
         full_text = " ".join(r.full_text for r in results)
         blocks = [b for r in results for b in r.blocks]

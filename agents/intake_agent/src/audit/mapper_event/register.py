@@ -1,11 +1,32 @@
 from sqlalchemy import event
-from src.models.models import LoanApplication,Applicant,Document,Address,Asset,Employment,Income,Liability,PgsqlDocument  # all models you want audited
+from src.audit.mapper_event.audit_events import (
+    after_insert,
+    after_update,
+    before_delete,
+)
+from src.models.models import (  # all models you want audited
+    Address,
+    Applicant,
+    Asset,
+    Document,
+    Employment,
+    Income,
+    Liability,
+    LoanApplication,
+    PgsqlDocument,
+)
 
-from src.audit.mapper_event.audit_events import after_insert, after_update, before_delete
-
-
-AUDITED_MODELS =[LoanApplication,Applicant,Document,Address,Asset,Employment,Income,Liability,PgsqlDocument]
-
+AUDITED_MODELS = [
+    LoanApplication,
+    Applicant,
+    Document,
+    Address,
+    Asset,
+    Employment,
+    Income,
+    Liability,
+    PgsqlDocument,
+]
 
 
 def register_audit_events():

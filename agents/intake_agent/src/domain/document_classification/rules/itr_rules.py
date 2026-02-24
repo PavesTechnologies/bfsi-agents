@@ -1,6 +1,3 @@
-from src.domain.document_classification.document_type import DocumentType
-
-
 FORM1040_KEYWORDS = [
     "FORM 1040",
     "U.S. INDIVIDUAL INCOME TAX RETURN",

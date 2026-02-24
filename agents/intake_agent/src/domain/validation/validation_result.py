@@ -1,13 +1,13 @@
 from dataclasses import dataclass
-from typing import Optional
+
 from .reason_codes import ValidationReasonCode
 
 
 @dataclass(frozen=True)
 class ValidationResult:
     passed: bool
-    reason_code: Optional[ValidationReasonCode]
-    message: Optional[str] = None
+    reason_code: ValidationReasonCode | None
+    message: str | None = None
 
     @staticmethod
     def success():

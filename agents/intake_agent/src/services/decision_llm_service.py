@@ -8,12 +8,11 @@ Executes the full LLM interaction:
 - interpret business meaning
 """
 
+from src.adapters.llm.openai_adapter import call_llm
 from src.domain.agent_context import AgentContext
 from src.domain.decision_interpreter import interpret_decision
-from src.services.prompts.prompt_builder import build_prompt
 from src.services.llm_response_parser import parse_llm_response
-from src.adapters.llm.openai_adapter import call_llm
-
+from src.services.prompts.prompt_builder import build_prompt
 
 
 def run_decision(context: AgentContext) -> AgentContext:

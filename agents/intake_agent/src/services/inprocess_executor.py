@@ -1,17 +1,17 @@
 import asyncio
+import contextvars
 import logging
 from datetime import datetime
 
 from src.models.job import Job
-from src.services.job_executor import JobExecutor
 from src.services.job_dispatcher import job_dispatcher
-import contextvars
+from src.services.job_executor import JobExecutor
 
 logger = logging.getLogger(__name__)
 
+
 # down the line we might have other executors (e.g.,KafkaJobExecutor, CeleryJobExecutor)
 class InProcessJobExecutor(JobExecutor):
-
     async def enqueue(self, job: Job) -> None:
         logger.info(
             "job_queued",

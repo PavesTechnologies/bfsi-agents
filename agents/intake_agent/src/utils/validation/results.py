@@ -3,8 +3,8 @@
 Lightweight, dataclass-based result to keep validation non-blocking and
 easy to consume in higher-level layers.
 """
+
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -19,4 +19,4 @@ class ValidationResult:
 
     field: str
     is_valid: bool
-    reason: Optional[str] = None
+    reason: str | None = None

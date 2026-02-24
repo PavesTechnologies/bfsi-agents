@@ -5,43 +5,37 @@ Strict Pydantic models defining the canonical output contract.
 These models enforce schema compliance and reject unknown fields.
 """
 
-from typing import Any, Dict, List, Optional
-from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any
 
+from pydantic import BaseModel, ConfigDict, Field
 
 # ============================================================================
 # Application Schema
 # ============================================================================
+
 
 class ApplicationSchema(BaseModel):
     """Schema for loan application data."""
 
     model_config = ConfigDict(extra="forbid")
 
-    application_id: str = Field(
-        ..., description="Unique application identifier"
-    )
+    application_id: str = Field(..., description="Unique application identifier")
     loan_type: str = Field(..., description="Type of loan")
-    credit_type: Optional[str] = Field(
-        default=None, description="Type of credit"
-    )
-    loan_purpose: Optional[str] = Field(
-        default=None, description="Purpose of the loan"
-    )
-    requested_amount: Optional[float] = Field(
+    credit_type: str | None = Field(default=None, description="Type of credit")
+    loan_purpose: str | None = Field(default=None, description="Purpose of the loan")
+    requested_amount: float | None = Field(
         default=None, description="Requested loan amount"
     )
-    requested_term_months: Optional[int] = Field(
+    requested_term_months: int | None = Field(
         default=None, description="Requested loan term in months"
     )
-    preferred_payment_day: Optional[int] = Field(
+    preferred_payment_day: int | None = Field(
         default=None, description="Preferred payment day"
     )
-    origination_channel: Optional[str] = Field(
+    origination_channel: str | None = Field(
         default=None, description="Channel through which application originated"
     )
-    application_status: Optional[str] = Field(
+    application_status: str | None = Field(
         default=None, description="Current status of application"
     )
 
@@ -50,56 +44,46 @@ class ApplicationSchema(BaseModel):
 # Applicant Schema
 # ============================================================================
 
+
 class ApplicantSchema(BaseModel):
     """Schema for applicant data."""
 
     model_config = ConfigDict(extra="forbid")
 
-    applicant_id: str = Field(
-        ..., description="Unique applicant identifier"
-    )
+    applicant_id: str = Field(..., description="Unique applicant identifier")
     applicant_role: str = Field(
         ..., description="Role of applicant (PRIMARY, CO-APPLICANT, etc.)"
     )
     first_name: str = Field(..., description="Applicant first name")
-    middle_name: Optional[str] = Field(
-        default=None, description="Applicant middle name"
-    )
+    middle_name: str | None = Field(default=None, description="Applicant middle name")
     last_name: str = Field(..., description="Applicant last name")
-    suffix: Optional[str] = Field(
+    suffix: str | None = Field(
         default=None, description="Name suffix (Jr., Sr., III, etc.)"
     )
-    date_of_birth: Optional[str] = Field(
+    date_of_birth: str | None = Field(
         default=None, description="Date of birth (YYYY-MM-DD format)"
     )
-    ssn_last4: Optional[str] = Field(
-        default=None, description="Last 4 digits of SSN"
-    )
-    itin_number: Optional[str] = Field(
+    ssn_last4: str | None = Field(default=None, description="Last 4 digits of SSN")
+    itin_number: str | None = Field(
         default=None, description="ITIN number if applicable"
     )
-    citizenship_status: Optional[str] = Field(
+    citizenship_status: str | None = Field(
         default=None, description="Citizenship status"
     )
-    email: Optional[str] = Field(
-        default=None, description="Email address"
-    )
-    phone_number: Optional[str] = Field(
-        default=None, description="Phone number"
-    )
-    gender: Optional[str] = Field(
-        default=None, description="Gender"
-    )
+    email: str | None = Field(default=None, description="Email address")
+    phone_number: str | None = Field(default=None, description="Phone number")
+    gender: str | None = Field(default=None, description="Gender")
 
 
 # ============================================================================
 # Evidence Schema
 # ============================================================================
 
+
 class EvidenceSchema(BaseModel):
     """
     Schema for evidence reference data.
-    
+
     Supports traceability fields for linking validation/enrichment
     outputs back to source evidence.
     """
@@ -108,24 +92,22 @@ class EvidenceSchema(BaseModel):
 
     path: str = Field(..., description="Path to evidence file")
     type: str = Field(..., description="Type of evidence")
-    
+
     # Traceability fields (optional)
-    id: Optional[str] = Field(
-        default=None, description="Unique evidence identifier"
-    )
-    source: Optional[str] = Field(
+    id: str | None = Field(default=None, description="Unique evidence identifier")
+    source: str | None = Field(
         default=None, description="Name of validator/adapter that produced this"
     )
-    created_at: Optional[str] = Field(
+    created_at: str | None = Field(
         default=None, description="ISO-8601 timestamp when evidence was recorded"
     )
-    entity_type: Optional[str] = Field(
+    entity_type: str | None = Field(
         default=None, description="Type of entity this evidence applies to"
     )
-    entity_id: Optional[str] = Field(
+    entity_id: str | None = Field(
         default=None, description="ID of the entity this evidence applies to"
     )
-    rule_id: Optional[str] = Field(
+    rule_id: str | None = Field(
         default=None, description="ID of the rule/adapter that validated this"
     )
 
@@ -133,6 +115,7 @@ class EvidenceSchema(BaseModel):
 # ============================================================================
 # Enrichments Schema
 # ============================================================================
+
 
 class EnrichmentsSchema(BaseModel):
     """Schema for enrichment data."""
@@ -148,6 +131,7 @@ class EnrichmentsSchema(BaseModel):
 # Main LOS Output Schema
 # ============================================================================
 
+
 class LOSOutput(BaseModel):
     """
     Canonical output schema for LOS (Loan Origination System) consumption.
@@ -159,16 +143,14 @@ class LOSOutput(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    application: ApplicationSchema = Field(
-        ..., description="Loan application details"
-    )
-    applicants: List[ApplicantSchema] = Field(
+    application: ApplicationSchema = Field(..., description="Loan application details")
+    applicants: list[ApplicantSchema] = Field(
         ..., description="List of applicants (sorted by ID)"
     )
-    enrichments: Dict[str, Any] = Field(
+    enrichments: dict[str, Any] = Field(
         ..., description="Enrichment data keyed by type"
     )
-    evidence: List[EvidenceSchema] = Field(
+    evidence: list[EvidenceSchema] = Field(
         ..., description="Evidence references (sorted by path)"
     )
     generated_at: str = Field(

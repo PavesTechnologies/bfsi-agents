@@ -1,7 +1,7 @@
-from src.domain.document_classification.document_type import DocumentType
 from src.domain.document_classification.classification_result import (
     DocumentClassificationResult,
 )
+from src.domain.document_classification.document_type import DocumentType
 from src.domain.document_classification.rules import (
     dl_rules,
     passport_rules,

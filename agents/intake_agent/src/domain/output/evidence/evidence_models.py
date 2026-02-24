@@ -5,10 +5,8 @@ Immutable contracts for evidence references.
 Metadata only - no raw evidence data stored here.
 """
 
-from typing import Optional, Literal
 from dataclasses import dataclass
-from datetime import datetime
-
+from typing import Literal
 
 EvidenceType = Literal[
     "validation",
@@ -42,9 +40,9 @@ class EvidenceReference:
     path: str
     created_at: str
 
-    entity_type: Optional[str] = None
-    entity_id: Optional[str] = None
-    rule_id: Optional[str] = None
+    entity_type: str | None = None
+    entity_id: str | None = None
+    rule_id: str | None = None
 
     def to_dict(self) -> dict:
         """

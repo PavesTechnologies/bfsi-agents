@@ -1,12 +1,15 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import declarative_base
+import os
 from contextvars import ContextVar
 from urllib.parse import quote_plus
+
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import declarative_base
+from sqlalchemy.pool import NullPool
 from src.core.config import get_settings
+
 settings = get_settings()
 
-import asyncio
 
 # Database URL construction
 DB_USER = settings.DB_USER
@@ -22,8 +25,6 @@ DB_DRIVER = settings.DB_DRIVER
 DB_URL = f"{DB_DRIVER}://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # ✅ Create async engine
-import os
-from sqlalchemy.pool import NullPool
 
 # Use NullPool in tests to avoid "different loop" errors on Windows
 poolclass = NullPool if os.getenv("PYTEST_CURRENT_TEST") else None
@@ -36,12 +37,14 @@ engine = create_async_engine(
     pool_recycle=1800,
     pool_pre_ping=True,
     echo=False,
-    poolclass=poolclass
+    poolclass=poolclass,
 )
+
 
 async def dispose_engine():
     """Dispose the engine"""
     await engine.dispose()
+
 
 # ✅ Use async_sessionmaker instead of sessionmaker
 AsyncSessionLocal = async_sessionmaker(
@@ -57,11 +60,13 @@ Base = declarative_base()
 # ✅ Context variable for async session
 _db_context: ContextVar[AsyncSession] = ContextVar("db_session", default=None)
 
+
 async def set_db_session() -> AsyncSession:
     """Create and set async session in context"""
     db = AsyncSessionLocal()
     _db_context.set(db)
     return db
+
 
 def get_db_session() -> AsyncSession:
     """Get current async session from context"""
@@ -70,6 +75,7 @@ def get_db_session() -> AsyncSession:
         raise RuntimeError("DB session not found in context")
     return db
 
+
 async def remove_db_session():
     """Close and remove async session from context"""
     db = _db_context.get()
@@ -77,10 +83,12 @@ async def remove_db_session():
         await db.close()
         _db_context.set(None)
 
+
 async def test_connection():
     async with engine.connect() as conn:
         result = await conn.execute(text("SELECT 1"))
         print("DB OK →", result.scalar())
+
 
 # if __name__ == "__main__":
 #     asyncio.run(test_connection())
