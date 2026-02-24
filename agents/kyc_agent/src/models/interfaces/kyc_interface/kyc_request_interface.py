@@ -22,6 +22,8 @@ class KYCTriggerRequest(BaseModel):
     phone: str
     email: EmailStr
     idempotency_key: str = Field(..., description="Unique key to ensure idempotency of the request")
+    selfie_image: str | None = Field(None, description="Base64 encoded selfie image")
+    id_card_image: str | None = Field(None, description="Base64 encoded ID card image")
 
     @field_validator("ssn")
     @classmethod

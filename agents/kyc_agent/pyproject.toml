@@ -30,6 +30,9 @@ graphviz = "^0.21"
 psycopg2 = "^2.9.11"
 langchain = "^1.2.10"
 langsmith = "^0.7.5"
+deepface = "^0.0.93"
+opencv-python-headless = "^4.11.0.86"
+tensorflow = "^2.20.0"
 
 
 [tool.poetry.scripts]
