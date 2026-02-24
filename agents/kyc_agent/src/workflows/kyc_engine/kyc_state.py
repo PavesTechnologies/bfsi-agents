@@ -110,6 +110,8 @@ class RawKYCRequest:
     address: Address
     phone: str
     email: str
+    selfie_image: Optional[str] = None  # Base64 string
+    id_card_image: Optional[str] = None  # Base64 string
 
 
 class KYCState(TypedDict, total=False):

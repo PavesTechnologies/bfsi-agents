@@ -76,3 +76,5 @@ secrets/
 
 poetry.lock
 **/poetry.lock
+
+**/.hypothesis/
