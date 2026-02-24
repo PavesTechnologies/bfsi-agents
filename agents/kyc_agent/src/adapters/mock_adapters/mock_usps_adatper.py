@@ -1,5 +1,6 @@
 from typing import Dict, Any
 
+
 class MockUSPSAdapter:
     """
     Mock for USPS Address Validation.
@@ -20,7 +21,7 @@ class MockUSPSAdapter:
                 "status": "INVALID_ADDRESS",
                 "error_code": "USPS-001",
                 "message": "Address not found in national directory.",
-                "deliverable": False
+                "deliverable": False,
             }
 
         # Scenario: Commercial Address (e.g., Office/Business)
@@ -32,12 +33,12 @@ class MockUSPSAdapter:
                     "city": city,
                     "state": state,
                     "zip5": zip_input[:5],
-                    "zip4": "5000"
+                    "zip4": "5000",
                 },
                 "delivery_point_validation": "Y",
                 "vacant": False,
                 "address_type": "Commercial",
-                "deliverable": True
+                "deliverable": True,
             }
 
         # Scenario: PO Box Detection (Section 10.1)
@@ -49,12 +50,12 @@ class MockUSPSAdapter:
                     "city": city,
                     "state": state,
                     "zip5": zip_input[:5],
-                    "zip4": "9999"
+                    "zip4": "9999",
                 },
                 "delivery_point_validation": "Y",
                 "vacant": False,
                 "address_type": "PO Box",
-                "deliverable": True
+                "deliverable": True,
             }
 
         # Scenario: Vacant Residential Property (Section 10.1)
@@ -66,12 +67,12 @@ class MockUSPSAdapter:
                     "city": city,
                     "state": state,
                     "zip5": zip_input[:5],
-                    "zip4": "0001"
+                    "zip4": "0001",
                 },
                 "delivery_point_validation": "Y",
                 "vacant": True,
                 "address_type": "Residential",
-                "deliverable": True
+                "deliverable": True,
             }
 
         # Default: Successful Residential Standardization (Golden Path)
@@ -82,10 +83,10 @@ class MockUSPSAdapter:
                 "city": city,
                 "state": state,
                 "zip5": zip_input[:5] if len(zip_input) >= 5 else "12345",
-                "zip4": "0001"
+                "zip4": "0001",
             },
             "delivery_point_validation": "Y",
             "vacant": False,
             "address_type": "Residential",
-            "deliverable": True
+            "deliverable": True,
         }

@@ -3,9 +3,10 @@ AML / OFAC Screening Node
 """
 
 import time
+from src.core.telemetry import track_node
 from src.workflows.kyc_engine.kyc_state import KYCState
 
-
+@track_node("aml")
 def aml_node(state: KYCState) -> KYCState:
     start = time.time()
 

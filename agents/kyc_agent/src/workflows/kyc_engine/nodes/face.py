@@ -3,9 +3,10 @@ Face Match + Liveness Node
 """
 
 import time
+from src.core.telemetry import track_node
 from src.workflows.kyc_engine.kyc_state import KYCState
 
-
+@track_node("face")
 def face_node(state: KYCState) -> KYCState:
     start = time.time()
 

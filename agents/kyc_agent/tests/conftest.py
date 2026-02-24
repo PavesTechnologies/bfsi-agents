@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from src.main import app
 from fastapi.testclient import TestClient
+from tests.fixtures.identity_fixtures import *  # noqa: F403
+from tests.fixtures.boundary_fixtures import *  # noqa: F403
 
 load_dotenv()
 

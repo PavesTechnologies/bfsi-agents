@@ -9,6 +9,7 @@ from src.workflows.decision_flow import build_graph
 from src.workflows.kyc_engine.kyc_state import RawKYCRequest
 # Import your team's Pydantic models
 
+
 class KYCOrchestratorService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -33,12 +34,14 @@ class KYCOrchestratorService:
         kyc_case = await self.repo.create_kyc_case(
             applicant_id=payload.applicant_id,
             payload_hash=payload_hash,
-            raw_request_payload=payload_dict
+            raw_request_payload=payload_dict,
         )
 
         # 4. Execution: Run the Parallel LangGraph workflow
         result = await self._run_graph_execution(payload)
-        print("Graph execution result:", result)  # For debugging; replace with proper logging
+        print(
+            "Graph execution result:", result
+        )  # For debugging; replace with proper logging
 
         # 5. Finalize: Update DB with results for audit artifacts
         # await self.repo.update_kyc_request_response(
@@ -70,10 +73,10 @@ class KYCOrchestratorService:
     audit_payload=result.get("audit"),
 ) # 5. Finalize idempotency record
         await self.repo.update_kyc_request_response(
-    kyc_id=kyc_case.id,
-    response_payload=result,
-    status=IdempotencyStatus.SUCCESS
-)
+            kyc_id=kyc_case.id,
+            response_payload=result,
+            status=IdempotencyStatus.SUCCESS,
+        )
 
         return result
 
@@ -83,10 +86,15 @@ class KYCOrchestratorService:
             return None
 
         if record.payload_hash != current_hash:
-            raise HTTPException(status_code=409, detail="Idempotency key reused with different payload")
+            raise HTTPException(
+                status_code=409, detail="Idempotency key reused with different payload"
+            )
 
         if record.response_status == IdempotencyStatus.PENDING:
-            raise HTTPException(status_code=202, detail={"kyc_status": "PENDING", "kyc_id": str(record.kyc_id)})
+            raise HTTPException(
+                status_code=202,
+                detail={"kyc_status": "PENDING", "kyc_id": str(record.kyc_id)},
+            )
 
         return record.response_payload
 
@@ -103,17 +111,17 @@ class KYCOrchestratorService:
                 "line2": payload.address.line2 or "",
                 "city": payload.address.city,
                 "state": payload.address.state,
-                "zip": payload.address.zip
+                "zip": payload.address.zip,
             },
             "phone": payload.phone,
-            "email": payload.email
+            "email": payload.email,
         }
 
         initial_state = {
             "raw_request": raw_req,
             "hard_stop": False,
             "parallel_tasks_completed": [],
-            "node_execution_times": {}
+            "node_execution_times": {},
         }
 
         # Parallel fan-out execution
@@ -125,6 +133,6 @@ class KYCOrchestratorService:
             "kyc_result": final_state.get("risk_decision"),
             "audit": {
                 "tasks": final_state.get("parallel_tasks_completed"),
-                "performance": final_state.get("node_execution_times")
-            }
+                "performance": final_state.get("node_execution_times"),
+            },
         }

@@ -7,6 +7,7 @@ from langgraph.graph import StateGraph, END
 from src.workflows.kyc_engine.kyc_state import KYCState
 
 # --- Import Nodes ---
+from src.workflows.kyc_engine.nodes.contact import contact_node
 from src.workflows.kyc_engine.nodes.normalize import normalize_node
 from src.workflows.kyc_engine.nodes.ssn import ssn_node
 from src.workflows.kyc_engine.nodes.address import address_node
@@ -32,6 +33,7 @@ def build_graph():
     graph.add_node("address", address_node)
     graph.add_node("face", face_node)
     graph.add_node("aml", aml_node)
+    graph.add_node("contact", contact_node)
 
     graph.add_node("aggregate", risk_aggregator_node)
     graph.add_node("human_review", human_review_node)
@@ -51,6 +53,7 @@ def build_graph():
     graph.add_edge("normalize", "address")
     graph.add_edge("normalize", "face")
     graph.add_edge("normalize", "aml")
+    graph.add_edge("normalize", "contact")
 
     # -----------------------
     # Join → Aggregator
@@ -60,6 +63,7 @@ def build_graph():
     graph.add_edge("address", "aggregate")
     graph.add_edge("face", "aggregate")
     graph.add_edge("aml", "aggregate")
+    graph.add_edge("contact", "aggregate")
 
     # -----------------------
     # Conditional Routing

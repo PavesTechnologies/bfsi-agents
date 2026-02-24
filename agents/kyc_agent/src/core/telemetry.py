@@ -1,3 +1,6 @@
+import asyncio
+from inspect import iscoroutinefunction
+
 from opentelemetry import trace 
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider 
@@ -12,7 +15,6 @@ from opentelemetry import trace
 from src.workflows.kyc_engine.kyc_state import KYCState
 
 # Get the tracer initialized in your setup_telemetry
-tracer = trace.get_tracer("kyc-agent")
 
 settings = get_settings()
 
@@ -37,35 +39,36 @@ def setup_telemetry(app):
 
 
 def track_node(node_name: str):
-    """
-    Unified decorator for OpenTelemetry (System) and LangSmith (State/Logic).
-    Aligns with PRD Section 13 (Observability & Latency).
-    """
-    def decorator(func: Callable[[KYCState], KYCState]):
+    def decorator(func):
         @functools.wraps(func)
-        def wrapper(state: KYCState, *args, **kwargs) -> KYCState:
-            # 1. OpenTelemetry Span (Infrastructure Tracking)
+        async def wrapper(state: KYCState, *args, **kwargs) -> KYCState:
+            # Fetch the tracer inside the async context
+            tracer = trace.get_tracer("kyc-agent")
+            
+            # start_as_current_span works with async context managers
             with tracer.start_as_current_span(f"node.{node_name}") as span:
-                start_time = time.time()
+                start_time = asyncio.get_event_loop().time()
                 
-                # Add PII-safe attributes to OTel for filtering
                 span.set_attribute("node.name", node_name)
-                if "raw_request" in state:
-                    span.set_attribute("applicant.id", state["raw_request"]["applicant_id"])
+                
+                # Execute the actual node (must be awaited)
+                try:
+                    if iscoroutinefunction(func):
+                        result = await func(state, *args, **kwargs)
+                    else:
+                        # If the node is sync, run it directly
+                        # Note: LangGraph usually runs sync nodes in a threadpool during ainvoke
+                        result = func(state, *args, **kwargs)
+                except Exception as e:
+                    span.record_exception(e)
+                    span.set_status(trace.Status(trace.StatusCode.ERROR))
+                    raise
 
-                # Execute node logic
-                result = func(state, *args, **kwargs)
-                
-                duration = time.time() - start_time
-                
-                # 2. State Updates (LangSmith & Business Logic Tracking)
-                # Used for LangGraph flow control and audit logs
-                result["parallel_tasks_completed"] = [node_name]
-                result["node_execution_times"] = {node_name: duration}
-                
-                # Add result to OTel span before closing
+                duration = asyncio.get_event_loop().time() - start_time
                 span.set_attribute("node.duration", duration)
                 
+                # Update state safely for LangSmith
+                result["node_execution_times"] = {node_name: duration}
                 return result
         return wrapper
     return decorator
