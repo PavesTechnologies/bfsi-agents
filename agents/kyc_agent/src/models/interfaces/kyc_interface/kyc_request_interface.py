@@ -1,8 +1,9 @@
 # src/schemas/kyc_request.py
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
-from datetime import date
 import re
+from datetime import date
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class Address(BaseModel):

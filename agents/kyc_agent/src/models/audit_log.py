@@ -1,8 +1,11 @@
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Boolean, Float, DateTime, ForeignKey, text, String, Enum
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import DateTime, Enum, String, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import mapped_column
+
 from src.utils.migration_database import Base
+
 from .enums import ActorType
+
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
@@ -23,7 +26,4 @@ class AuditLog(Base):
 
     audit_metadata = mapped_column(JSONB)  # ✅ renamed
 
-    timestamp = mapped_column(
-        DateTime(timezone=True),
-        server_default=text("now()")
-    )
+    timestamp = mapped_column(DateTime(timezone=True), server_default=text("now()"))

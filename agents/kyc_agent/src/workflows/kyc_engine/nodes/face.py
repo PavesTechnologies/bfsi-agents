@@ -1,8 +1,11 @@
 import time
+
+from src.core.telemetry import track_node
 from src.workflows.kyc_engine.kyc_state import KYCState
 from src.services.face_liveness_service import face_liveness_service
 
 
+@track_node("face")
 def face_node(state: KYCState) -> KYCState:
     """
     Face Match + Liveness Node
@@ -23,7 +26,7 @@ def face_node(state: KYCState) -> KYCState:
             "liveness_passed": False,
             "liveness_score": 0.0,
             "spoof_detected": False,
-            "flags": {"MISSING_IMAGES": "Selfie or ID card image missing"}
+            "flags": {"MISSING_IMAGES": "Selfie or ID card image missing"},
         }
 
     duration = time.time() - start
@@ -31,5 +34,5 @@ def face_node(state: KYCState) -> KYCState:
     return {
         "face_check": result,
         "parallel_tasks_completed": ["face"],
-        "node_execution_times": {"face": duration}
+        "node_execution_times": {"face": duration},
     }

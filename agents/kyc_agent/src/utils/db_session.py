@@ -1,5 +1,7 @@
-from typing import AsyncGenerator
-from .database_setup import AsyncSessionLocal, AsyncSession
+from collections.abc import AsyncGenerator
+
+from .database_setup import AsyncSession, AsyncSessionLocal
+
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Dependency for FastAPI routes"""

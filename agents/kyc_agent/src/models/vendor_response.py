@@ -1,12 +1,16 @@
 # src/models/vendor_response.py
 
-import uuid
 import datetime
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Boolean, Integer, DateTime, ForeignKey, text, String
+import uuid
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, text
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from src.utils.migration_database import Base
+
 from .kyc_cases import KYC
+
 
 class VendorResponse(Base):
     __tablename__ = "vendor_responses"
@@ -39,12 +43,11 @@ class VendorResponse(Base):
     http_status_code = mapped_column(Integer)
 
     error_message: Mapped[str | None] = mapped_column(String(255))
-    
+
     retry_count = mapped_column(Integer, default=0)
 
     request_payload_hash = mapped_column(String(255))
 
-    
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=text("now()"),
@@ -52,7 +55,4 @@ class VendorResponse(Base):
     )
 
     # 🔗 Relationship
-    kyc: Mapped["KYC"] = relationship(
-        "KYC",
-        back_populates="vendor_responses"
-    )
+    kyc: Mapped["KYC"] = relationship("KYC", back_populates="vendor_responses")

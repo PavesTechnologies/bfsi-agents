@@ -1,58 +1,137 @@
-from typing import Dict, Any
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.models.enums import IdempotencyStatus
+from src.models.interfaces.kyc_interface.kyc_request_interface import KYCTriggerRequest
+from src.repositories.kyc_repo.kyc_repository import KYCRepository
+from src.utils.hash_utils import generate_payload_hash
 from src.workflows.decision_flow import build_graph
-from src.workflows.kyc_engine.kyc_state import RawKYCRequest, Address
+from src.workflows.kyc_engine.kyc_state import RawKYCRequest
+
+# Import your team's Pydantic models
+
 
 class KYCOrchestratorService:
-    def __init__(self):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+        self.repo = KYCRepository(db)
         self.graph = build_graph()
 
-    async def run_kyc_process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def verify_identity(self, payload: KYCTriggerRequest) -> dict:
         """
-        Orchestrates the KYC process by initializing state and running the graph.
-        Aligns with PRD Section 4: System Positioning.
+        Merged logic: Idempotency + Parallel Graph Execution.
+        Uses Pydantic models for type safety instead of Dict[str, Any].
         """
-        # 1. Map raw JSON input to Domain Models (PRD 5.1)
-        # Note: In a real app, use Pydantic for validation here
-        address_data = input_data.get("address", {})
-        print(f"Received address data: {address_data}")
-        raw_request:RawKYCRequest={
-            "applicant_id":input_data.get("applicant_id"),
-            "full_name":input_data.get("full_name"),
-            "dob":input_data.get("dob"),
-            "ssn":input_data.get("ssn"),
-            "address":{
-                "line1":address_data.get("line1",""),
-                "line2":address_data.get("line2",""),
-                "city":address_data.get("city",""),
-                "state":address_data.get("state",""),
-                "zip":address_data.get("zip","")
+        # 1. Generate hash from the model for integrity checks
+        payload_dict = payload.model_dump(mode="json")
+        payload_hash = generate_payload_hash(payload_dict)
+
+        # 2. Idempotency Check (Domain Rule)
+        existing = await self._check_idempotency(payload.idempotency_key, payload_hash)
+        if existing:
+            return existing
+
+        # 3. Persistence: Create the KYC Case
+        kyc_case = await self.repo.create_kyc_case(
+            applicant_id=payload.applicant_id,
+            payload_hash=payload_hash,
+            raw_request_payload=payload_dict,
+        )
+
+        # 4. Execution: Run the Parallel LangGraph workflow
+        result = await self._run_graph_execution(payload)
+        print(
+            "Graph execution result:", result
+        )  # For debugging; replace with proper logging
+
+        # 5. Finalize: Update DB with results for audit artifacts
+        # await self.repo.update_kyc_request_response(
+        #     kyc_id=kyc_case.id,
+        #     response_payload=result,
+        #     status=IdempotencyStatus.SUCCESS
+        # )
+        # ⭐ NEW — persist identity check
+        kyc_result = result.get("kyc_result", {})
+        ssn_snapshot = kyc_result.get("ssn_risk_snapshot", {})
+        await self.repo.create_identity_check(
+            kyc_id=kyc_case.id,
+            applicant_id=payload.applicant_id,
+            final_status=kyc_result.get("final_status"),
+            aggregated_score=kyc_result.get("aggregated_score"),
+            hard_fail_triggered=kyc_result.get("hard_fail_triggered"),
+            # 🔹 SSN flags
+            ssn_valid=ssn_snapshot.get("ssn_valid"),
+            ssn_plausible=ssn_snapshot.get("ssn_plausible"),
+            name_ssn_match=ssn_snapshot.get("name_ssn_match"),
+            dob_ssn_match=ssn_snapshot.get("dob_ssn_match"),
+            deceased_flag=ssn_snapshot.get("deceased_flag"),
+            # 🔹 JSON payloads
+            ssn_risk_snapshot=ssn_snapshot,
+            decision_rules_snapshot=kyc_result.get("decision_rules_snapshot"),
+            model_versions=kyc_result.get("model_versions"),
+            audit_payload=result.get("audit"),
+        )  # 5. Finalize idempotency record
+        await self.repo.update_kyc_request_response(
+            kyc_id=kyc_case.id,
+            response_payload=result,
+            status=IdempotencyStatus.SUCCESS,
+        )
+
+        return result
+
+    async def _check_idempotency(self, key: str, current_hash: str) -> dict | None:
+        record = await self.repo.get_request_by_idempotency(key)
+        if not record:
+            return None
+
+        if record.payload_hash != current_hash:
+            raise HTTPException(
+                status_code=409, detail="Idempotency key reused with different payload"
+            )
+
+        if record.response_status == IdempotencyStatus.PENDING:
+            raise HTTPException(
+                status_code=202,
+                detail={"kyc_status": "PENDING", "kyc_id": str(record.kyc_id)},
+            )
+
+        return record.response_payload
+
+    async def _run_graph_execution(self, payload: KYCTriggerRequest) -> dict:
+        """Maps Pydantic model to RawKYCRequest and runs the graph."""
+        # Mapping model attributes to the internal KYCState shape
+        raw_req: RawKYCRequest = {
+            "applicant_id": payload.applicant_id,
+            "full_name": payload.full_name,
+            "dob": payload.dob,
+            "ssn": payload.ssn,
+            "address": {
+                "line1": payload.address.line1,
+                "line2": payload.address.line2 or "",
+                "city": payload.address.city,
+                "state": payload.address.state,
+                "zip": payload.address.zip,
             },
-            "phone":input_data.get("phone"),
-            "email":input_data.get("email")
+            "phone": payload.phone,
+            "email": payload.email,
         }
 
-        print(f"Received raw request: {raw_request}")
-
-        # 2. Initialize KYCState
         initial_state = {
-            "raw_request": raw_request,
+            "raw_request": raw_req,
             "hard_stop": False,
             "parallel_tasks_completed": [],
-            "node_execution_times": {}
+            "node_execution_times": {},
         }
 
-        # 3. Execute Graph (Async)
-        # LangGraph handles the parallel fan-out of ssn, address, face, and aml
+        # Parallel fan-out execution
         final_state = await self.graph.ainvoke(initial_state)
 
-        print(f"Final state  graph execution")
-        # 4. Return structured response (PRD 9.1)
         return {
-            "applicant_id": raw_request["applicant_id"],
+            "applicant_id": payload.applicant_id,
             "status": final_state.get("risk_decision", {}).get("final_status"),
             "kyc_result": final_state.get("risk_decision"),
             "audit": {
                 "tasks": final_state.get("parallel_tasks_completed"),
-                "performance": final_state.get("node_execution_times")
-            }
+                "performance": final_state.get("node_execution_times"),
+            },
         }

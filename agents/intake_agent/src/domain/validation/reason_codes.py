@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ValidationReasonCode(str, Enum):
+class ValidationReasonCode(StrEnum):
     # ---------- Identity ----------
     INVALID_FIRST_NAME = "INVALID_FIRST_NAME"
     INVALID_LAST_NAME = "INVALID_LAST_NAME"

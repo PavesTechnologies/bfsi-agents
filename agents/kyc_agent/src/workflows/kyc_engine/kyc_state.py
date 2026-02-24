@@ -1,7 +1,5 @@
-from dataclasses import dataclass
-from typing import TypedDict, Optional, Dict, List,Annotated
-from uuid import UUID
 from datetime import datetime
+from typing import Annotated, TypedDict
 
 
 def list_append_reducer(existing, new):
@@ -10,11 +8,13 @@ def list_append_reducer(existing, new):
     return existing + new
 
 
-def dict_merge_reducer(existing: Dict[str, float] | None,
-                        new: Dict[str, float] | None) -> Dict[str, float]:
+def dict_merge_reducer(
+    existing: dict[str, float] | None, new: dict[str, float] | None
+) -> dict[str, float]:
     existing = existing or {}
     new = new or {}
     return {**existing, **new}
+
 
 class SSNValidationState(TypedDict, total=False):
     ssn_valid: bool
@@ -24,9 +24,9 @@ class SSNValidationState(TypedDict, total=False):
     ssn_score: float
     name_ssn_match: bool
     dob_ssn_match: bool
-    issued_year: Optional[int]
-    flags: Dict[str, str]
-    
+    issued_year: int | None
+    flags: dict[str, str]
+
 
 class AddressVerificationState(TypedDict, total=False):
     address_match: bool
@@ -36,8 +36,9 @@ class AddressVerificationState(TypedDict, total=False):
     address_type: str
     usps_validated: bool
     deliverable: bool
-    standardized_address: Dict[str, str]
-    flags: Dict[str, str]
+    standardized_address: dict[str, str]
+    flags: dict[str, str]
+
 
 class DocumentCheckState(TypedDict, total=False):
     document_type: str
@@ -46,11 +47,12 @@ class DocumentCheckState(TypedDict, total=False):
     tamper_detected: bool
     format_valid: bool
     document_score: float
-    document_expiry_date: Optional[datetime]
+    document_expiry_date: datetime | None
     issuing_country: str
     issuing_state: str
-    flags: Dict[str, str]
-    
+    flags: dict[str, str]
+
+
 class FaceCheckState(TypedDict, total=False):
     face_match_score: float
     liveness_passed: bool
@@ -60,25 +62,27 @@ class FaceCheckState(TypedDict, total=False):
     face_detection_confidence: float
     deepfake_score: float
     replay_attack_detected: bool
-    flags: Dict[str, str]
-    
+    flags: dict[str, str]
+
+
 class AMLCheckState(TypedDict, total=False):
     ofac_match: bool
     ofac_confidence: float
     pep_match: bool
     sanctions_list_version: str
     aml_score: float
-    flags: Dict[str, str]
-    
-    
+    flags: dict[str, str]
+
+
 class RiskDecisionState(TypedDict, total=False):
     final_status: str  # PASS / FAIL / NEEDS_HUMAN_REVIEW
     aggregated_score: float
     hard_fail_triggered: bool
     decision_reason: str
-    decision_rules_snapshot: Dict[str, str]
-    model_versions: Dict[str, str]
-    
+    decision_rules_snapshot: dict[str, str]
+    model_versions: dict[str, str]
+
+
 # @dataclass(frozen=True)
 class Address:
     line1: str
@@ -86,6 +90,15 @@ class Address:
     city: str
     state: str
     zip: str
+
+
+class ContactVerificationState(TypedDict):
+    phone_valid: bool
+    email_valid: bool
+    is_high_risk_phone: bool
+    is_disposable_email: bool
+    formatted_phone: str
+    flags: dict[str, str]
 
 
 # @dataclass(frozen=True)
@@ -100,22 +113,23 @@ class RawKYCRequest:
     selfie_image: Optional[str] = None  # Base64 string
     id_card_image: Optional[str] = None  # Base64 string
 
-class KYCState(TypedDict, total=False):
 
+class KYCState(TypedDict, total=False):
     # Core
     raw_request: RawKYCRequest
-   
+
     # Submodules
-    ssn_validation: Optional[SSNValidationState]
-    address_verification: Optional[AddressVerificationState]
-    document_check: Optional[DocumentCheckState]
-    face_check: Optional[FaceCheckState]
-    aml_check: Optional[AMLCheckState]
+    ssn_validation: SSNValidationState | None
+    address_verification: AddressVerificationState | None
+    contact_verification: ContactVerificationState | None
+    document_check: DocumentCheckState | None
+    face_check: FaceCheckState | None
+    aml_check: AMLCheckState | None
 
     # Aggregation
-    risk_decision: Optional[RiskDecisionState]
+    risk_decision: RiskDecisionState | None
 
     # System
     hard_stop: bool
-    parallel_tasks_completed: Annotated[List[str], list_append_reducer]
-    node_execution_times: Annotated[Dict[str, float], dict_merge_reducer]
+    parallel_tasks_completed: Annotated[list[str], list_append_reducer]
+    node_execution_times: Annotated[dict[str, float], dict_merge_reducer]

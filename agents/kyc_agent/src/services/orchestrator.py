@@ -1,16 +1,16 @@
 # src/services/orchestrator.py
 
-from fastapi import Request, HTTPException
-from src.utils.migration_database import SessionLocal
-from src.repositories.kyc_repo.kyc_repository import KYCRepository
+from fastapi import HTTPException, Request
+
 from src.models.enums import FinalDecision, KYCStatus
+from src.repositories.kyc_repo.kyc_repository import KYCRepository
+from src.utils.migration_database import SessionLocal
 from src.workflows.decision_flow import build_graph
 
 _graph = build_graph()
 
 
 async def run_kyc(request: Request, body):
-    
     application_id = request.state.application_id
     idempotency_key = request.state.idempotency_key
     payload_hash = request.state.payload_hash

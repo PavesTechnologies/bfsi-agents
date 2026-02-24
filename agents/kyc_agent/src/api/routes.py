@@ -1,9 +1,10 @@
 # src/api/routes.py
 
+from typing import Any
+from uuid import UUID
+
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
-from uuid import UUID
 
 from src.services.orchestrator import run_kyc
 
@@ -12,9 +13,9 @@ router = APIRouter()
 
 class KYCRequest(BaseModel):
     application_id: UUID
-    applicant_data: Dict[str, Any]
-    documents: Optional[Dict[str, Any]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    applicant_data: dict[str, Any]
+    documents: dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None
 
 
 @router.get("/")

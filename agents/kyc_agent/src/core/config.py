@@ -7,7 +7,6 @@ from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings
 
 
-
 class Settings(BaseSettings):
     service_name: str = Field(..., alias="SERVICE_NAME")
     env: str = Field(..., alias="ENV")
@@ -24,14 +23,13 @@ class Settings(BaseSettings):
     REDIS_PORT: int = Field(..., alias="REDIS_PORT")
     REDIS_USERNAME: str = Field(..., alias="REDIS_USERNAME")
     REDIS_PASSWORD: str = Field(..., alias="REDIS_PASSWORD")
-    
-    
+
     model_config = {
         "case_sensitive": True,
         "env_file": ".env",
         "env_file_encoding": "utf-8",
-        "populate_by_name": True,   # 👈 CRITICAL
-        "extra": "ignore",          # 👈 keep strict
+        "populate_by_name": True,  # 👈 CRITICAL
+        "extra": "ignore",  # 👈 keep strict
     }
 
 

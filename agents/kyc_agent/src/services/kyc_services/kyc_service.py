@@ -1,5 +1,5 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.enums import IdempotencyStatus
 from src.repositories.kyc_repo.kyc_repository import KYCRepository
@@ -37,7 +37,6 @@ class KYCService:
         )
 
         if existing_request:
-
             # 🔒 Validate payload integrity
             if existing_request.payload_hash != payload_hash:
                 raise HTTPException(
@@ -51,13 +50,15 @@ class KYCService:
                     detail={
                         "attempt_id": str(existing_request.kyc_id),
                         "kyc_status": existing_request.response_status.value,
-                        "message": "KYC is still processing. Please check back later."
-                    }
+                        "message": "KYC is still processing. Please check back later.",
+                    },
                 )
-            
+
             # If response already stored → return it
-            if existing_request.response_payload and existing_request.response_status == IdempotencyStatus.SUCCESS:
-                
+            if (
+                existing_request.response_payload
+                and existing_request.response_status == IdempotencyStatus.SUCCESS
+            ):
                 if existing_request.response_payload:
                     return existing_request.response_payload
 

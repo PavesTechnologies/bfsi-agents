@@ -1,10 +1,14 @@
-import uuid
 import datetime
+import uuid
+
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Boolean, Float, DateTime, ForeignKey, text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+
 from src.utils.migration_database import Base
+
 from .kyc_cases import KYC
+
 
 class SSNValidation(Base):
     __tablename__ = "ssn_validations"
@@ -29,7 +33,7 @@ class SSNValidation(Base):
 
     # Optional fraud flags
     identity_theft_flag: Mapped[bool | None] = mapped_column(Boolean)
-    
+
     deceased_flag: Mapped[bool | None] = mapped_column(Boolean)
 
     ssn_score: Mapped[float | None] = mapped_column(Float)
@@ -49,21 +53,20 @@ class SSNValidation(Base):
     name_ssn_match: Mapped[bool | None] = mapped_column(
         Boolean,
         nullable=True,
-        comment="Indicates whether applicant name matches SSN record."
+        comment="Indicates whether applicant name matches SSN record.",
     )
 
     dob_ssn_match: Mapped[bool | None] = mapped_column(
         Boolean,
         nullable=True,
-        comment="Indicates whether applicant date of birth matches SSN record."
+        comment="Indicates whether applicant date of birth matches SSN record.",
     )
 
     issued_year: Mapped[int | None] = mapped_column(
         nullable=True,
-        comment="Approximate year SSN was issued (used for fraud pattern detection)."
+        comment="Approximate year SSN was issued (used for fraud pattern detection).",
     )
 
-    
     # 🔗 Relationship
     kyc: Mapped["KYC"] = relationship(
         "KYC",

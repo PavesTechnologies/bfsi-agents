@@ -6,7 +6,7 @@ def run_demo():
     state = KYCState(
         application_id="APP-123",
         execution_id="RUN-1",
-        applicant_data={"full_name": "John Doe"}
+        applicant_data={"full_name": "John Doe"},
     )
 
     result = execute_kyc(state)
