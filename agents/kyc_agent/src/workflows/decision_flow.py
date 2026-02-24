@@ -3,24 +3,25 @@
 KYC Agent - Parallel Execution Graph
 """
 
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END, StateGraph
+
 from src.workflows.kyc_engine.kyc_state import KYCState
+from src.workflows.kyc_engine.nodes.address import address_node
+from src.workflows.kyc_engine.nodes.aml import aml_node
 
 # --- Import Nodes ---
 from src.workflows.kyc_engine.nodes.contact import contact_node
-from src.workflows.kyc_engine.nodes.normalize import normalize_node
-from src.workflows.kyc_engine.nodes.ssn import ssn_node
-from src.workflows.kyc_engine.nodes.address import address_node
-from src.workflows.kyc_engine.nodes.face import face_node
-from src.workflows.kyc_engine.nodes.aml import aml_node
-from src.workflows.kyc_engine.nodes.risk import risk_aggregator_node
-from src.workflows.kyc_engine.nodes.human_review import human_review_node
 from src.workflows.kyc_engine.nodes.explanation import explanation_node
+from src.workflows.kyc_engine.nodes.face import face_node
+from src.workflows.kyc_engine.nodes.human_review import human_review_node
+from src.workflows.kyc_engine.nodes.normalize import normalize_node
+from src.workflows.kyc_engine.nodes.risk import risk_aggregator_node
+from src.workflows.kyc_engine.nodes.ssn import ssn_node
+
 # from IPython.display import Image, display # type: ignore
 
 
 def build_graph():
-
     graph = StateGraph(KYCState)
 
     # -----------------------
@@ -79,10 +80,11 @@ def build_graph():
 
     graph.add_conditional_edges(
         "aggregate",
-        route_after_aggregation,{
+        route_after_aggregation,
+        {
             "human_review": "human_review",
             "explanation": "explanation",
-        }
+        },
     )
 
     # After human review → explanation
@@ -92,6 +94,7 @@ def build_graph():
     graph.add_edge("explanation", END)
 
     return graph.compile()
+
 
 # workflow = build_graph()
 

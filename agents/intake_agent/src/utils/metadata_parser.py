@@ -10,11 +10,12 @@ Handles:
 import re
 from typing import Optional
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class DeviceType(str, Enum):
+class DeviceType(StrEnum):
     """Enumeration of device types"""
+
     MOBILE = "mobile"
     TABLET = "tablet"
     DESKTOP = "desktop"
@@ -24,6 +25,7 @@ class DeviceType(str, Enum):
 @dataclass
 class DeviceMetadata:
     """Device and browser information"""
+
     device_type: DeviceType
     browser: str
     browser_version: str
@@ -35,6 +37,7 @@ class DeviceMetadata:
 @dataclass
 class RequestMetadata:
     """Complete request metadata"""
+
     ip_address: str
     device: DeviceMetadata
     raw_user_agent: str
@@ -45,10 +48,10 @@ class MetadataParser:
 
     # IP extraction patterns for common proxy headers
     PROXY_HEADERS = [
-        "x-forwarded-for",      # Standard de-facto proxy header
-        "cf-connecting-ip",     # Cloudflare
-        "x-real-ip",            # Nginx
-        "x-client-ip",          # General proxy
+        "x-forwarded-for",  # Standard de-facto proxy header
+        "cf-connecting-ip",  # Cloudflare
+        "x-real-ip",  # Nginx
+        "x-client-ip",  # General proxy
         "x-forwarded-host",
         "x-original-forwarded-for",
     ]
@@ -249,7 +252,11 @@ class MetadataParser:
                     version = os_info["versions"][version_string]
                 else:
                     # Clean up version string (replace _ with .)
-                    version = version_string.replace("_", ".") if version_string else "unknown"
+                    version = (
+                        version_string.replace("_", ".")
+                        if version_string
+                        else "unknown"
+                    )
 
                 return os_name, version
 

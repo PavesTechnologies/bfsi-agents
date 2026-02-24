@@ -4,7 +4,6 @@ import pathlib
 package_dir = pathlib.Path(__file__).resolve().parent
 
 for file in package_dir.glob("*.py"):
-
     if file.name == "__init__.py":
         continue
 

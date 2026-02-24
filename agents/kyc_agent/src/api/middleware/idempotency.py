@@ -1,7 +1,8 @@
 # src/api/middleware/idempotency.py
 
 import json
-from typing import Callable
+from collections.abc import Callable
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
@@ -16,7 +17,6 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         self.repository = repository
 
     async def dispatch(self, request: Request, call_next: Callable):
-
         if request.method != "POST":
             return await call_next(request)
 

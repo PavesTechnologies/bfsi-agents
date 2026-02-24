@@ -1,9 +1,9 @@
-import json
 import hashlib
-from typing import Any, Dict
+import json
+from typing import Any
 
 
-def generate_payload_hash(payload: Dict[str, Any]) -> str:
+def generate_payload_hash(payload: dict[str, Any]) -> str:
     """
     Generates a stable SHA-256 hash for a given payload dictionary.
     Keys are sorted to ensure consistency across different orderings.

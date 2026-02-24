@@ -1,8 +1,9 @@
 # src/schemas/kyc_request.py
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
-from datetime import date
 import re
+from datetime import date
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class Address(BaseModel):
@@ -22,6 +23,8 @@ class KYCTriggerRequest(BaseModel):
     phone: str
     email: EmailStr
     idempotency_key: str = Field(..., description="Unique key to ensure idempotency of the request")
+    selfie_image: str | None = Field(None, description="Base64 encoded selfie image")
+    id_card_image: str | None = Field(None, description="Base64 encoded ID card image")
 
     @field_validator("ssn")
     @classmethod

@@ -1,40 +1,40 @@
 # src/models/enums.py
 
-from enum import Enum
+from enum import StrEnum
 
 
-class KYCStatus(str, Enum):
+class KYCStatus(StrEnum):
     PENDING = "PENDING"
     PASSED = "PASSED"
     REVIEW = "REVIEW"
     FAILED = "FAILED"
 
 
-class FinalDecision(str, Enum):
+class FinalDecision(StrEnum):
     PASS = "PASS"
     REVIEW = "REVIEW"
     FAIL = "FAIL"
 
 
-class ArtifactType(str, Enum):
+class ArtifactType(StrEnum):
     ID_IMAGE = "ID_IMAGE"
     SELFIE = "SELFIE"
     VENDOR_JSON = "VENDOR_JSON"
     LOG_SNAPSHOT = "LOG_SNAPSHOT"
 
 
-class ActorType(str, Enum):
+class ActorType(StrEnum):
     SYSTEM = "SYSTEM"
     HUMAN = "HUMAN"
 
 
-class HumanReviewDecision(str, Enum):
+class HumanReviewDecision(StrEnum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     REUPLOAD_REQUESTED = "REUPLOAD_REQUESTED"
 
 
-class IdempotencyStatus(str, Enum):
+class IdempotencyStatus(StrEnum):
     PENDING = "PENDING"
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"

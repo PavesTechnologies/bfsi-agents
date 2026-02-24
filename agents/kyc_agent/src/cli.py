@@ -2,24 +2,22 @@
 CLI entrypoint for local development.
 """
 
-import uvicorn
-import sys
 import subprocess
-import os
+import sys
+
+import uvicorn
+
 
 def dev():
-    uvicorn.run(
-        "src.main:app",
-        reload=True,
-        port=8000,
-        reload_dirs=["src"]
-    )
+    uvicorn.run("src.main:app", reload=True, port=8000, reload_dirs=["src"])
+
 
 def prod():
     uvicorn.run(
         "src.main:app",
         port=8000,
     )
+
 
 def test():
     print("Running tests...")
@@ -28,6 +26,8 @@ def test():
     pytest.main(["-v", "tests/"])
 
     print("Tests complete.")
+
+
 def migration():
     """
     Run Alembic autogenerate + upgrade.
@@ -51,30 +51,17 @@ def migration():
 
     # Run alembic revision
     subprocess.run(
-        [
-            "alembic",
-            "revision",
-            "--autogenerate",
-            "-m",
-            description
-        ],
-        check=True
+        ["alembic", "revision", "--autogenerate", "-m", description], check=True
     )
 
     print("🚀 Applying migration...")
 
     # Run alembic upgrade
-    subprocess.run(
-        [
-            "alembic",
-            "upgrade",
-            "head"
-        ],
-        check=True
-    )
+    subprocess.run(["alembic", "upgrade", "head"], check=True)
 
     print("✅ Migration completed successfully.")
-    
+
+
 def migrate():
     """
     Run Alembic upgrade to head.
@@ -84,17 +71,11 @@ def migrate():
     print("🚀 Applying migrations...")
 
     # Run alembic upgrade
-    subprocess.run(
-        [
-            "alembic",
-            "upgrade",
-            "head"
-        ],
-        check=True
-    )
+    subprocess.run(["alembic", "upgrade", "head"], check=True)
 
     print("✅ Migrations applied successfully.")
-    
+
+
 def downgrade():
     """
     Run Alembic downgrade by one revision.
@@ -104,13 +85,27 @@ def downgrade():
     print("🚀 Downgrading database...")
 
     # Run alembic downgrade
-    subprocess.run(
-        [
-            "alembic",
-            "downgrade",
-            "-1"
-        ],
-        check=True
-    )
+    subprocess.run(["alembic", "downgrade", "-1"], check=True)
 
     print("✅ Database downgraded successfully.")
+
+
+def lint():
+    """
+    Run Ruff for linting and formatting.
+    Usage:
+        poetry run lint
+    """
+    print("Running linter (Ruff)...")
+
+    # 1. Run the linter/checker
+    check_result = subprocess.run(["ruff", "check", "src", "tests", "--fix"])
+
+    # 2. Run the formatter
+    format_result = subprocess.run(["ruff", "format", "src", "tests"])
+
+    if check_result.returncode == 0 and format_result.returncode == 0:
+        print("Linting and formatting complete. Code is clean!")
+    else:
+        print("Linting issues found.")
+        sys.exit(1)

@@ -1,5 +1,6 @@
 import pytest
 
+
 @pytest.fixture
 def perfect_match_fixture():
     """
@@ -15,8 +16,9 @@ def perfect_match_fixture():
         "street1": "123 Main St",
         "city": "Phoenix",
         "state": "AZ",
-        "zip": "85001"
+        "zip": "85001",
     }
+
 
 @pytest.fixture
 def synthetic_fraud_fixture():
@@ -34,14 +36,15 @@ def synthetic_fraud_fixture():
         "street1": "999 Ghost Lane",
         "city": "New York",
         "state": "NY",
-        "zip": "10001"
+        "zip": "10001",
     }
+
 
 @pytest.fixture
 def thin_file_fixture():
     """
     Triggers 'DEFAULT NORMAL' branch.
-    Validates PRD 6.1 & 10.1: Identity with no specific fraud flags 
+    Validates PRD 6.1 & 10.1: Identity with no specific fraud flags
     but potentially low scores or limited history.
     """
     return {
@@ -53,8 +56,9 @@ def thin_file_fixture():
         "street1": "456 Rookie Ave",
         "city": "Seattle",
         "state": "WA",
-        "zip": "98101"
+        "zip": "98101",
     }
+
 
 @pytest.fixture
 def deceased_person_fixture():
@@ -71,5 +75,5 @@ def deceased_person_fixture():
         "street1": "1313 Cemetery Rd",
         "city": "Salem",
         "state": "MA",
-        "zip": "01970"
+        "zip": "01970",
     }

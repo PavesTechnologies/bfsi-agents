@@ -1,13 +1,17 @@
 # src/models/evidence_artifact.py
 
-import uuid
 import datetime
+import uuid
+
+from sqlalchemy import DateTime, Enum, ForeignKey, String, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Boolean, DateTime, ForeignKey, text, String, Enum
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+
 from src.utils.migration_database import Base
+
 from .enums import ArtifactType
 from .kyc_cases import KYC
+
 
 class EvidenceArtifact(Base):
     __tablename__ = "evidence_artifacts"
@@ -32,13 +36,13 @@ class EvidenceArtifact(Base):
     )
 
     mime_type = mapped_column(String(100))
-    
+
     storage_path: Mapped[str] = mapped_column(String(500), nullable=False)
 
     file_hash: Mapped[str | None] = mapped_column(String(255))
-    
+
     additional_metadata: Mapped[dict] = mapped_column(JSONB)
-    
+
     created_by: Mapped[str] = mapped_column(String(255), nullable=False)
 
     created_at: Mapped[datetime.datetime] = mapped_column(

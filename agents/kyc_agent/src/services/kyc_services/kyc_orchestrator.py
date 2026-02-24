@@ -1,5 +1,5 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.enums import IdempotencyStatus
 from src.models.interfaces.kyc_interface.kyc_request_interface import KYCTriggerRequest
@@ -7,6 +7,7 @@ from src.repositories.kyc_repo.kyc_repository import KYCRepository
 from src.utils.hash_utils import generate_payload_hash
 from src.workflows.decision_flow import build_graph
 from src.workflows.kyc_engine.kyc_state import RawKYCRequest
+
 # Import your team's Pydantic models
 
 
@@ -53,26 +54,23 @@ class KYCOrchestratorService:
         kyc_result = result.get("kyc_result", {})
         ssn_snapshot = kyc_result.get("ssn_risk_snapshot", {})
         await self.repo.create_identity_check(
-    kyc_id=kyc_case.id,
-    applicant_id=payload.applicant_id,
-    final_status=kyc_result.get("final_status"),
-    aggregated_score=kyc_result.get("aggregated_score"),
-    hard_fail_triggered=kyc_result.get("hard_fail_triggered"),
-
-    # 🔹 SSN flags
-    ssn_valid=ssn_snapshot.get("ssn_valid"),
-    ssn_plausible=ssn_snapshot.get("ssn_plausible"),
-    name_ssn_match=ssn_snapshot.get("name_ssn_match"),
-    dob_ssn_match=ssn_snapshot.get("dob_ssn_match"),
-    deceased_flag=ssn_snapshot.get("deceased_flag"),
-
-    # 🔹 JSON payloads
-    ssn_risk_snapshot=ssn_snapshot,
-    decision_rules_snapshot=kyc_result.get("decision_rules_snapshot"),  
-    model_versions=kyc_result.get("model_versions"),
-    audit_payload=result.get("audit"),
-
-) # 5. Finalize idempotency record
+            kyc_id=kyc_case.id,
+            applicant_id=payload.applicant_id,
+            final_status=kyc_result.get("final_status"),
+            aggregated_score=kyc_result.get("aggregated_score"),
+            hard_fail_triggered=kyc_result.get("hard_fail_triggered"),
+            # 🔹 SSN flags
+            ssn_valid=ssn_snapshot.get("ssn_valid"),
+            ssn_plausible=ssn_snapshot.get("ssn_plausible"),
+            name_ssn_match=ssn_snapshot.get("name_ssn_match"),
+            dob_ssn_match=ssn_snapshot.get("dob_ssn_match"),
+            deceased_flag=ssn_snapshot.get("deceased_flag"),
+            # 🔹 JSON payloads
+            ssn_risk_snapshot=ssn_snapshot,
+            decision_rules_snapshot=kyc_result.get("decision_rules_snapshot"),
+            model_versions=kyc_result.get("model_versions"),
+            audit_payload=result.get("audit"),
+        )  # 5. Finalize idempotency record
         await self.repo.update_kyc_request_response(
             kyc_id=kyc_case.id,
             response_payload=result,

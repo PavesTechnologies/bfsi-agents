@@ -1,12 +1,16 @@
 # src/models/aml_check.py
 
-import uuid
 import datetime
+import uuid
+
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Boolean, Float, DateTime, ForeignKey, text, String
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+
 from src.utils.migration_database import Base
+
 from .kyc_cases import KYC
+
 
 class AMLCheck(Base):
     __tablename__ = "aml_checks"
@@ -44,7 +48,4 @@ class AMLCheck(Base):
     )
 
     # 🔗 Relationship back to parent
-    kyc: Mapped["KYC"] = relationship(
-        "KYC",
-        back_populates="aml_check"
-    )
+    kyc: Mapped["KYC"] = relationship("KYC", back_populates="aml_check")

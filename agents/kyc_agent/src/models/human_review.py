@@ -1,14 +1,17 @@
 # src/models/human_review.py
 
-import uuid
 import datetime
+import uuid
+
+from sqlalchemy import DateTime, Enum, ForeignKey, Text, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import DateTime, Text, Enum, ForeignKey, text
-from sqlalchemy.dialects.postgresql import UUID
+
 from src.utils.migration_database import Base
+
 from .enums import HumanReviewDecision
 from .kyc_cases import KYC
-from sqlalchemy.dialects.postgresql import JSONB
+
 
 class HumanReview(Base):
     __tablename__ = "human_reviews"
@@ -45,7 +48,6 @@ class HumanReview(Base):
 
     review_reason_codes = mapped_column(JSONB)
 
-    
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=text("now()"),

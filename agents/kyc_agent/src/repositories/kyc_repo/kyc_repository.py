@@ -1,10 +1,10 @@
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 
-from src.models.kyc_cases import KYC
-from src.models.kyc_request import KYCRequest
 from src.models.enums import IdempotencyStatus, KYCStatus
 from src.models.identity_check import IdentityCheck
+from src.models.kyc_cases import KYC
+from src.models.kyc_request import KYCRequest
 
 
 class KYCRepository:
@@ -23,11 +23,8 @@ class KYCRepository:
         self,
         idempotency_key: str,
     ) -> KYCRequest | None:
-
         result = await self.db.execute(
-            select(KYCRequest).where(
-                KYCRequest.idempotency_key == idempotency_key
-            )
+            select(KYCRequest).where(KYCRequest.idempotency_key == idempotency_key)
         )
         return result.scalar_one_or_none()
 
@@ -40,7 +37,6 @@ class KYCRepository:
         payload_hash: str,
         raw_request_payload: dict,
     ) -> KYC:
-
         kyc_case = KYC(
             applicant_id=applicant_id,
             payload_hash=payload_hash,
@@ -65,13 +61,12 @@ class KYCRepository:
         payload_hash: str,
         response_payload: dict,
     ) -> KYCRequest:
-
         request = KYCRequest(
             kyc_id=kyc_id,
             idempotency_key=idempotency_key,
             payload_hash=payload_hash,
             response_payload=response_payload,
-            response_status=IdempotencyStatus.SUCCESS
+            response_status=IdempotencyStatus.SUCCESS,
         )
 
         self.db.add(request)
@@ -99,9 +94,10 @@ class KYCRepository:
         )
 
         return result.scalar_one_or_none()
+
     # ---------------------------------------------------------
-# Create Identity Check
-# ---------------------------------------------------------
+    # Create Identity Check
+    # ---------------------------------------------------------
     async def create_identity_check(
     self,
     *,
@@ -141,18 +137,18 @@ class KYCRepository:
      return record
     
     # ---------------------------------------------------------
-# Update Idempotency Response
-# ---------------------------------------------------------
+    # Update Idempotency Response
+    # ---------------------------------------------------------
     async def update_kyc_request_response(
-    self,
-    *,
-    kyc_id,
-    response_payload: dict,
-    status: IdempotencyStatus,
-) -> KYCRequest | None:
+        self,
+        *,
+        kyc_id,
+        response_payload: dict,
+        status: IdempotencyStatus,
+    ) -> KYCRequest | None:
         result = await self.db.execute(
-        select(KYCRequest).where(KYCRequest.kyc_id == kyc_id)
-    )
+            select(KYCRequest).where(KYCRequest.kyc_id == kyc_id)
+        )
         record = result.scalar_one_or_none()
 
         if not record:

@@ -1,13 +1,17 @@
 # src/models/kyc_request.py
 
-import uuid
 import datetime
+import uuid
+
+from sqlalchemy import DateTime, Enum, ForeignKey, String, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, DateTime, ForeignKey, text, Enum
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+
 from src.utils.migration_database import Base
-from .kyc_cases import KYC
+
 from .enums import IdempotencyStatus
+from .kyc_cases import KYC
+
 
 class KYCRequest(Base):
     __tablename__ = "kyc_requests"
@@ -37,7 +41,6 @@ class KYCRequest(Base):
         nullable=False,
         index=True,
     )
-
 
     response_payload: Mapped[dict | None] = mapped_column(
         JSONB,
