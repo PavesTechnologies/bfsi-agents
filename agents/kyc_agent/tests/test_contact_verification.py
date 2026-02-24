@@ -1,5 +1,7 @@
 import pytest
+from datetime import date
 from src.services.identity_service import IdentityService
+# from tests.fixtures.identity_fixtures import synthetic_fraud_fixture
 
 # -- Additional Fixtures --
 

@@ -1,10 +1,17 @@
 from datetime import date, datetime
 import phonenumbers
 from src.adapters.mock_adapters.mock_experian_adapter import ExperianResponse
+
 # Assuming the state classes are imported from the domain/models layer
-from src.workflows.kyc_engine.kyc_state import ContactVerificationState, RawKYCRequest, SSNValidationState, AddressVerificationState
+from src.workflows.kyc_engine.kyc_state import (
+    ContactVerificationState,
+    RawKYCRequest,
+    SSNValidationState,
+    AddressVerificationState,
+)
 import dns.resolver
 import dns.exception
+
 
 class IdentityService:
     """
@@ -13,46 +20,59 @@ class IdentityService:
     """
 
     @staticmethod
-    def process_ssn_verification(request: RawKYCRequest, vendor_data: ExperianResponse) -> SSNValidationState:
+    def process_ssn_verification(
+        request: RawKYCRequest, vendor_data: ExperianResponse
+    ) -> SSNValidationState:
         """
         Coordinates all SSN-related validation logic (PRD 6.1).
         Returns a complete SSNValidationState dictionary.
         """
         exp_dob = vendor_data.consumerIdentity.dob
         exp_name = vendor_data.consumerIdentity.name[0]
-        
+
         # Formatting for comparison
-        vendor_dob_str = f"{exp_dob.year}-{exp_dob.month.zfill(2)}-{exp_dob.day.zfill(2)}"
+        vendor_dob_str = (
+            f"{exp_dob.year}-{exp_dob.month.zfill(2)}-{exp_dob.day.zfill(2)}"
+        )
         vendor_full_name = f"{exp_name.firstName} {exp_name.surname}".lower()
-        
+
         # 1. DOB Logical & Age Sanity (PRD 5.1, 10.1)
         dob_obj = datetime.strptime(request["dob"], "%Y-%m-%d").date()
         today = date.today()
-        age = today.year - dob_obj.year - ((today.month, today.day) < (dob_obj.month, dob_obj.day))
-        
+        age = (
+            today.year
+            - dob_obj.year
+            - ((today.month, today.day) < (dob_obj.month, dob_obj.day))
+        )
+
         flags = {}
-        if age < 18: flags["AGE_WARNING"] = "Applicant under 18"
-        if age > 120: flags["DOB_ERROR"] = "Age logic violation"
-        
+        if age < 18:
+            flags["AGE_WARNING"] = "Applicant under 18"
+        if age > 120:
+            flags["DOB_ERROR"] = "Age logic violation"
+
         # 2. Name-DOB-SSN Correlation (PRD 6.1)
-        dob_match = (vendor_dob_str == request["dob"])
-        name_match = (request["full_name"].lower() in vendor_full_name)
+        print(f"Comparing Vendor DOB: {vendor_dob_str} with Request DOB: {request['dob']}")  # Debug log
+        dob_match = vendor_dob_str == request["dob"]
+        name_match = request["full_name"].lower() in vendor_full_name
 
         # 3. Construct the state shape defined in kyc_state.py
         return {
             "ssn_valid": age >= 18 and age <= 120,
             "ssn_plausible": age <= 120,
-            "identity_theft_flag": False, 
+            "identity_theft_flag": False,
             "deceased_flag": vendor_data.fraudShield[0].dateOfDeath != "",
             "ssn_score": float(vendor_data.riskModel[0].score) / 1000,
             "name_ssn_match": name_match,
             "dob_ssn_match": dob_match,
             "issued_year": int(vendor_data.fraudShield[0].ssnFirstPossibleIssuanceYear),
-            "flags": flags
+            "flags": flags,
         }
 
     @staticmethod
-    def process_address_verification(request: RawKYCRequest, vendor_data: ExperianResponse) -> AddressVerificationState:
+    def process_address_verification(
+        request: RawKYCRequest, vendor_data: ExperianResponse
+    ) -> AddressVerificationState:
         """
         Coordinates address verification logic (PRD 5.1, 10.1).
         Compares applicant-submitted address against Experian's on-file address.
@@ -90,7 +110,9 @@ class IdentityService:
         if not city_match:
             flags["CITY_MISMATCH"] = f"Request: {req_city} vs Vendor: {exp_addr.city}"
         if not state_match:
-            flags["STATE_MISMATCH"] = f"Request: {req_state} vs Vendor: {exp_addr.state}"
+            flags["STATE_MISMATCH"] = (
+                f"Request: {req_state} vs Vendor: {exp_addr.state}"
+            )
         if not zip_match:
             flags["ZIP_MISMATCH"] = f"Request: {req_zip} vs Vendor: {exp_addr.zipCode}"
 
@@ -116,9 +138,11 @@ class IdentityService:
             "standardized_address": standardized_address,
             "flags": flags,
         }
-    
+
     @staticmethod
-    def process_contact_verification(request: RawKYCRequest) -> ContactVerificationState:
+    def process_contact_verification(
+        request: RawKYCRequest,
+    ) -> ContactVerificationState:
         """
         Implements PRD 5.1 & 6.1: Phone/Email ownership and validity checks.
         Handles E.164 formatting, VOIP detection, and MX record verification.
@@ -126,7 +150,7 @@ class IdentityService:
         phone = request.get("phone", "")
         email = request.get("email", "")
         flags = {}
-        
+
         # --- 1. Phone Validation (Libphonenumber) ---
         phone_valid = False
         is_high_risk_phone = False
@@ -136,11 +160,16 @@ class IdentityService:
             # Assumes default region US for parsing (PRD 5.1)
             parsed_phone = phonenumbers.parse(phone, "US")
             phone_valid = phonenumbers.is_valid_number(parsed_phone)
-            formatted_phone = phonenumbers.format_number(parsed_phone, phonenumbers.PhoneNumberFormat.E164)
-            
+            formatted_phone = phonenumbers.format_number(
+                parsed_phone, phonenumbers.PhoneNumberFormat.E164
+            )
+
             # Burner/VOIP Detection logic (PRD 6.1)
             p_type = phonenumbers.number_type(parsed_phone)
-            if p_type in [phonenumbers.PhoneNumberType.VOIP, phonenumbers.PhoneNumberType.PERSONAL_NUMBER]:
+            if p_type in [
+                phonenumbers.PhoneNumberType.VOIP,
+                phonenumbers.PhoneNumberType.PERSONAL_NUMBER,
+            ]:
                 is_high_risk_phone = True
                 flags["PHONE_RISK"] = "VOIP or Burner number detected"
 
@@ -150,20 +179,20 @@ class IdentityService:
         # --- 2. Email Validation (MX & Disposable) ---
         email_valid = False
         is_disposable_email = False
-        
+
         # Example disposable domain list (In production, move to a Repository/Adapter)
         disposable_domains = {"mailinator.com", "guerrillamail.com", "tempmail.com"}
-        domain = email.split('@')[-1].lower() if '@' in email else ""
+        domain = email.split("@")[-1].lower() if "@" in email else ""
 
         if domain:
             # Check Disposable Blacklist (PRD 6.1)
             if domain in disposable_domains:
                 is_disposable_email = True
                 flags["EMAIL_DISPOSABLE"] = "Disposable email service detected"
-            
+
             # MX Record Verification
             try:
-                dns.resolver.resolve(domain, 'MX')
+                dns.resolver.resolve(domain, "MX")
                 email_valid = True
             except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, Exception):
                 email_valid = False
@@ -175,5 +204,5 @@ class IdentityService:
             "is_high_risk_phone": is_high_risk_phone,
             "is_disposable_email": is_disposable_email,
             "formatted_phone": formatted_phone,
-            "flags": flags
+            "flags": flags,
         }
