@@ -7,11 +7,6 @@ Used by uvicorn.
 
 import os
 import sys
-
-from src.app import create_app
-from src.audit.mapper_event.register import register_audit_events
-from src.core.config import get_settings
-
 # Dynamically detect project root (bfsi-agents)
 current_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -24,6 +19,9 @@ while current_dir != os.path.dirname(current_dir):
 
 print("Project root added to sys.path:", current_dir)
 
+from src.app import create_app
+from src.audit.mapper_event.register import register_audit_events
+from src.core.config import get_settings
 
 settings = get_settings()
 

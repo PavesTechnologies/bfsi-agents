@@ -7,6 +7,8 @@ from dynamsoft_barcode_reader_bundle import (
     EnumBarcodeFormat,
     EnumErrorCode,
     EnumPresetTemplate,
+    LicenseManager,
+    CaptureVisionRouter,
 )
 from src.core.config import get_settings
 from src.domain.normalization.drivers_license import DriversLicenseNormalizer
