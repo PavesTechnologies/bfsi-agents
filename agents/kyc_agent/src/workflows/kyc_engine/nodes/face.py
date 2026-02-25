@@ -25,3 +25,5 @@ def face_node(state: KYCState) -> KYCState:
         "replay_attack_detected": False,
         "flags": {}
     }
+
+    return result

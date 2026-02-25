@@ -31,6 +31,7 @@ slowapi = "^0.1.9"
 sqlacodegen = "^3.2.0"
 sqlalchemy = "^2.0.46"
 uvicorn = "^0.29.0"
+dotenv = "^0.9.9"
 
 
 [tool.poetry.scripts]

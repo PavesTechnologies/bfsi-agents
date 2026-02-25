@@ -79,6 +79,7 @@ class RiskDecisionState(TypedDict, total=False):
     aggregated_score: float
     hard_fail_triggered: bool
     decision_reason: str
+    triggered_rules: list[str]
     decision_rules_snapshot: dict[str, str]
     model_versions: dict[str, str]
 
