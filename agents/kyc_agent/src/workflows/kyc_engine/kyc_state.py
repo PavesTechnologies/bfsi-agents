@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Annotated, TypedDict
+from typing import Annotated, TypedDict, Optional
+
 
 
 def list_append_reducer(existing, new):
