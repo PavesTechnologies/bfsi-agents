@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Annotated, TypedDict, Optional
 
+from typing import Annotated, TypedDict,Optional
 
 
 def list_append_reducer(existing, new):
@@ -80,6 +81,7 @@ class RiskDecisionState(TypedDict, total=False):
     aggregated_score: float
     hard_fail_triggered: bool
     decision_reason: str
+    triggered_rules: list[str]
     decision_rules_snapshot: dict[str, str]
     model_versions: dict[str, str]
 
@@ -111,8 +113,7 @@ class RawKYCRequest:
     address: Address
     phone: str
     email: str
-    selfie_image: Optional[str] = None  # Base64 string
-    id_card_image: Optional[str] = None  # Base64 string
+    
 
 
 class KYCState(TypedDict, total=False):
