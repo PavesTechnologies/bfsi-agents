@@ -68,6 +68,7 @@ def track_node(node_name: str):
 
                 # Update state safely for LangSmith
                 result["node_execution_times"] = {node_name: duration}
+                result["parallel_tasks_completed"] = [node_name]
                 return result
 
         return wrapper

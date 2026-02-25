@@ -10,7 +10,6 @@ from src.workflows.kyc_engine.kyc_state import KYCState
 
 @track_node("aml")
 def aml_node(state: KYCState) -> KYCState:
-    start = time.time()
 
     # TODO: OFAC / sanctions vendor integration
     result = {
@@ -22,10 +21,7 @@ def aml_node(state: KYCState) -> KYCState:
         "flags": {},
     }
 
-    duration = time.time() - start
 
     return {
-        "aml_check": result,
-        "parallel_tasks_completed": ["aml"],
-        "node_execution_times": {"aml": duration},
+        "aml_check": result
     }

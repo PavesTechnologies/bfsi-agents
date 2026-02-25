@@ -93,6 +93,11 @@ def build_graph():
     # Final node
     graph.add_edge("explanation", END)
 
+    # workflow = graph.compile()
+    
+    # with open("graph.png", "wb") as f:
+    #     f.write(workflow.get_graph().draw_mermaid_png())
+    
     return graph.compile()
 
 
