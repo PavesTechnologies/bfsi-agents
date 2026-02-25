@@ -79,3 +79,6 @@ ignore = ["B008"] # To allow FastAPI Depends()
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.poetry.requires-plugins]
+poetry-plugin-sort = ">=0.3.0"
