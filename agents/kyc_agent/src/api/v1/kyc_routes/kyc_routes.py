@@ -14,7 +14,7 @@ from src.services.kyc_services.kyc_orchestrator import KYCOrchestratorService
 from src.services.kyc_services.kyc_service import KYCService
 from src.utils.db_session import get_db
 
-router = APIRouter(prefix="/kyc", tags=["KYC_Intake"])
+router = APIRouter(tags=["KYC_Intake"])
 
 
 @router.post("/trigger", response_model=KYCTriggerResponse)
