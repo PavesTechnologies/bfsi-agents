@@ -5,6 +5,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
+from src.adapters.decorators.vendor_audit_decorators import audited_adapter
+
 # --- REQUEST MODELS ---
 
 
@@ -133,7 +135,10 @@ class MockExperianAdapter:
     Mock for Experian Credit Profile API using Pydantic for validation.
     """
 
-    def get_credit_report(self, raw_payload: dict[str, Any]) -> ExperianResponse:
+    @audited_adapter(vendor_name="EXPERIAN", vendor_service="credit_profile_v3")
+    def get_credit_report(
+        self, raw_payload: dict[str, Any], **kwargs
+    ) -> ExperianResponse:
         request = ExperianRequestPayload(**raw_payload)
         area_number = int(request.ssn[:3])
 
