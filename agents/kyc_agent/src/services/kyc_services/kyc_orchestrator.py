@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+from langchain_core.runnables import RunnableConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.enums import IdempotencyStatus
@@ -38,12 +39,25 @@ class KYCOrchestratorService:
             raw_request_payload=payload_dict,
         )
 
+        print(f"Created KYC Case with ID: {kyc_case.id}")  # Debug log for created case
+
+        await self.db.flush()  # Commit to generate KYC ID for logging in adapters
+
+        config = RunnableConfig(
+            configurable={
+                "db": self.db,
+                "kyc_id": kyc_case.id,
+                "applicant_id": payload.applicant_id,
+            }
+        )
+
         # 4. Execution: Run the Parallel LangGraph workflow
-        result = await self._run_graph_execution(payload)
+        result = await self._run_graph_execution(payload, config=config)
         print(
             "Graph execution result:", result
         )  # For debugging; replace with proper logging
 
+        await self.db.commit()
         # 5. Finalize: Update DB with results for audit artifacts
         # await self.repo.update_kyc_request_response(
         #     kyc_id=kyc_case.id,
@@ -97,7 +111,7 @@ class KYCOrchestratorService:
 
         return record.response_payload
 
-    async def _run_graph_execution(self, payload: KYCTriggerRequest) -> dict:
+    async def _run_graph_execution(self, payload: KYCTriggerRequest, config) -> dict:
         """Maps Pydantic model to RawKYCRequest and runs the graph."""
         # Mapping model attributes to the internal KYCState shape
         raw_req: RawKYCRequest = {
@@ -124,7 +138,7 @@ class KYCOrchestratorService:
         }
 
         # Parallel fan-out execution
-        final_state = await self.graph.ainvoke(initial_state)
+        final_state = await self.graph.ainvoke(initial_state, config=config)
 
         return {
             "applicant_id": payload.applicant_id,
