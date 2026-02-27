@@ -26,10 +26,12 @@ jobs:
 
             echo "📦 Installing Intake Agent dependencies..."
             cd agents/intake_agent
+            poetry lock --no-interaction
             /home/ubuntu/.local/bin/poetry install --no-interaction --no-root
 
             echo "📦 Installing KYC Agent dependencies..."
             cd ../kyc_agent
+            poetry lock --no-interaction
             /home/ubuntu/.local/bin/poetry install --no-interaction --no-root
 
             echo "🔄 Restarting services..."
