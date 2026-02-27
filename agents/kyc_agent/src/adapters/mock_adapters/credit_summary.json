@@ -1,0 +1,61 @@
+{
+  "consumer_summary": {
+    "total_accounts": 17,
+    "active_accounts": 6,
+    "closed_accounts": 11,
+    "total_revolving": 9,
+    "total_installment": 8
+  },
+  "debt_summary": {
+    "total_balance": 24182,
+    "total_credit_limit": 22569,
+    "utilization_ratio": 1.071,
+    "total_monthly_payment": 182
+  },
+  "delinquency_summary": {
+    "accounts_with_late": 0,
+    "total_30": 0,
+    "total_60": 0,
+    "total_90_plus": 0,
+    "severe_accounts": 0
+  },
+  "account_age": {
+    "oldest_account": "2008-05-11T00:00:00",
+    "newest_account": "2022-12-25T00:00:00",
+    "avg_age_months": 91.039
+  },
+  "score": {
+    "model": "F9",
+    "value": "0650",
+    "factors": [
+      {
+        "importance": "1",
+        "code": "40"
+      },
+      {
+        "importance": "2",
+        "code": "33"
+      },
+      {
+        "importance": "3",
+        "code": "24"
+      },
+      {
+        "importance": "4",
+        "code": "15"
+      },
+      {
+        "importance": "5",
+        "code": "08"
+      }
+    ]
+  },
+  "terms": {
+    "revolving": "Credit that you can use again after paying.",
+    "installment": "Credit that you must pay back over time.",
+    "total_monthly_payment": "The amount of money you must pay back each month.",
+    "closed_accounts": "Accounts that have been closed and can't be used.",
+    "model": "Model used to calculate your credit score.",
+    "value": "Your credit score."
+  }
+}

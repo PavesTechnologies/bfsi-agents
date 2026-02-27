@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, TypedDict,Optional
+from typing import Annotated, TypedDict,Optional,List,Dict
 
 
 def list_append_reducer(existing, new):
@@ -75,13 +75,48 @@ class AMLCheckState(TypedDict, total=False):
 
 
 class RiskDecisionState(TypedDict, total=False):
-    final_status: str  # PASS / FAIL / NEEDS_HUMAN_REVIEW
-    aggregated_score: float
+    """
+    Final deterministic KYC decision output.
+    Fully aligned with rule-engine + audit requirements.
+    """
+
+    # -------------------------------------------------
+    # Core Decision
+    # -------------------------------------------------
+    final_status: str  # PASS | FAIL | NEEDS_HUMAN_REVIEW
+    confidence_score: float  # 0.0 – 1.0 normalized trust score
     hard_fail_triggered: bool
     decision_reason: str
-    triggered_rules: list[str]
-    decision_rules_snapshot: dict[str, str]
-    model_versions: dict[str, str]
+
+    # -------------------------------------------------
+    # Rule Execution Details
+    # -------------------------------------------------
+    triggered_rules: List[str]          # All rules that fired
+    soft_flags: List[str]               # Soft rules triggered
+    hard_fail_rules: List[str]          # Hard rules triggered (if any)
+
+    # -------------------------------------------------
+    # Policy Versioning
+    # -------------------------------------------------
+    rule_version: str                   # YAML version (e.g. 2026.02.25.v1)
+    rule_file_hash: Optional[str]       # SHA256 of rule file (immutability)
+
+    # -------------------------------------------------
+    # Decision Snapshot (Audit Safe)
+    # -------------------------------------------------
+    decision_rules_snapshot: Dict[str, bool]
+    input_payload_hash: Optional[str]
+    vendor_signal_hash: Optional[str]
+
+    # -------------------------------------------------
+    # Model & Threshold Versions
+    # -------------------------------------------------
+    model_versions: Dict[str, str]      # threshold versions, aggregator version
+
+    # -------------------------------------------------
+    # Explainability / Compliance
+    # -------------------------------------------------
+    reasoning_trace: Optional[Dict]     # Full replay object (encrypted at rest)
 
 
 # @dataclass(frozen=True)
