@@ -17,18 +17,18 @@ from src.utils.db_session import get_db
 router = APIRouter(tags=["KYC_Intake"])
 
 
-@router.post("/trigger", response_model=KYCTriggerResponse)
-async def trigger_kyc(
-    payload: KYCTriggerRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    service = KYCService(db)
+# @router.post("/trigger", response_model=KYCTriggerResponse)
+# async def trigger_kyc(
+#     payload: KYCTriggerRequest,
+#     db: AsyncSession = Depends(get_db),
+# ):
+#     service = KYCService(db)
 
-    response_payload = await service.trigger_kyc(
-        payload=payload.model_dump(mode="json"),
-    )
+#     response_payload = await service.trigger_kyc(
+#         payload=payload.model_dump(mode="json"),
+#     )
 
-    return KYCTriggerResponse(**response_payload)
+#     return KYCTriggerResponse(**response_payload)
 
 
 @router.post("/verify")
