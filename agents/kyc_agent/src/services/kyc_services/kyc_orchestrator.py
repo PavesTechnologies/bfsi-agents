@@ -144,6 +144,7 @@ class KYCOrchestratorService:
             "applicant_id": payload.applicant_id,
             "status": final_state.get("risk_decision", {}).get("final_status"),
             "kyc_result": final_state.get("risk_decision"),
+            "final_explanation": final_state.get("decision_explanation"),
             "audit": {
                 "tasks": final_state.get("parallel_tasks_completed"),
                 "performance": final_state.get("node_execution_times"),

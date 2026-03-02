@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, TypedDict,Optional,List,Dict
+from typing import Annotated, TypedDict
 
 
 def list_append_reducer(existing, new):
@@ -91,32 +91,32 @@ class RiskDecisionState(TypedDict, total=False):
     # -------------------------------------------------
     # Rule Execution Details
     # -------------------------------------------------
-    triggered_rules: List[str]          # All rules that fired
-    soft_flags: List[str]               # Soft rules triggered
-    hard_fail_rules: List[str]          # Hard rules triggered (if any)
+    triggered_rules: list[str]  # All rules that fired
+    soft_flags: list[str]  # Soft rules triggered
+    hard_fail_rules: list[str]  # Hard rules triggered (if any)
 
     # -------------------------------------------------
     # Policy Versioning
     # -------------------------------------------------
-    rule_version: str                   # YAML version (e.g. 2026.02.25.v1)
-    rule_file_hash: Optional[str]       # SHA256 of rule file (immutability)
+    rule_version: str  # YAML version (e.g. 2026.02.25.v1)
+    rule_file_hash: str | None  # SHA256 of rule file (immutability)
 
     # -------------------------------------------------
     # Decision Snapshot (Audit Safe)
     # -------------------------------------------------
-    decision_rules_snapshot: Dict[str, bool]
-    input_payload_hash: Optional[str]
-    vendor_signal_hash: Optional[str]
+    decision_rules_snapshot: dict[str, bool]
+    input_payload_hash: str | None
+    vendor_signal_hash: str | None
 
     # -------------------------------------------------
     # Model & Threshold Versions
     # -------------------------------------------------
-    model_versions: Dict[str, str]      # threshold versions, aggregator version
+    model_versions: dict[str, str]  # threshold versions, aggregator version
 
     # -------------------------------------------------
     # Explainability / Compliance
     # -------------------------------------------------
-    reasoning_trace: Optional[Dict]     # Full replay object (encrypted at rest)
+    reasoning_trace: dict | None  # Full replay object (encrypted at rest)
 
 
 # @dataclass(frozen=True)
@@ -146,7 +146,6 @@ class RawKYCRequest:
     address: Address
     phone: str
     email: str
-    
 
 
 class KYCState(TypedDict, total=False):
@@ -163,6 +162,9 @@ class KYCState(TypedDict, total=False):
 
     # Aggregation
     risk_decision: RiskDecisionState | None
+
+    # explaination
+    decision_explanation: str
 
     # System
     hard_stop: bool
