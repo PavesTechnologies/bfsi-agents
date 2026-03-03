@@ -86,21 +86,21 @@ class EmailVaultService:
 # print(obj.retrieve_email("vault:v1:AHRMQ5fHldhjVPiaxotgvS/hdMbfBEpXmqDXg6KYo2E9dOzp5C1jswKsfzJEL1UW+I0="))
 
 # --- End-to-End Testing (Mocked Vault) ---
-# if __name__ == "__main__":
-#     from unittest.mock import MagicMock
+if __name__ == "__main__":
+    from unittest.mock import MagicMock
 
-#     # 1. Instantiate your service
-#     service = EmailVaultService()
+    # 1. Instantiate your service
+    service = EmailVaultService()
 
-#     # 2. Mock the Vault retrieval step
-#     # This bypasses the Vault HTTP call and immediately returns the raw email
-#     mock_raw_email = "johndoe@fintech.com"
-#     service.retrieve_email = MagicMock(return_value=mock_raw_email)
+    # 2. Mock the Vault retrieval step
+    # This bypasses the Vault HTTP call and immediately returns the raw email
+    mock_raw_email = "johndoe@fintech.com"
+    service.retrieve_email = MagicMock(return_value=mock_raw_email)
 
-#     # 3. Execute the support function
-#     dummy_ciphertext = "vault:v1:fake_data_string"
-#     masked_result = service.retrieve_email_support(dummy_ciphertext)
+    # 3. Execute the support function
+    dummy_ciphertext = "vault:v1:fake_data_string"
+    masked_result = service.retrieve_email_support(dummy_ciphertext)
 
-#     # 4. Output the results to verify the integration
-#     print(f"Mocked Raw Data Input: {mock_raw_email}")
-#     print(f"Masked Support Output: {masked_result}")
+    # 4. Output the results to verify the integration
+    print(f"Mocked Raw Data Input: {mock_raw_email}")
+    print(f"Masked Support Output: {masked_result}")
