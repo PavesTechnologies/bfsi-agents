@@ -105,7 +105,3 @@ class LoanApplicationState(TypedDict):
     # --- 5. Final Output ---
     final_decision: Optional[FinalDecision]
 
-
-class DecisionState(TypedDict):
-    payload: dict
-    retries: int
