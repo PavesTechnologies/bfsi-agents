@@ -84,21 +84,21 @@ class SSNVaultService:
 # print(obj.retrieve_ssn("vault:v1:ju+mCD860XqM4CgD85FJQC6kBjaPoQTz75Y8I7FOfXneaH4qPFch"))
 
 # --- End-to-End Testing (Mocked Vault) ---
-# if __name__ == "__main__":
-#     from unittest.mock import MagicMock
+if __name__ == "__main__":
+    from unittest.mock import MagicMock
 
-#     # 1. Instantiate your service
-#     service = SSNVaultService()
+    # 1. Instantiate your service
+    service = SSNVaultService()
 
-#     # 2. Mock the Vault retrieval step
-#     # This bypasses the Vault HTTP call and immediately returns the raw SSN
-#     mock_raw_ssn = "123-45-6789"
-#     service.retrieve_ssn = MagicMock(return_value=mock_raw_ssn)
+    # 2. Mock the Vault retrieval step
+    # This bypasses the Vault HTTP call and immediately returns the raw SSN
+    mock_raw_ssn = "123-45-6789"
+    service.retrieve_ssn = MagicMock(return_value=mock_raw_ssn)
 
-#     # 3. Execute the support function
-#     dummy_ciphertext = "vault:v1:fake_data_string"
-#     masked_result = service.retrieve_ssn_support(dummy_ciphertext)
+    # 3. Execute the support function
+    dummy_ciphertext = "vault:v1:fake_data_string"
+    masked_result = service.retrieve_ssn_support(dummy_ciphertext)
 
-#     # 4. Output the results to verify the integration
-#     print(f"Mocked Raw Data Input: {mock_raw_ssn}")
-#     print(f"Masked Support Output: {masked_result}")
+    # 4. Output the results to verify the integration
+    print(f"Mocked Raw Data Input: {mock_raw_ssn}")
+    print(f"Masked Support Output: {masked_result}")
