@@ -79,24 +79,24 @@ class PhoneNumberVaultService:
 # obj=PhoneNumberVaultService()
 # print(obj.retrieve_phone_number("vault:v1:wGagbeT8ub9/F2AeREZ4VVR1hvxxmbSUS7SuyrbiVEpAMv6629fzCA=="))
 
-# --- End-to-End Testing (Mocked Vault) ---
-# if __name__ == "__main__":
-#     from unittest.mock import MagicMock
+#--- End-to-End Testing (Mocked Vault) ---
+if __name__ == "__main__":
+    from unittest.mock import MagicMock
 
-#     # 1. Instantiate your service
-#     service = PhoneNumberVaultService()
+    # 1. Instantiate your service
+    service = PhoneNumberVaultService()
 
-#     # 2. Mock the Vault retrieval step
-#     # This oversteps the actual Vault connection. When the support function calls 
-#     # 'self.retrieve_phone_number', it will instantly return this mock string.
-#     mock_raw_phone = "+1 (555) 123-4567"
-#     service.retrieve_phone_number = MagicMock(return_value=mock_raw_phone)
+    # 2. Mock the Vault retrieval step
+    # This oversteps the actual Vault connection. When the support function calls 
+    # 'self.retrieve_phone_number', it will instantly return this mock string.
+    mock_raw_phone = "+1 (555) 123-4567"
+    service.retrieve_phone_number = MagicMock(return_value=mock_raw_phone)
 
-#     # 3. Execute the support function
-#     # The ciphertext doesn't matter here because the mock intercepts it.
-#     dummy_ciphertext = "vault:v1:fake_data_string"
-#     masked_result = service.retrieve_phone_number_support(dummy_ciphertext)
+    # 3. Execute the support function
+    # The ciphertext doesn't matter here because the mock intercepts it.
+    dummy_ciphertext = "vault:v1:fake_data_string"
+    masked_result = service.retrieve_phone_number_support(dummy_ciphertext)
 
-#     # 4. Output the results to verify the integration
-#     print(f"Mocked Raw Data Input: {mock_raw_phone}")
-#     print(f"Masked Support Output: {masked_result}")
+    # 4. Output the results to verify the integration
+    print(f"Mocked Raw Data Input: {mock_raw_phone}")
+    print(f"Masked Support Output: {masked_result}")

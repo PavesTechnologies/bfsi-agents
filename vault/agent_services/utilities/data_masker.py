@@ -1,3 +1,4 @@
+#data_masker.py
 import json
 import re
 from typing import Optional
@@ -14,74 +15,107 @@ class SupportDataMasker:
 
     def _load_config(self, path: str) -> dict:
         """
-        Attempts to load the JSON configuration. Falls back to safe 
-        default rules if the file is not found.
+        Attempts to load the JSON configuration. 
+        Raises an error if the file is not found or if the JSON is invalid.
         """
         try:
+            print(f"Loading masking configuration from: {path}")
             with open(path, "r") as file:
                 return json.load(file)
-        except FileNotFoundError:
-            # Safe default fallback 
-            return {
-                "mask_char": "*",
-                "email_visible_chars": 2,
-                "phone_visible_digits": 4,
-                "ssn_visible_digits": 4
-            }
         except json.JSONDecodeError:
             raise ValueError(f"Invalid JSON format in {path}")
 
     def mask_email(self, email: Optional[str]) -> Optional[str]:
+        # Strictly enforce the presence of a valid email format
         if not email or "@" not in email:
-            return email
+            raise ValueError(f"Invalid email format provided: {email}")
             
         local_part, domain = email.split("@", 1)
-        visible_chars = self.config.get("email_visible_chars", 2)
         
+        # Strict config lookup - will raise a KeyError if the key is missing
+        visible_chars = self.config["email_visible_chars"]
+        
+        # 1. Mask the local part (name)
         if len(local_part) <= visible_chars:
             masked_local = self.mask_char * len(local_part)
         else:
             masked_local = local_part[:visible_chars] + (self.mask_char * (len(local_part) - visible_chars))
             
-        return f"{masked_local}@{domain}"
+        # 2. Mask the domain part
+        if len(domain) <= visible_chars:
+            masked_domain = self.mask_char * len(domain)
+        else:
+            masked_domain = domain[:visible_chars] + (self.mask_char * (len(domain) - visible_chars))
+            
+        return f"{masked_local}@{masked_domain}"
 
-    def mask_phone(self, phone: Optional[str]) -> Optional[str]:
+    def mask_phone(self, phone: Optional[str]) -> str:
+        # 1. Strict Error Handling
         if not phone:
-            return phone
+            raise ValueError("Invalid phone number: Input cannot be empty.")
             
         digits_only = re.sub(r'\D', '', phone)
-        visible_digits = self.config.get("phone_visible_digits", 4)
+        total_digits = len(digits_only)
         
-        if len(digits_only) <= visible_digits:
-            return self.mask_char * len(digits_only)
+        if total_digits == 0:
+            raise ValueError("Invalid phone number: No digits found.")
             
+        # 2. Strict Config Lookup
+        visible_digits = self.config["phone_visible_digits"]
+        
+        # 3. The Strict Limit: If config asks for more than 4 digits (or is negative), mask it all
+        if visible_digits > 4 or visible_digits < 0:
+            visible_digits = 0
+            
+        # 4. Iterative Masking (Preserves formatting like parentheses and dashes)
         masked_phone = []
         digit_count = 0
-        total_digits = len(digits_only)
         
         for char in phone:
             if char.isdigit():
+                # Mask if we haven't reached the allowed visible digits at the end
                 if total_digits - digit_count > visible_digits:
                     masked_phone.append(self.mask_char)
                 else:
                     masked_phone.append(char)
                 digit_count += 1
             else:
+                # Keep formatting characters untouched
                 masked_phone.append(char)
                 
         return "".join(masked_phone)
 
-    def mask_ssn(self, ssn: Optional[str]) -> Optional[str]:
+    def mask_ssn(self, ssn: Optional[str]) -> str:
+        # 1. Error on empty input
         if not ssn:
-            return ssn
+            raise ValueError("Invalid SSN: Input cannot be empty.")
             
-        visible_digits = self.config.get("ssn_visible_digits", 4)
         clean_ssn = re.sub(r'\D', '', ssn)
         
+        # 1. Error if it is not exactly 9 digits
         if len(clean_ssn) != 9:
-            return self.mask_char * len(clean_ssn)
+            raise ValueError(f"Invalid SSN format: Expected 9 digits, got {len(clean_ssn)}.")
             
-        hidden_part = self.mask_char * (9 - visible_digits)
-        visible_part = clean_ssn[-visible_digits:]
+        # 2. Strict config lookup with no hardcoded fallbacks
+        visible_digits = self.config["ssn_visible_digits"]
         
-        return f"{hidden_part[:3]}-{hidden_part[3:5]}-{visible_part}"
+        # 3. First two parts are always completely masked
+        part1 = self.mask_char * 3
+        part2 = self.mask_char * 2
+        
+        # Isolate the final 4 digits
+        last_part = clean_ssn[-4:]
+        
+        # 4 & 5. Handle the last part dynamically or penalize over-limits
+        if visible_digits > 4 or visible_digits < 0:
+            # Mask completely if the config asks for more digits than exist in this block
+            masked_last_part = self.mask_char * 4
+        elif visible_digits == 0:
+             # Handle 0 explicitly to avoid Python slicing quirks
+             masked_last_part = self.mask_char * 4
+        else:
+            # Mask the hidden characters and append the visible ones
+            hidden_count = 4 - visible_digits
+            masked_last_part = (self.mask_char * hidden_count) + last_part[hidden_count:]
+            
+        return f"{part1}-{part2}-{masked_last_part}"
