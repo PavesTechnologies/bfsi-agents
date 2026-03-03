@@ -5,11 +5,11 @@ DTI & EMI Capacity Evaluator
 
 from datetime import datetime
 
-# from src.core.telemetry import track_node
+from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
 
 
-# @track_node("income_engine")
+@track_node("income_engine")
 def income_node(state: LoanApplicationState) -> LoanApplicationState:
 
     income_data = {

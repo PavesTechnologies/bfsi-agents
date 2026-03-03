@@ -1,5 +1,8 @@
 from src.workflows.decision_state import LoanApplicationState
+from src.core.telemetry import track_node
 
+
+@track_node("PI_deletion_node")
 def pi_deletion_node(state: LoanApplicationState) ->  LoanApplicationState:
     """
     Final Decision Node (LLM)

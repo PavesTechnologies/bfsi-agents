@@ -24,7 +24,7 @@ from src.workflows.decision_engine.nodes.exposure_node import exposure_node
 from src.workflows.decision_engine.nodes.behavior_node import behavior_node
 from src.workflows.decision_engine.nodes.inquiry_node import inquiry_node
 from src.workflows.decision_engine.nodes.income_node import income_node
-from src.workflows.decision_engine.nodes.PI_deletion_node import pi_deletion_node
+from src.workflows.decision_engine.nodes.pi_deletion_node import pi_deletion_node
 
 # -----------------------
 # Aggregation + Decision
@@ -130,8 +130,8 @@ def build_underwriting_graph():
 
 #     result = workflow.invoke({})
 
-#     with open("underwriting_graph.png", "wb") as f:
-#         f.write(workflow.get_graph().draw_mermaid_png())
+#     # with open("underwriting_graph.png", "wb") as f:
+#     #     f.write(workflow.get_graph().draw_mermaid_png())
         
 #     print("Final Decision:")
 #     print(result)

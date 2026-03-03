@@ -5,11 +5,11 @@ Payment Pattern & Charge-Off Detector
 
 from datetime import datetime
 
-# from src.core.telemetry import track_node
+from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
 
 
-# @track_node("behavior_engine")
+@track_node("behavior_engine")
 def behavior_node(state: LoanApplicationState) -> LoanApplicationState:
 
     behavior_data = {

@@ -5,11 +5,11 @@ Exposure Stress Analyzer
 
 from datetime import datetime
 
-# from src.core.telemetry import track_node
+from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
 
 
-# @track_node("utilization_engine")
+@track_node("utilization_engine")
 def utilization_node(state: LoanApplicationState) -> LoanApplicationState:
 
     utilization_data = {

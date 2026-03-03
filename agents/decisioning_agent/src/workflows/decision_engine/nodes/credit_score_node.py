@@ -5,11 +5,11 @@ Policy-Driven, Auditable Bureau Score Interpreter
 
 from datetime import datetime
 
-# from src.core.telemetry import track_node
+from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
 
 
-# @track_node("credit_score_engine")
+@track_node("credit_score_engine")
 def credit_score_node(state: LoanApplicationState) -> LoanApplicationState:
 
     # ==================================================

@@ -5,11 +5,11 @@ Recent Credit Seeking Behavior Analyzer
 
 from datetime import datetime
 
-# from src.core.telemetry import track_node
+from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
 
 
-# @track_node("inquiry_engine")
+@track_node("inquiry_engine")
 def inquiry_node(state: LoanApplicationState) -> LoanApplicationState:
 
     inquiry_data = {

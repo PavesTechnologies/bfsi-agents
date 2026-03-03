@@ -5,11 +5,11 @@ Multi-Factor Risk Interpretation & Policy Routing
 
 from datetime import datetime
 
-# from src.core.telemetry import track_node
+from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
 
 
-# @track_node("underwriting_decision_engine")
+@track_node("underwriting_decision_engine")
 def decision_llm_node(state: LoanApplicationState) -> LoanApplicationState:
 
     final_decision = {

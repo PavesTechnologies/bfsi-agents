@@ -14,6 +14,7 @@ uvicorn = "^0.29.0"
 langgraph = "^0.0.40"
 pydantic = "^2.6.0"
 pyppeteer = "^2.0.0"
+pydantic-settings = "^2.13.1"
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"
@@ -23,6 +24,13 @@ test = "src.cli:test"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 ruff = "^0.3.0"
+
+
+[tool.poetry.group.telemetry.dependencies]
+opentelemetry-api = "^1.39.1"
+opentelemetry-sdk = "^1.39.1"
+opentelemetry-exporter-otlp-proto-grpc = "^1.39.1"
+opentelemetry-instrumentation-fastapi = "^0.60b1"
 
 [build-system]
 requires = ["poetry-core"]

@@ -5,11 +5,11 @@ Outstanding Liability Evaluator
 
 from datetime import datetime
 
-# from src.core.telemetry import track_node
+from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
 
 
-# @track_node("exposure_engine")
+@track_node("exposure_engine")
 def exposure_node(state: LoanApplicationState) -> LoanApplicationState:
 
     exposure_data = {
