@@ -1,8 +1,109 @@
-"""
-Workflow State (LangGraph Only)
-"""
+from pydantic import Field
+from typing import List, Optional, Dict, Any, TypedDict
 
-from typing import TypedDict
+# --- Node 1: Credit Score ---
+class CreditScoreMetrics(TypedDict):
+    score: int
+    score_band: str  # e.g., "FAIR"
+    base_limit_band: float
+    score_risk_flag: str  # e.g., "MODERATE"
+    score_weight: float
+
+# --- Node 2: Public Record ---
+class PublicRecordMetrics(TypedDict):
+    bankruptcy_present: bool
+    years_since_bankruptcy: Optional[int] = None
+    public_record_severity: str
+    public_record_adjustment_factor: float
+    hard_decline_flag: bool
+
+# --- Node 3: Revolving Utilization ---
+class UtilizationMetrics(TypedDict):
+    total_credit_limit: float
+    total_balance: float
+    utilization_ratio: float
+    utilization_risk: str
+    utilization_adjustment_factor: float
+
+# --- Node 4: Debt Exposure ---
+class ExposureMetrics(TypedDict):
+    total_existing_debt: float
+    monthly_obligation_estimate: float
+    exposure_risk: str
+
+# --- Node 5: Inquiry Velocity ---
+class InquiryMetrics(TypedDict):
+    inquiries_last_12m: int
+    velocity_risk: str
+    inquiry_penalty_factor: float
+
+# --- Node 6: Payment Behavior ---
+class BehaviorMetrics(TypedDict):
+    delinquencies: int
+    chargeoff_history: bool
+    behavior_score: float
+    behavior_risk: str
+
+# --- Node 7: Income (Optional) ---
+class IncomeMetrics(TypedDict):
+    estimated_dti: float
+    income_risk: str
+    affordability_flag: bool
+    income_missing_flag: bool = False # Default to False if income exists
+
+# --- Final Decision Output ---
+class FinalDecision(TypedDict):
+    decision: str  # "APPROVE", "COUNTER_OFFER", "DECLINE"
+    approved_amount: float
+    approved_tenure: int
+    explanation: str
+    reasoning_steps: List[str]
+
+class LoanTermOption(TypedDict):
+    option_id: str          # e.g., "OPT_LOWER_AMT" or "OPT_LONGER_TERM"
+    description: str        # "Keep 36 months, reduce amount to $35k"
+    proposed_amount: float
+    proposed_tenure_months: int
+    proposed_interest_rate: float
+    monthly_payment_emi: float
+    total_repayment: float
+
+class CounterOfferMetrics(TypedDict):
+    original_request_dti: float      # The DTI that caused the rejection
+    max_affordable_emi: float        # The ceiling calculated by the agent
+    counter_offer_logic: str         # "User DTI was 45%, limit is 40%. Reduced principal."
+    generated_options: List[LoanTermOption] # List of possible restructuring options
+
+class LoanApplicationState(TypedDict):
+    # --- 1. Raw Inputs (From KYC/Intake) ---
+    application_id: str
+    raw_experian_data: Dict[str, Any]  # The full JSON dump from Experian
+    bank_statement_summary: Dict[str, Any]
+    user_request: Dict[str, Any]       # {amount: 50000, tenure: 36}
+    
+    # --- 2. Processing Flags ---
+    is_pii_masked: bool                # True after Node 2 (PII Masking) runs
+    hard_decline_triggered: bool       # fast-fail flag
+    
+    # --- 3. Parallel Node Outputs (The "Fanned Out" Results) ---
+    # Each parallel node populates ONE of these keys.
+    credit_score_data: Optional[CreditScoreMetrics]
+    public_record_data: Optional[PublicRecordMetrics]
+    utilization_data: Optional[UtilizationMetrics]
+    exposure_data: Optional[ExposureMetrics]
+    inquiry_data: Optional[InquiryMetrics]
+    behavior_data: Optional[BehaviorMetrics]
+    income_data: Optional[IncomeMetrics]
+
+    # --- 4. Aggregation Phase ---
+    # The "Risk Aggregator Node" reads the sections above and populates this:
+    aggregated_risk_score: Optional[float] 
+    aggregated_risk_tier: Optional[str]    # "A", "B", "C", "F"
+
+    counter_offer_data: Optional[CounterOfferMetrics]
+    
+    # --- 5. Final Output ---
+    final_decision: Optional[FinalDecision]
 
 
 class DecisionState(TypedDict):
