@@ -1,0 +1,132 @@
+# ==================================================
+# KYC Decision Matrix – Versioned Rule Set
+# ==================================================
+
+metadata:
+  rule_set_name: "kyc_decision_matrix"
+  version: "2026.02.25.v1"
+  effective_date: "2026-02-25"
+  approved_by: "Compliance Committee"
+  description: "KYC Rule Matrix aligned with BSA/AML and OFAC requirements"
+
+# ==================================================
+# Threshold Configuration
+# ==================================================
+
+thresholds:
+  # face_match_min: 0.75
+  # liveness_min: 0.80
+  soft_signal_threshold: 3   # Number of soft flags required for REVIEW
+
+# ==================================================
+# Hard Fail Rules (Non-Overrideable)
+# ==================================================
+
+hard_fail_rules:
+
+  - id: "OFAC_MATCH"
+    condition:
+      aml.ofac_match: true
+    outcome: "FAIL"
+    priority: 1
+    regulatory_basis: "OFAC Sanctions Compliance"
+
+  # - id: "DOCUMENT_TAMPER"
+  #   condition:
+  #     document.tamper_detected: true
+  #   outcome: "FAIL"
+  #   priority: 2
+  #   regulatory_basis: "Identity Fraud Prevention"
+
+  # - id: "BIOMETRIC_SPOOF"
+  #   condition:
+  #     any:
+  #       - face.spoof_detected: true
+  #       - face.replay_attack_detected: true
+  #   outcome: "FAIL"
+  #   priority: 3
+  #   regulatory_basis: "Liveness & Presence Requirements"
+
+  - id: "IDENTITY_INTEGRITY_FAIL_SSN"
+    condition:
+      any:
+        - ssn.identity_theft_flag: true
+        - ssn.deceased_flag: true
+    outcome: "FAIL"
+    priority: 3
+    regulatory_basis: "Synthetic Identity Prevention"
+
+# ==================================================
+# Soft Review Rules (Human Escalation)
+# ==================================================
+
+soft_review_rules:
+
+  # - id: "LOW_FACE_MATCH"
+  #   condition:
+  #     face.face_match_score: "< thresholds.face_match_min"
+  #   outcome: "REVIEW"
+  #   weight: 1
+
+  # - id: "LOW_LIVENESS_SCORE"
+  #   condition:
+  #     face.liveness_score: "< thresholds.liveness_min"
+  #   outcome: "REVIEW"
+  #   weight: 1
+
+  # - id: "DOCUMENT_EXPIRED"
+  #   condition:
+  #     document.expiry_valid: false
+  #   outcome: "REVIEW"
+  #   weight: 1
+
+  - id: "PEP_MATCH"
+    condition:
+      aml.pep_match: true
+    outcome: "REVIEW"
+    weight: 2
+
+  - id: "HIGH_GEO_RISK"
+    condition:
+      address.geo_risk_flag: true
+    outcome: "REVIEW"
+    weight: 1
+
+# ==================================================
+# Weighted Scoring Engine
+# ==================================================
+
+weights:
+  ssn: 0.33
+  address: 0.34
+  aml: 0.33
+
+score_normalization:
+  output_range: [0.0, 1.0]
+  rounding_precision: 4
+
+# ==================================================
+# Final Decision Logic
+# ==================================================
+
+final_decision_logic:
+
+  pass_condition:
+    description: "No hard fail and soft flags below threshold"
+
+  review_condition:
+    description: "Soft flags >= thresholds.soft_signal_threshold"
+
+  fail_condition:
+    description: "Any hard_fail_rule triggered"
+
+# ==================================================
+# Audit Requirements
+# ==================================================
+
+audit:
+  store_vendor_hash: true
+  store_payload_hash: true
+  store_rule_version: true
+  immutable_decision_record: true
+  encryption_standard: "AES-256"

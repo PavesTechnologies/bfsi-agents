@@ -1,7 +1,5 @@
 from datetime import datetime
-from typing import Annotated, TypedDict, Optional
-
-from typing import Annotated, TypedDict,Optional
+from typing import Annotated, TypedDict
 
 
 def list_append_reducer(existing, new):
@@ -77,13 +75,48 @@ class AMLCheckState(TypedDict, total=False):
 
 
 class RiskDecisionState(TypedDict, total=False):
-    final_status: str  # PASS / FAIL / NEEDS_HUMAN_REVIEW
-    aggregated_score: float
+    """
+    Final deterministic KYC decision output.
+    Fully aligned with rule-engine + audit requirements.
+    """
+
+    # -------------------------------------------------
+    # Core Decision
+    # -------------------------------------------------
+    final_status: str  # PASS | FAIL | NEEDS_HUMAN_REVIEW
+    confidence_score: float  # 0.0 – 1.0 normalized trust score
     hard_fail_triggered: bool
     decision_reason: str
-    triggered_rules: list[str]
-    decision_rules_snapshot: dict[str, str]
-    model_versions: dict[str, str]
+
+    # -------------------------------------------------
+    # Rule Execution Details
+    # -------------------------------------------------
+    triggered_rules: list[str]  # All rules that fired
+    soft_flags: list[str]  # Soft rules triggered
+    hard_fail_rules: list[str]  # Hard rules triggered (if any)
+
+    # -------------------------------------------------
+    # Policy Versioning
+    # -------------------------------------------------
+    rule_version: str  # YAML version (e.g. 2026.02.25.v1)
+    rule_file_hash: str | None  # SHA256 of rule file (immutability)
+
+    # -------------------------------------------------
+    # Decision Snapshot (Audit Safe)
+    # -------------------------------------------------
+    decision_rules_snapshot: dict[str, bool]
+    input_payload_hash: str | None
+    vendor_signal_hash: str | None
+
+    # -------------------------------------------------
+    # Model & Threshold Versions
+    # -------------------------------------------------
+    model_versions: dict[str, str]  # threshold versions, aggregator version
+
+    # -------------------------------------------------
+    # Explainability / Compliance
+    # -------------------------------------------------
+    reasoning_trace: dict | None  # Full replay object (encrypted at rest)
 
 
 # @dataclass(frozen=True)
@@ -113,7 +146,6 @@ class RawKYCRequest:
     address: Address
     phone: str
     email: str
-    
 
 
 class KYCState(TypedDict, total=False):
@@ -130,6 +162,9 @@ class KYCState(TypedDict, total=False):
 
     # Aggregation
     risk_decision: RiskDecisionState | None
+
+    # explaination
+    decision_explanation: str
 
     # System
     hard_stop: bool

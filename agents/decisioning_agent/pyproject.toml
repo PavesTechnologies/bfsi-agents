@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "decisioning-agent"
+version = "0.1.0"
+description = "decisioning_agent microservice"
+authors = ["Agentic Platform Team"]
+
+[[tool.poetry.packages]]
+include = "src"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.110.0"
+uvicorn = "^0.29.0"
+langgraph = "^0.0.40"
+pydantic = "^2.6.0"
+pyppeteer = "^2.0.0"
+
+[tool.poetry.scripts]
+dev = "src.cli:dev"
+prod = "src.cli:prod"
+test = "src.cli:test"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+ruff = "^0.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

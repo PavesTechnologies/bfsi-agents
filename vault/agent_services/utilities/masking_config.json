@@ -1,6 +1,6 @@
 {
-  "mask_char": "*",
-  "email_visible_chars": 2,
-  "phone_visible_digits": 4,
+  "mask_char": "#",
+  "email_visible_chars": 1,
+  "phone_visible_digits": 3,
   "ssn_visible_digits": 4
 }
