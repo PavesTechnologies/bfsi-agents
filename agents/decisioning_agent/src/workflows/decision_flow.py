@@ -48,11 +48,11 @@ def build_underwriting_graph():
     graph.add_node("pi_deletion", pi_deletion_node)
     graph.add_node("credit_score", credit_score_node)
     graph.add_node("public_record", public_record_node)
-    graph.add_node("utilization", utilization_node)
-    graph.add_node("exposure", exposure_node)
-    graph.add_node("behavior", behavior_node)
+    graph.add_node("credit_utilization", utilization_node)
+    graph.add_node("debt_exposure", exposure_node)
+    graph.add_node("payment_behavior", behavior_node)
     graph.add_node("inquiry", inquiry_node)
-    graph.add_node("income", income_node)
+    graph.add_node("income_analysis", income_node)
 
     graph.add_node("aggregate", risk_aggregator_node)
     graph.add_node("decision", decision_llm_node)
@@ -71,11 +71,11 @@ def build_underwriting_graph():
 
     graph.add_edge("pi_deletion", "credit_score")
     graph.add_edge("pi_deletion", "public_record")
-    graph.add_edge("pi_deletion", "utilization")
-    graph.add_edge("pi_deletion", "exposure")
-    graph.add_edge("pi_deletion", "behavior")
+    graph.add_edge("pi_deletion", "credit_utilization")
+    graph.add_edge("pi_deletion", "debt_exposure")
+    graph.add_edge("pi_deletion", "payment_behavior")
     graph.add_edge("pi_deletion", "inquiry")
-    graph.add_edge("pi_deletion", "income")
+    graph.add_edge("pi_deletion", "income_analysis")
 
     # -----------------------
     # Join → Aggregator
@@ -83,11 +83,11 @@ def build_underwriting_graph():
 
     graph.add_edge("credit_score", "aggregate")
     graph.add_edge("public_record", "aggregate")
-    graph.add_edge("utilization", "aggregate")
-    graph.add_edge("exposure", "aggregate")
-    graph.add_edge("behavior", "aggregate")
+    graph.add_edge("credit_utilization", "aggregate")
+    graph.add_edge("debt_exposure", "aggregate")
+    graph.add_edge("payment_behavior", "aggregate")
     graph.add_edge("inquiry", "aggregate")
-    graph.add_edge("income", "aggregate")
+    graph.add_edge("income_analysis", "aggregate")
 
     # -----------------------
     # Decision Layer
@@ -125,10 +125,13 @@ def build_underwriting_graph():
     return graph.compile()
 
 
-if __name__ == "__main__":
-    workflow = build_underwriting_graph()
+# if __name__ == "__main__":
+#     workflow = build_underwriting_graph()
 
-    result = workflow.invoke({})
+#     result = workflow.invoke({})
 
-    with open("underwriting_graph.png", "wb") as f:
-        f.write(workflow.get_graph().draw_mermaid_png())
+#     with open("underwriting_graph.png", "wb") as f:
+#         f.write(workflow.get_graph().draw_mermaid_png())
+        
+#     print("Final Decision:")
+#     print(result)
