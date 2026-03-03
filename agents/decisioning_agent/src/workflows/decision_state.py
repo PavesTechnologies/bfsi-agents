@@ -1,5 +1,19 @@
 from pydantic import Field
-from typing import List, Optional, Dict, Any, TypedDict
+from typing import List, Optional, Dict, Any, TypedDict, Annotated
+
+
+def list_append_reducer(existing, new):
+    existing = existing or []
+    new = new or []
+    return existing + new
+
+
+def dict_merge_reducer(
+    existing: dict[str, float] | None, new: dict[str, float] | None
+) -> dict[str, float]:
+    existing = existing or {}
+    new = new or {}
+    return {**existing, **new}
 
 # --- Node 1: Credit Score ---
 class CreditScoreMetrics(TypedDict):
@@ -105,3 +119,5 @@ class LoanApplicationState(TypedDict):
     # --- 5. Final Output ---
     final_decision: Optional[FinalDecision]
 
+    parallel_tasks_completed: Annotated[list[str], list_append_reducer]
+    node_execution_times: Annotated[dict[str, float], dict_merge_reducer]
