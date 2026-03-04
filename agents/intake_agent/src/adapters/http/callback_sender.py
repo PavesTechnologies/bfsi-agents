@@ -1,7 +1,7 @@
-import logging
-
 import httpx
 from src.models.interfaces.callback import CallbackPayload
+import logging
+
 
 logger = logging.getLogger(__name__)
 

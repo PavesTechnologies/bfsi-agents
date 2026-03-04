@@ -1,24 +1,23 @@
 """Enrichment service - orchestrates adapter calls."""
-
-from src.adapters.http.email_risk import EmailInput, MockEmailAdapter
-from src.adapters.http.employer import EmployerInput, MockEmployerAdapter
-from src.adapters.http.phone import MockPhoneAdapter, PhoneInput
 from src.adapters.http.usps import MockUSPSAdapter, USPSAddressInput
+from src.adapters.http.employer import MockEmployerAdapter, EmployerInput
+from src.adapters.http.phone import MockPhoneAdapter, PhoneInput
+from src.adapters.http.email_risk import MockEmailAdapter, EmailInput
 from src.api.v1.schemas.enrichment import (
-    EmailRequestSchema,
-    EmailResponseSchema,
+    USPSAddressRequestSchema,
+    USPSAddressResponseSchema,
     EmployerRequestSchema,
     EmployerResponseSchema,
     PhoneRequestSchema,
     PhoneResponseSchema,
-    USPSAddressRequestSchema,
-    USPSAddressResponseSchema,
+    EmailRequestSchema,
+    EmailResponseSchema,
 )
 
 
 class EnrichmentService:
     """Service layer for enrichment operations.
-
+    
     Orchestrates calls to mock adapters. No database access, no side effects.
     """
 
@@ -27,10 +26,10 @@ class EnrichmentService:
         request: USPSAddressRequestSchema,
     ) -> USPSAddressResponseSchema:
         """Verify address using USPS mock adapter.
-
+        
         Args:
             request: Address verification request
-
+            
         Returns:
             Address verification response with deliverability and ZIP+4
         """
@@ -57,10 +56,10 @@ class EnrichmentService:
         request: EmployerRequestSchema,
     ) -> EmployerResponseSchema:
         """Verify employer using mock adapter.
-
+        
         Args:
             request: Employer verification request
-
+            
         Returns:
             Employer verification response with NAICS code
         """
@@ -83,10 +82,10 @@ class EnrichmentService:
         request: PhoneRequestSchema,
     ) -> PhoneResponseSchema:
         """Analyze phone using mock adapter.
-
+        
         Args:
             request: Phone analysis request
-
+            
         Returns:
             Phone intelligence response with validity and line type
         """
@@ -106,10 +105,10 @@ class EnrichmentService:
         request: EmailRequestSchema,
     ) -> EmailResponseSchema:
         """Analyze email domain using mock adapter.
-
+        
         Args:
             request: Email analysis request
-
+            
         Returns:
             Email risk response with domain risk classification
         """

@@ -13,7 +13,7 @@ class KYCRepository:
     """
 
     def __init__(self, db: AsyncSession):
-        # self.session=session
+        
         self.db = db
 
     # ---------------------------------------------------------

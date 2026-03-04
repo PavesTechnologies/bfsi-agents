@@ -2,22 +2,24 @@
 CLI entrypoint for local development.
 """
 
-import subprocess
-import sys
-
 import uvicorn
-
+import sys
+import subprocess
+import os
 
 def dev():
-    uvicorn.run("src.main:app", reload=True, port=8000, reload_dirs=["src"])
-
+    uvicorn.run(
+        "src.main:app",
+        reload=True,
+        port=8000,
+        reload_dirs=["src"]
+    )
 
 def prod():
     uvicorn.run(
         "src.main:app",
         port=8000,
     )
-
 
 def test():
     print("Running tests...")
@@ -26,7 +28,6 @@ def test():
     pytest.main(["-v", "tests/"])
 
     print("Tests complete.")
-
 
 def migration():
     """
@@ -51,16 +52,29 @@ def migration():
 
     # Run alembic revision
     subprocess.run(
-        ["alembic", "revision", "--autogenerate", "-m", description], check=True
+        [
+            "alembic",
+            "revision",
+            "--autogenerate",
+            "-m",
+            description
+        ],
+        check=True
     )
 
     print("🚀 Applying migration...")
 
     # Run alembic upgrade
-    subprocess.run(["alembic", "upgrade", "head"], check=True)
+    subprocess.run(
+        [
+            "alembic",
+            "upgrade",
+            "head"
+        ],
+        check=True
+    )
 
     print("✅ Migration completed successfully.")
-
 
 def migrate():
     """
@@ -71,10 +85,16 @@ def migrate():
     print("🚀 Applying migrations...")
 
     # Run alembic upgrade
-    subprocess.run(["alembic", "upgrade", "head"], check=True)
+    subprocess.run(
+        [
+            "alembic",
+            "upgrade",
+            "head"
+        ],
+        check=True
+    )
 
     print("✅ Migrations applied successfully.")
-
 
 # def migrate_new_model():
 #     """

@@ -1,26 +1,25 @@
-"""Output module for canonical JSON assembly, \
-    LOS schema validation, and evidence linking."""
+"""Output module for canonical JSON assembly, LOS schema validation, and evidence linking."""
 
 from src.domain.output.canonical_builder import assemble_canonical_output
-from src.domain.output.evidence import (
-    EvidenceReference,
-    EvidenceType,
-    deduplicate_evidence,
-    get_evidence_by_entity,
-    get_evidence_by_type,
-    link_evidence_to_output,
-    sort_evidence,
-)
 from src.domain.output.los_schema import (
-    ApplicantSchema,
     ApplicationSchema,
-    EnrichmentsSchema,
+    ApplicantSchema,
     EvidenceSchema,
+    EnrichmentsSchema,
     LOSOutput,
 )
 from src.domain.output.schema_validator import (
-    LOSSchemaValidationError,
     validate_los_output,
+    LOSSchemaValidationError,
+)
+from src.domain.output.evidence import (
+    EvidenceReference,
+    EvidenceType,
+    link_evidence_to_output,
+    deduplicate_evidence,
+    sort_evidence,
+    get_evidence_by_type,
+    get_evidence_by_entity,
 )
 
 __all__ = [

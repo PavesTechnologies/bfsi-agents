@@ -1,22 +1,18 @@
 import io
-
 import torch
 from PIL import Image
 from torchvision import transforms
 from torchvision.models import efficientnet_b0
-
 
 class EfficientNetValidator:
     def __init__(self):
         self.model = efficientnet_b0(weights="IMAGENET1K_V1")
         self.model.eval()
 
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-            ]
-        )
+        self.transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+        ])
 
     def validate(self, file_bytes: bytes) -> float:
         try:

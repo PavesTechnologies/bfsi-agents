@@ -1,10 +1,9 @@
-import enum
 
+import enum
 
 class HumanDecision(enum.Enum):
     APPROVE = "APPROVE"
     REJECT = "REJECT"
-
 
 class ApplicantStatus(enum.Enum):
     DRAFT = "DRAFT"
@@ -13,7 +12,6 @@ class ApplicantStatus(enum.Enum):
     REVISION_REQUIRED = "REVISION_REQUIRED"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
-
 
 class Gender(enum.Enum):
     MALE = "MALE"

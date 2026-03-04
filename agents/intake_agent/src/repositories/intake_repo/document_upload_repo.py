@@ -1,6 +1,5 @@
 from src.models.models import PgsqlDocument
 
-
 class LoanIntakeDAO:
     def __init__(self, db):
         self.db = db

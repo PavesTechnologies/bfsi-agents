@@ -1,14 +1,12 @@
-from uuid import UUID
-
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.repositories.loan_info.loan_query_dao import LoanQueryDAO
 from src.models.interfaces.loan_query_response_interface import (
-    ApplicantResponse,
     LoanDetailsResponse,
+    ApplicantResponse,
     PgsqlDocumentResponse,
 )
-from src.repositories.loan_info.loan_query_dao import LoanQueryDAO
-
+from uuid import UUID
 
 class LoanQueryService:
     def __init__(self, db: AsyncSession):
@@ -16,26 +14,29 @@ class LoanQueryService:
         self.dao = LoanQueryDAO(db)
 
     async def get_full_loan_details(self, application_id):
+        
         try:
+            
             application_id_obj = UUID(application_id)
-
+            
             loan = await self.dao.get_loan_by_application_id(application_id_obj)
 
             if not loan:
                 raise HTTPException(status_code=404, detail="Loan data not found")
 
             return LoanDetailsResponse(
-                application_id=loan.application_id,
-                loan_type=loan.loan_type,
-                credits_type=loan.credit_type,
-                application_status=loan.application_status,
-                requested_amount=loan.requested_amount,
-                created_at=loan.created_at,
-                credit_type=loan.credit_type,
-                loan_purpose=loan.loan_purpose,
-                requested_term_months=loan.requested_term_months,
-                preferred_payment_day=loan.preferred_payment_day,
-                origination_channel=loan.origination_channel,
+                application_id = loan.application_id,
+                loan_type = loan.loan_type,
+                credits_type = loan.credit_type,
+                application_status = loan.application_status,
+                requested_amount = loan.requested_amount,
+                created_at = loan.created_at,
+                credit_type = loan.credit_type,
+                loan_purpose = loan.loan_purpose,
+                requested_term_months = loan.requested_term_months,
+                preferred_payment_day = loan.preferred_payment_day,
+                origination_channel = loan.origination_channel,
+
                 # ✅ Explicit mapping
                 applicants=[
                     ApplicantResponse(
@@ -48,6 +49,7 @@ class LoanQueryService:
                     )
                     for a in loan.applicant
                 ],
+
                 documents=[
                     PgsqlDocumentResponse(
                         id=d.id,
@@ -64,14 +66,12 @@ class LoanQueryService:
             )
         except HTTPException as e:
             raise e
-
-        except ValueError:
-            raise HTTPException(
-                status_code=400, detail="Invalid application ID format"
-            ) from None
-
+        
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail="Invalid application ID format")
+        
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e)) from None
-
+            raise HTTPException(status_code=500, detail=str(e))
+    
     async def check(self) -> str:
         return "Loan Query Service is operational."

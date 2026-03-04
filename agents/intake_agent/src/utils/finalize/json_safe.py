@@ -1,7 +1,7 @@
-from datetime import date, datetime
 from decimal import Decimal
-from enum import Enum
 from uuid import UUID
+from datetime import datetime, date
+from enum import Enum
 
 
 def to_json_safe(value):
@@ -16,7 +16,7 @@ def to_json_safe(value):
     if isinstance(value, Decimal):
         return float(value)
 
-    if isinstance(value, (datetime | date)):
+    if isinstance(value, (datetime, date)):
         return value.isoformat()
 
     if isinstance(value, UUID):

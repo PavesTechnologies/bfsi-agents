@@ -5,12 +5,13 @@ service boundary and the `RequestMetadataRecord` SQLAlchemy model used
 for persistence.
 """
 
+from pydantic import BaseModel
+from typing import Optional
 import datetime
 import uuid
-
-from pydantic import BaseModel
-from sqlalchemy import JSON, DateTime, Integer, String, Uuid, text
+from sqlalchemy import String, DateTime, Integer, JSON, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column
+
 from src.models.models import Base
 
 
@@ -28,12 +29,12 @@ class RequestMetadata(BaseModel):
     """
 
     ip_address: str
-    user_agent: str | None = None
-    browser: str | None = None
-    os: str | None = None
-    device_type: str | None = None
-    accept_language: str | None = None
-    referrer: str | None = None
+    user_agent: Optional[str] = None
+    browser: Optional[str] = None
+    os: Optional[str] = None
+    device_type: Optional[str] = None
+    accept_language: Optional[str] = None
+    referrer: Optional[str] = None
 
 
 class RequestMetadataRecord(Base):
@@ -54,13 +55,13 @@ class RequestMetadataRecord(Base):
         index=True,
     )
     ip_address: Mapped[str] = mapped_column(String(45), nullable=False)
-    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    browser: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    os: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    device_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    accept_language: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    referrer: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    browser: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    os: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    device_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    accept_language: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    referrer: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    metadata_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime,
         nullable=False,
@@ -70,6 +71,6 @@ class RequestMetadataRecord(Base):
 
     def __repr__(self) -> str:  # pragma: no cover - trivial
         return (
-            f"RequestMetadataRecord(request_id={self.request_id}, ip={self.ip_address},"
+            f"RequestMetadataRecord(request_id={self.request_id}, ip={self.ip_address}, "
             f"device={self.device_type}, browser={self.browser}, os={self.os})"
         )

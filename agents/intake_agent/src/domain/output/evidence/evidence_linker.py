@@ -5,17 +5,17 @@ Deterministic linking of evidence references into canonical output.
 Maintains traceability without mutating inputs.
 """
 
+from typing import Dict, Any, List, Set
 from copy import deepcopy
-from typing import Any
 
 from src.domain.output.evidence.evidence_models import EvidenceReference
 
 
 def link_evidence_to_output(
     *,
-    canonical_output: dict[str, Any],
-    evidence_refs: list[EvidenceReference],
-) -> dict[str, Any]:
+    canonical_output: Dict[str, Any],
+    evidence_refs: List[EvidenceReference],
+) -> Dict[str, Any]:
     """
     Link evidence references into canonical output while preserving immutability.
 
@@ -44,8 +44,8 @@ def link_evidence_to_output(
     output = deepcopy(canonical_output)
 
     # Deduplicate evidence by ID
-    seen_ids: set[str] = set()
-    unique_evidence: list[EvidenceReference] = []
+    seen_ids: Set[str] = set()
+    unique_evidence: List[EvidenceReference] = []
 
     for evidence in evidence_refs:
         if evidence.id not in seen_ids:
@@ -60,14 +60,16 @@ def link_evidence_to_output(
     for evidence in sorted_evidence:
         evidence_dict = evidence.to_dict()
         # Remove None values to keep output clean
-        evidence_dicts.append({k: v for k, v in evidence_dict.items() if v is not None})
+        evidence_dicts.append(
+            {k: v for k, v in evidence_dict.items() if v is not None}
+        )
 
     # Update the evidence section in output
     # Merge with any existing evidence, preserving originals if no conflict
     existing_evidence = output.get("evidence", [])
 
     # Build merged evidence list, preferring new evidence dicts over existing
-    existing_by_path = {e.get("path"): e for e in existing_evidence}  # noqa: F841
+    existing_by_path = {e.get("path"): e for e in existing_evidence}
     merged_evidence = list(evidence_dicts)
 
     # Add existing evidence that's not in new evidence
@@ -83,8 +85,8 @@ def link_evidence_to_output(
 
 
 def deduplicate_evidence(
-    evidence_refs: list[EvidenceReference],
-) -> list[EvidenceReference]:
+    evidence_refs: List[EvidenceReference],
+) -> List[EvidenceReference]:
     """
     Deduplicate evidence references by ID.
 
@@ -94,8 +96,8 @@ def deduplicate_evidence(
     Returns:
         list: List of unique EvidenceReference objects (by id)
     """
-    seen_ids: set[str] = set()
-    unique: list[EvidenceReference] = []
+    seen_ids: Set[str] = set()
+    unique: List[EvidenceReference] = []
 
     for evidence in evidence_refs:
         if evidence.id not in seen_ids:
@@ -106,8 +108,8 @@ def deduplicate_evidence(
 
 
 def sort_evidence(
-    evidence_refs: list[EvidenceReference],
-) -> list[EvidenceReference]:
+    evidence_refs: List[EvidenceReference],
+) -> List[EvidenceReference]:
     """
     Sort evidence deterministically by type, source, and id.
 
@@ -121,9 +123,9 @@ def sort_evidence(
 
 
 def get_evidence_by_type(
-    evidence_refs: list[EvidenceReference],
+    evidence_refs: List[EvidenceReference],
     evidence_type: str,
-) -> list[EvidenceReference]:
+) -> List[EvidenceReference]:
     """
     Filter evidence references by type.
 
@@ -138,10 +140,10 @@ def get_evidence_by_type(
 
 
 def get_evidence_by_entity(
-    evidence_refs: list[EvidenceReference],
+    evidence_refs: List[EvidenceReference],
     entity_type: str,
     entity_id: str,
-) -> list[EvidenceReference]:
+) -> List[EvidenceReference]:
     """
     Filter evidence references by entity type and id.
 

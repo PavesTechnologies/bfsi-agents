@@ -1,8 +1,11 @@
-from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.models.enums import HumanDecision
+from sqlalchemy import select, update
+from typing import Optional, List
+
 from src.models.human_in_loop import HumanReview
-from src.models.models import Applicant, LoanApplication
+from src.models.models import LoanApplication
+from src.models.models import Applicant
+from src.models.enums import HumanDecision, ApplicantStatus
 
 
 class HumanInLoopDAO:
@@ -17,9 +20,10 @@ class HumanInLoopDAO:
         application_id: str,
         reviewer_id: str,
         decision: HumanDecision,
-        reason_codes: list[str],
-        comments: str | None,
+        reason_codes: List[str],
+        comments: Optional[str],
     ) -> HumanReview:
+
         review = HumanReview(
             application_id=application_id,
             reviewer_id=reviewer_id,
@@ -39,6 +43,7 @@ class HumanInLoopDAO:
         application_id: str,
         status: str,
     ) -> None:
+
         stmt = (
             update(LoanApplication)
             .where(LoanApplication.application_id == application_id)
@@ -53,8 +58,11 @@ class HumanInLoopDAO:
     async def get_applicants(
         self,
         application_id: str,
-    ) -> list[Applicant]:
-        stmt = select(Applicant).where(Applicant.application_id == application_id)
+    ) -> List[Applicant]:
+
+        stmt = select(Applicant).where(
+            Applicant.application_id == application_id
+        )
 
         result = await self.db.execute(stmt)
         return result.scalars().all()

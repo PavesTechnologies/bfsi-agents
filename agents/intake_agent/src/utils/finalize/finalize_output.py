@@ -1,13 +1,11 @@
 from datetime import datetime
-
+from typing import Dict, Any, List
 from pydantic import ValidationError
 from src.domain.output.los_schema import LOSOutput
 
 
 # ---------------- CANONICAL BUILDER ----------------
-def build_canonical(
-    application: dict, applicants: list, enrichments: dict, evidence: list
-):
+def build_canonical(application: dict, applicants: list, enrichments: dict, evidence: list):
     return {
         "application": application or {},
         "applicants": applicants or [],
@@ -26,7 +24,7 @@ def validate_schema(output: dict):
     try:
         LOSOutput(**output)
     except ValidationError as e:
-        raise LOSValidationError(str(e)) from e
+        raise LOSValidationError(str(e))
 
 
 # ---------------- ORM → DICT MAPPER ----------------
@@ -46,16 +44,12 @@ def map_application(loan):
 def map_applicants(loan):
     out = []
     for a in loan.applicant:
-        out.append(
-            {
-                "applicant_id": str(a.applicant_id),
-                "first_name": a.first_name,
-                "last_name": a.last_name,
-                "email": a.email,
-                "phone_number": a.phone_number,
-                "date_of_birth": a.date_of_birth.isoformat()
-                if a.date_of_birth
-                else None,
-            }
-        )
+        out.append({
+            "applicant_id": str(a.applicant_id),
+            "first_name": a.first_name,
+            "last_name": a.last_name,
+            "email": a.email,
+            "phone_number": a.phone_number,
+            "date_of_birth": a.date_of_birth.isoformat() if a.date_of_birth else None,
+        })
     return out

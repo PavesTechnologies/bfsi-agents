@@ -1,11 +1,8 @@
-import json
-
 import boto3
+import json
 from botocore.exceptions import ClientError
-
 # from utilities.env_loader import load_env
 from src.adapters.vault.utilities.env_loader import load_env
-
 
 def get_aws_secret(parameter_name, region_name=None):
     """
@@ -18,14 +15,20 @@ def get_aws_secret(parameter_name, region_name=None):
 
     # Create an SSM client
     session = boto3.session.Session()
-    client = session.client(service_name="ssm", region_name=region_name)
+    client = session.client(
+        service_name='ssm',
+        region_name=region_name
+    )
 
     try:
-        # WithDecryption=True handles SecureStrings;
+        # WithDecryption=True handles SecureStrings; 
         # it is ignored for standard Strings, so it's safe to keep.
-        response = client.get_parameter(Name=parameter_name, WithDecryption=True)
-
-        raw_value = response["Parameter"]["Value"]
+        response = client.get_parameter(
+            Name=parameter_name,
+            WithDecryption=True
+        )
+        
+        raw_value = response['Parameter']['Value']
 
         # Attempt to parse as JSON; if it fails, return as plain text string
         try:

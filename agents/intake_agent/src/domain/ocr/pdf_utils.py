@@ -1,14 +1,16 @@
 # agents/intake_agent/src/domain/ocr/pdf_utils.py
 
+from io import BytesIO
+from typing import List
 
-from pdf2image import convert_from_bytes
 from PIL import Image
+from pdf2image import convert_from_bytes
 
 
 def pdf_bytes_to_images(
     pdf_bytes: bytes,
     dpi: int = 300,
-) -> list[Image.Image]:
+) -> List[Image.Image]:
     """
     Convert PDF bytes into a list of PIL Images.
 

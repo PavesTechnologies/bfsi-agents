@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any, Dict
 from uuid import UUID
 
 
@@ -6,5 +7,6 @@ from uuid import UUID
 class Job:
     job_id: UUID
     request_id: UUID
-    job_type: str  # e.g. "intake"
+    job_type: str        # e.g. "intake"
     payload: dict
+

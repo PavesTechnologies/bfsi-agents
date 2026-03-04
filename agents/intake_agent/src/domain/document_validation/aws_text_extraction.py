@@ -1,9 +1,11 @@
+import boto3
 import os
+import re
+from PIL import Image
+from botocore.exceptions import ClientError
+from datetime import datetime
 import uuid
 
-import boto3
-from botocore.exceptions import ClientError
-from PIL import Image
 
 # ================= CONFIG =================
 
@@ -14,7 +16,9 @@ REGION = "us-east-1"
 
 
 class AWSOCR:
+
     def __init__(self):
+
         self.s3 = boto3.client("s3", region_name=REGION)
         self.textract = boto3.client("textract", region_name=REGION)
 
@@ -22,6 +26,7 @@ class AWSOCR:
     # Convert image to supported JPG
     # ---------------------------------------
     def normalize_image(self, file_path):
+
         try:
             # 1. Validate extension
             ext = os.path.splitext(file_path)[1].lower()
@@ -29,7 +34,7 @@ class AWSOCR:
             if ext not in [".jpg", ".jpeg", ".png"]:
                 print("[ERROR] Unsupported file type:", ext)
                 raise ValueError("Unsupported file type")
-
+                
             img = Image.open(file_path)
             img = img.convert("RGB")
 
@@ -37,7 +42,11 @@ class AWSOCR:
             temp_name = f"temp_{uuid.uuid4().hex}.jpg"
 
             img.save(
-                temp_name, format="JPEG", quality=95, progressive=False, optimize=True
+                temp_name,
+                format="JPEG",
+                quality=95,
+                progressive=False,
+                optimize=True
             )
 
             print("[INFO] Normalized image:", temp_name)
@@ -45,6 +54,7 @@ class AWSOCR:
             return temp_name
 
         except Exception as e:
+
             print("[ERROR] Image normalization failed:", e)
             return None
 
@@ -53,13 +63,19 @@ class AWSOCR:
     # ---------------------------------------
     def upload_to_s3(self, local_path, s3_filename):
         try:
-            self.s3.upload_file(local_path, BUCKET_NAME, s3_filename)
+
+            self.s3.upload_file(
+                local_path,
+                BUCKET_NAME,
+                s3_filename
+            )
 
             print("[INFO] Uploaded to S3 as:", s3_filename)
 
             return s3_filename
 
         except Exception as e:
+
             print("[ERROR] Upload failed:", e)
             return None
 
@@ -67,8 +83,13 @@ class AWSOCR:
     # Delete from S3
     # ---------------------------------------
     def delete_from_s3(self, filename):
+
         try:
-            self.s3.delete_object(Bucket=BUCKET_NAME, Key=filename)
+
+            self.s3.delete_object(
+                Bucket=BUCKET_NAME,
+                Key=filename
+            )
             print("[INFO] Deleted from S3:", filename)
         except Exception as e:
             print("[ERROR] Delete failed:", e)
@@ -77,9 +98,16 @@ class AWSOCR:
     # OCR
     # ---------------------------------------
     def extract_text(self, filename):
+
         try:
+
             response = self.textract.detect_document_text(
-                Document={"S3Object": {"Bucket": BUCKET_NAME, "Name": filename}}
+                Document={
+                    "S3Object": {
+                        "Bucket": BUCKET_NAME,
+                        "Name": filename
+                    }
+                }
             )
 
             lines = []
@@ -99,6 +127,7 @@ class AWSOCR:
     # ---------------------------------------
 
     def process_file(self, user_file, document_type, application_id):
+
         print("\n[START] Processing:", user_file)
 
         # ----------------------------
@@ -132,8 +161,9 @@ class AWSOCR:
 
         lines = self.extract_text(filename)
         print("[INFO] OCR Extracted Lines:", lines)
-
+        
         if not lines:
+
             self.delete_from_s3(filename)
             os.remove(temp_file)
             return {"status": "failed", "reason": "ocr_failed"}
@@ -142,11 +172,15 @@ class AWSOCR:
         try:
             os.remove(temp_file)
             print("[INFO] Temp file deleted")
-        except Exception as e:
-            print("[ERROR] Failed to delete temp file:", e)
+        except:
+            pass
 
         # ----------------------------
         # Success
         # ----------------------------
 
-        return {"status": "success", "s3_file": filename, "lines": lines}
+        return {
+            "status": "success",
+            "s3_file": filename,
+            "lines": lines
+        }

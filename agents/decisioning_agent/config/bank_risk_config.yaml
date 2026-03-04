@@ -1,0 +1,169 @@
+bank:
+  id: BANK_A
+  policy_version: v2.0
+  last_updated: 2026-03-01
+
+# =====================================================
+# CREDIT SCORE NODE CONFIG
+# =====================================================
+credit_score:
+  bands:
+    excellent:
+      min: 760
+      max: 850
+      risk: LOW
+      base_limit: 100000
+
+    good:
+      min: 700
+      max: 759
+      risk: LOW_MODERATE
+      base_limit: 60000
+
+    fair:
+      min: 640
+      max: 699
+      risk: MODERATE
+      base_limit: 35000
+
+    poor:
+      min: 580
+      max: 639
+      risk: HIGH
+      base_limit: 15000
+
+    very_poor:
+      min: 0
+      max: 579
+      risk: VERY_HIGH
+      base_limit: 5000
+
+# =====================================================
+# PUBLIC RECORD NODE CONFIG
+# =====================================================
+public_records:
+  bankruptcy:
+    enabled: true
+    hard_decline_if_within_years: 2
+
+    severity_by_age:
+      0-2: VERY_HIGH
+      2-4: HIGH
+      4-7: MODERATE
+      7+: LOW
+
+    adjustment_factor_by_age:
+      0-2: 0.4
+      2-4: 0.6
+      4-7: 0.8
+      7+: 1.0
+
+# =====================================================
+# UTILIZATION NODE CONFIG
+# =====================================================
+utilization:
+  bands:
+    low:
+      max: 0.30
+      risk: LOW
+      factor: 1.0
+
+    moderate:
+      max: 0.50
+      risk: MODERATE
+      factor: 0.95
+
+    high:
+      max: 0.75
+      risk: HIGH
+      factor: 0.85
+
+    very_high:
+      max: 1.00
+      risk: VERY_HIGH
+      factor: 0.70
+
+# =====================================================
+# INQUIRY NODE CONFIG
+# =====================================================
+inquiry_velocity:
+  bands:
+    low:
+      max_last_12m: 2
+      risk: LOW
+      factor: 1.0
+
+    elevated:
+      max_last_12m: 5
+      risk: MODERATE
+      factor: 0.95
+
+    high:
+      max_last_12m: 8
+      risk: HIGH
+      factor: 0.90
+
+    very_high:
+      max_last_12m: 999
+      risk: VERY_HIGH
+      factor: 0.80
+
+# =====================================================
+# PAYMENT BEHAVIOR CONFIG
+# =====================================================
+payment_behavior:
+  delinquency_rules:
+    clean_threshold: 0
+    moderate_threshold: 2
+    severe_threshold: 5
+
+  chargeoff_penalty:
+    present_factor: 0.85
+    absent_factor: 1.0
+
+# =====================================================
+# INCOME / DTI CONFIG
+# =====================================================
+affordability:
+  dti_bands:
+    low:
+      max: 0.30
+      risk: LOW
+
+    moderate:
+      max: 0.45
+      risk: MODERATE
+
+    high:
+      max: 0.60
+      risk: HIGH
+
+    very_high:
+      max: 1.00
+      risk: VERY_HIGH
+
+# =====================================================
+# AGGREGATOR WEIGHTS (VERY IMPORTANT)
+# =====================================================
+risk_weights:
+  credit_score: 0.30
+  utilization: 0.20
+  payment_behavior: 0.20
+  public_records: 0.15
+  inquiries: 0.10
+  affordability: 0.05
+
+# =====================================================
+# FEATURE FLAGS
+# =====================================================
+features:
+  enable_public_records: true
+  enable_income_check: true
+  enable_inquiry_penalty: true
+
+# =====================================================
+# METADATA
+# =====================================================
+metadata:
+  risk_engine_version: r2.1
+  environment: production

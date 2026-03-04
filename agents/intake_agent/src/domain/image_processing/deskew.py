@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 
-
 def deskew(image: np.ndarray) -> np.ndarray:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 50, 150)
@@ -11,7 +10,7 @@ def deskew(image: np.ndarray) -> np.ndarray:
         return image
 
     angles = []
-    for rho, theta in lines[:, 0]:  # noqa: B007
+    for rho, theta in lines[:, 0]:
         angle = (theta - np.pi / 2) * (180 / np.pi)
         angles.append(angle)
 
@@ -22,5 +21,9 @@ def deskew(image: np.ndarray) -> np.ndarray:
     matrix = cv2.getRotationMatrix2D(center, median_angle, 1.0)
 
     return cv2.warpAffine(
-        image, matrix, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
+        image,
+        matrix,
+        (w, h),
+        flags=cv2.INTER_CUBIC,
+        borderMode=cv2.BORDER_REPLICATE
     )

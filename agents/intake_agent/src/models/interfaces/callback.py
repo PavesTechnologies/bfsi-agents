@@ -1,7 +1,7 @@
-from datetime import datetime
 from enum import StrEnum
-
 from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
 
 
 class CallbackStatus(StrEnum):
@@ -14,5 +14,5 @@ class CallbackPayload(BaseModel):
     request_id: str
     status: str  # SUCCESS | FAILURE
     timestamp: datetime
-    data: dict | None = None
-    error: str | None = None
+    data: Optional[dict] = None
+    error: Optional[str] = None

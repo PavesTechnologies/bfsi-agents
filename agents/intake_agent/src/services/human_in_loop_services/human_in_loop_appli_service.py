@@ -1,15 +1,13 @@
-from uuid import UUID
-
-from fastapi import HTTPException
+from httpx import request
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException
+
+from src.repositories.human_in_loop_repo.human_in_loop_application_repo import ApplicationGetDAO
 from src.models.interfaces.human_in_loop_interface import (
     GetApplicationResponse,
     HumanReviewSummary,
 )
-from src.repositories.human_in_loop_repo.human_in_loop_application_repo import (
-    ApplicationGetDAO,
-)
-
+from uuid import UUID
 
 class ApplicationGetService:
     def __init__(self, db: AsyncSession):
@@ -19,9 +17,10 @@ class ApplicationGetService:
     async def get_by_application_id(
         self, application_id: str
     ) -> GetApplicationResponse:
+    
         try:
             application_id_obj = UUID(application_id)
-
+            
             application = await self.dao.get_application(application_id_obj)
             if not application:
                 raise HTTPException(status_code=404, detail="Application not found")
@@ -44,10 +43,8 @@ class ApplicationGetService:
                 ),
             )
 
-        except ValueError as e:
-            raise HTTPException(
-                status_code=422, detail="Invalid application ID format"
-            ) from e
-
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid application ID format")
+        
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e)) from e
+            raise HTTPException(status_code=500, detail=str(e))

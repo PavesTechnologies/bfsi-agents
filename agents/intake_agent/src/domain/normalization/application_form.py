@@ -1,15 +1,14 @@
-import re
 from copy import deepcopy
-
+import re
 import phonenumbers
+
 from src.models.interfaces.Loan_intake_interfaces import LoanIntakeRequest
 
 
 class RequestNormalizer:
     @staticmethod
     def _clean_str(value: str, upper: bool = False) -> str:
-        if not value:
-            return value
+        if not value: return value
         cleaned = value.strip()
         return cleaned.upper() if upper else cleaned
 
@@ -19,7 +18,7 @@ class RequestNormalizer:
             return None
 
         # If already numeric, return as float
-        if isinstance(value, (int | float)):
+        if isinstance(value, (int, float)):
             return float(value)
 
         # If string, clean it properly
@@ -30,6 +29,7 @@ class RequestNormalizer:
         except ValueError:
             return None
 
+
     @staticmethod
     def _clean_zip(value):
         if value is None:
@@ -39,19 +39,18 @@ class RequestNormalizer:
         value = str(value)
 
         # Remove non-digits
-        cleaned = re.sub(r"\D", "", value)
+        cleaned = re.sub(r'\D', '', value)
 
         return cleaned
 
+
     def format_international_phone(phone_str: str):
         try:
-            parsed_num = phonenumbers.parse(phone_str, None)
-            return phonenumbers.format_number(
-                parsed_num, phonenumbers.PhoneNumberFormat.E164
-            )
-        except phonenumbers.NumberParseException:
+            parsed_num = phonenumbers.parse(phone_str, None) 
+            return phonenumbers.format_number(parsed_num, phonenumbers.PhoneNumberFormat.E164)
+        except:
             # Fallback to digits only if parsing fails
-            return re.sub(r"\D", "", phone_str)
+            return re.sub(r'\D', '', phone_str)
 
     @classmethod
     def normalize_intake_request(cls, request: LoanIntakeRequest) -> LoanIntakeRequest:
@@ -68,12 +67,8 @@ class RequestNormalizer:
             applicant.middle_name = cls._clean_str(applicant.middle_name, upper=True)
             applicant.last_name = cls._clean_str(applicant.last_name, upper=True)
             applicant.suffix = cls._clean_str(applicant.suffix, upper=True)
-            applicant.email = (
-                cls._clean_str(applicant.email).lower() if applicant.email else None
-            )
-            applicant.phone_number = cls.format_international_phone(
-                applicant.phone_number
-            )
+            applicant.email = cls._clean_str(applicant.email).lower() if applicant.email else None
+            applicant.phone_number = cls.format_international_phone(applicant.phone_number)
             applicant.ssn_last4 = cls._clean_str(applicant.ssn_last4)
 
             # 3. Normalize Addresses

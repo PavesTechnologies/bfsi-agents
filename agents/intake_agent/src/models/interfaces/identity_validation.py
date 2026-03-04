@@ -1,6 +1,5 @@
-from typing import Any
-
 from pydantic import BaseModel
+from typing import Any, List
 
 
 class FieldMismatch(BaseModel):
@@ -11,4 +10,4 @@ class FieldMismatch(BaseModel):
 
 class CrossValidationResult(BaseModel):
     valid: bool
-    mismatches: list[FieldMismatch]
+    mismatches: List[FieldMismatch]

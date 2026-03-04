@@ -5,8 +5,8 @@ Represents business facts and decisions.
 Independent of LangGraph and LLM vendors.
 """
 
+from typing import TypedDict, Optional
 from enum import StrEnum
-from typing import TypedDict
 from uuid import UUID
 
 
@@ -26,12 +26,12 @@ class AgentContext(TypedDict, total=False):
     app_id: UUID
     input_text: str
     decision: Decision
-    reason: str | None
+    reason: Optional[str]
     # Metadata fields (required, flattened for simplicity)
     ip_address: str
-    user_agent: str | None
-    browser: str | None
-    os: str | None
-    device_type: str | None
-    accept_language: str | None
-    referrer: str | None
+    user_agent: Optional[str]
+    browser: Optional[str]
+    os: Optional[str]
+    device_type: Optional[str]
+    accept_language: Optional[str]
+    referrer: Optional[str]

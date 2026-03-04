@@ -1,6 +1,5 @@
 import logging
-from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Callable, Awaitable, Dict, Any
 from uuid import UUID
 
 from src.core.exceptions import PayloadMismatchError
@@ -11,17 +10,19 @@ logger = logging.getLogger(__name__)
 
 
 class IdempotencyGuard:
+
     def __init__(self, repo: IdempotencyRepository):
         self.repo = repo
 
     async def execute(
-        self,
-        *,
-        request_id: UUID,
-        app_id: str,
-        payload: dict[str, Any],
-        on_first_execution: Callable[[], Awaitable[dict[str, Any]]],
-    ) -> dict[str, Any]:
+    self,
+    *,
+    request_id: UUID,
+    app_id: str,
+    payload: Dict[str, Any],
+    on_first_execution: Callable[[], Awaitable[Dict[str, Any]]],
+    ) -> Dict[str, Any]:
+
         payload_hash = stable_payload_hash(payload)
 
         existing = await self.repo.get(request_id)

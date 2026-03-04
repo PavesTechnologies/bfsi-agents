@@ -4,13 +4,14 @@ Decision Workflow
 Determines execution path.
 """
 
-from langgraph.graph import END, StateGraph
-from src.services.decision_llm_service import run_decision
+from langgraph.graph import StateGraph, END
 from src.workflows.state import WorkflowState
+from src.services.decision_llm_service import run_decision
 
-# -------------------------------------------
-# |   Nodes(if increase move to nodes.py)   |
-# -------------------------------------------
+
+#-------------------------------------------
+#|   Nodes(if increase move to nodes.py)   |
+#-------------------------------------------
 
 
 def execute_decision(state: WorkflowState) -> WorkflowState:
@@ -19,11 +20,9 @@ def execute_decision(state: WorkflowState) -> WorkflowState:
         "context": run_decision(state["context"]),
     }
 
-
-# -------------------------------
-# |   Workflow execution path   |
-# -------------------------------
-
+#-------------------------------
+#|   Workflow execution path   |
+#-------------------------------
 
 def build_graph():
     graph = StateGraph(WorkflowState)

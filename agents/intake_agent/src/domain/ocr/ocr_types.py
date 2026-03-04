@@ -1,14 +1,15 @@
 from dataclasses import dataclass
+from typing import List, Dict
 
 
 @dataclass
 class OCRBlock:
     text: str
-    bbox: dict[str, float]  # normalized: left, top, width, height
+    bbox: Dict[str, float]  # normalized: left, top, width, height
     confidence: float
 
 
 @dataclass
 class OCRResult:
     full_text: str
-    blocks: list[OCRBlock]
+    blocks: List[OCRBlock]

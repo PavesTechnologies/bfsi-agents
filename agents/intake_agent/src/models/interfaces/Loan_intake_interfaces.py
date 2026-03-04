@@ -1,12 +1,12 @@
+from typing import List, Optional, Dict
 from datetime import date, datetime
-from enum import StrEnum
 from uuid import UUID
-
 from pydantic import BaseModel, Field
-from src.models.enums import Gender
+from enum import StrEnum
 from src.utils.validation.blocking_aggregator import (
     BlockingValidationSummary,
 )
+from src.models.enums import Gender
 
 
 class CreditType(StrEnum):
@@ -38,13 +38,13 @@ class OwnershipType(StrEnum):
 class AddressSchema(BaseModel):
     address_type: AddressType
     address_line1: str
-    address_line2: str | None = None
+    address_line2: Optional[str] = None
     city: str
     state: str
     zip_code: str
     country: str
     housing_status: HousingStatus
-    monthly_housing_payment: float | None = None
+    monthly_housing_payment: Optional[float] = None
     years_at_address: int = Field(..., ge=0, le=50)
     months_at_address: int = Field(..., ge=0, le=11)
 
@@ -52,20 +52,20 @@ class AddressSchema(BaseModel):
 class EmploymentSchema(BaseModel):
     employment_type: str
     employment_status: str
-    employer_name: str | None = None
-    employer_phone: str | None = None
-    employer_address: str | None = None
-    job_title: str | None = None
-    start_date: date | None = None
-    experience: int | None = None
+    employer_name: Optional[str] = None
+    employer_phone: Optional[str] = None
+    employer_address: Optional[str] = None
+    job_title: Optional[str] = None
+    start_date: Optional[date] = None
+    experience: Optional[int] = None
     self_employed_flag: bool = False
     family_employment: bool = False
-    gross_monthly_income: float | None = None
+    gross_monthly_income: Optional[float] = None
 
 
 class IncomeSchema(BaseModel):
     income_type: str
-    description: str | None = None
+    description: Optional[str] = None
     monthly_amount: float = Field(..., ge=0)
     income_frequency: str
 
@@ -92,30 +92,30 @@ class ApplicantSchema(BaseModel):
     applicant_role: ApplicantRole
 
     # ⚠️ Dirty input allowed
-    first_name: str | None = None
-    middle_name: str | None = None
-    last_name: str | None = None
-    suffix: str | None = None
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    last_name: Optional[str] = None
+    suffix: Optional[str] = None
 
-    date_of_birth: date | None = None
+    date_of_birth: Optional[date] = None
 
     # ⚠️ NO length / regex constraints here
-    ssn_no: str | None = None
-    ssn_last4: str | None = None
-    itin_number: str | None = None
-    citizenship_status: str | None = None
-    email: str | None = None
+    ssn_no: Optional[str] = None
+    ssn_last4: Optional[str] = None
+    itin_number: Optional[str] = None
+    citizenship_status: Optional[str] = None
+    email: Optional[str] = None
 
     # ✅ REQUIRED (DB NOT NULL)
     phone_number: str
     gender: Gender
 
     # ⚠️ Collections default to empty
-    addresses: list[AddressSchema] = []
-    employment: EmploymentSchema | None = None
-    incomes: list[IncomeSchema] = []
-    assets: list[AssetSchema] = []
-    liabilities: list[LiabilitySchema] = []
+    addresses: List[AddressSchema] = []
+    employment: Optional[EmploymentSchema] = None
+    incomes: List[IncomeSchema] = []
+    assets: List[AssetSchema] = []
+    liabilities: List[LiabilitySchema] = []
 
 
 class LoanIntakeRequest(BaseModel):
@@ -126,8 +126,8 @@ class LoanIntakeRequest(BaseModel):
     callback_url: str
 
     # ⚠️ optional at intake stage
-    app_id: UUID | None = None
-    payload: dict | None = None
+    app_id: Optional[UUID] = None
+    payload: Optional[Dict] = None
 
     loan_type: str
     credit_type: CreditType
@@ -143,7 +143,7 @@ class LoanIntakeRequest(BaseModel):
     # -------------------------
     # RELATIONSHIPS
     # -------------------------
-    applicants: list[ApplicantSchema]
+    applicants: List[ApplicantSchema]
     # documents: Optional[List[DocumentSchema]] = []
 
 
@@ -155,8 +155,7 @@ class ValidationIssue(BaseModel):
     )
     reason_code: str = Field(
         ...,
-        description="Machine-readable reason code (e.g.,\
-              non_blocking_validation, duplicate_email)",
+        description="Machine-readable reason code (e.g., non_blocking_validation, duplicate_email)",
     )
     message: str = Field(..., description="Human-friendly validation error message")
 
@@ -164,11 +163,11 @@ class ValidationIssue(BaseModel):
 class LoanIntakeResponse(BaseModel):
     application_id: UUID
     timestamp: datetime
-    validation_issues: list[ValidationIssue] = Field(
+    validation_issues: List[ValidationIssue] = Field(
         default_factory=list,
         description="Non-blocking validation issues collected during intake processing",
     )
-    validation_summary: BlockingValidationSummary | None = Field(
+    validation_summary: Optional[BlockingValidationSummary] = Field(
         default=None,
         description="Blocking validation summary collected during intake processing",
     )
