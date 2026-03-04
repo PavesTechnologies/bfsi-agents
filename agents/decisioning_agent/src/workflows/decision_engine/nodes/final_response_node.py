@@ -5,11 +5,11 @@ LOS-Compatible Structured Output Builder
 
 from datetime import datetime
 
-# from src.core.telemetry import track_node
+from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
 
 
-# @track_node("final_response_engine")
+@track_node("final_response_engine")
 def final_response_node(state: LoanApplicationState) -> LoanApplicationState:
 
     response_payload = {

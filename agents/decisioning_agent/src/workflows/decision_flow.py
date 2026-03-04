@@ -13,6 +13,8 @@ from langgraph.graph import END, StateGraph
 
 from src.workflows.decision_state import LoanApplicationState
 
+import json
+
 # -----------------------
 # Risk Evaluation Nodes
 # -----------------------
@@ -24,7 +26,7 @@ from src.workflows.decision_engine.nodes.exposure_node import exposure_node
 from src.workflows.decision_engine.nodes.behavior_node import behavior_node
 from src.workflows.decision_engine.nodes.inquiry_node import inquiry_node
 from src.workflows.decision_engine.nodes.income_node import income_node
-from src.workflows.decision_engine.nodes.PI_deletion_node import pi_deletion_node
+from src.workflows.decision_engine.nodes.pi_deletion_node import pi_deletion_node
 
 # -----------------------
 # Aggregation + Decision
@@ -34,6 +36,9 @@ from src.workflows.decision_engine.nodes.risk_aggregator_node import risk_aggreg
 from src.workflows.decision_engine.nodes.decision_llm_node import decision_llm_node
 from src.workflows.decision_engine.nodes.counter_offer_node import counter_offer_node
 from src.workflows.decision_engine.nodes.final_response_node import final_response_node
+
+from dotenv import load_dotenv
+load_dotenv()
 
 
 def build_underwriting_graph():
@@ -125,13 +130,32 @@ def build_underwriting_graph():
     return graph.compile()
 
 
-# if __name__ == "__main__":
-#     workflow = build_underwriting_graph()
+if __name__ == "__main__":
+    workflow = build_underwriting_graph()
 
-#     result = workflow.invoke({})
+    # -------------------------
+    # 1️⃣ Read Experian JSON file
+    # -------------------------
+    with open(r"src\workflows\exp-prequal-fico9.json", "r", encoding="utf-8") as f:
+        experian_payload = json.load(f)
+    
+    # -------------------------
+    # 2️⃣ Build Initial State
+    # -------------------------
+    data = {
+        "application_id": "APP_001",
+        "raw_experian_data": experian_payload,
+        "user_request": {
+            "amount": 100000,
+            "tenure": 20
+        }
+    }
 
-#     with open("underwriting_graph.png", "wb") as f:
-#         f.write(workflow.get_graph().draw_mermaid_png())
+    # print(experian_payload)
+    result = workflow.invoke(data)
+
+    # # with open("underwriting_graph.png", "wb") as f:
+    # #     f.write(workflow.get_graph().draw_mermaid_png())
         
-#     print("Final Decision:")
-#     print(result)
+    print("Final Decision:")
+    print(result)

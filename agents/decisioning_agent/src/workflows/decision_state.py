@@ -92,6 +92,8 @@ class LoanApplicationState(TypedDict):
     # --- 1. Raw Inputs (From KYC/Intake) ---
     application_id: str
     raw_experian_data: Dict[str, Any]  # The full JSON dump from Experian
+    
+    pi_masked_experian_data: Dict[str, Any]  # The full JSON dump from Experian
     bank_statement_summary: Dict[str, Any]
     user_request: Dict[str, Any]       # {amount: 50000, tenure: 36}
     

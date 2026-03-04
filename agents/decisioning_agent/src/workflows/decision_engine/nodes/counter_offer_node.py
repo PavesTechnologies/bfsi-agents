@@ -5,11 +5,11 @@ Affordability-Based Restructuring Logic
 
 from datetime import datetime
 
-# from src.core.telemetry import track_node
+from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
 
 
-# @track_node("counter_offer_engine")
+@track_node("counter_offer_engine")
 def counter_offer_node(state: LoanApplicationState) -> LoanApplicationState:
 
     counter_offer_data = {

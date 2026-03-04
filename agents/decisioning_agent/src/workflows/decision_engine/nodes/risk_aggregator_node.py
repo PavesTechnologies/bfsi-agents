@@ -5,11 +5,11 @@ Policy-Driven, Auditable Decision Core
 
 from datetime import datetime
 
-# from src.core.telemetry import track_node
+from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
 
 
-# @track_node("underwriting_risk_aggregator")
+@track_node("underwriting_risk_aggregator")
 def risk_aggregator_node(state: LoanApplicationState) -> LoanApplicationState:
 
     # ==================================================

@@ -11,9 +11,15 @@ include = "src"
 python = "^3.11"
 fastapi = "^0.110.0"
 uvicorn = "^0.29.0"
-langgraph = "^0.0.40"
+langgraph = "^1.0.8"
 pydantic = "^2.6.0"
-pyppeteer = "^2.0.0"
+pydantic-settings = "^2.13.1"
+langchain = "^1.2.10"
+langchain-core = "^1.2.17"
+langchain-community = "^0.4.1"
+langchain-openai = "^1.1.10"
+langchain-groq = "^1.1.2"
+langchain-google-genai = "^4.2.1"
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"
@@ -23,6 +29,13 @@ test = "src.cli:test"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 ruff = "^0.3.0"
+
+
+[tool.poetry.group.telemetry.dependencies]
+opentelemetry-api = "^1.39.1"
+opentelemetry-sdk = "^1.39.1"
+opentelemetry-exporter-otlp-proto-grpc = "^1.39.1"
+opentelemetry-instrumentation-fastapi = "^0.60b1"
 
 [build-system]
 requires = ["poetry-core"]
