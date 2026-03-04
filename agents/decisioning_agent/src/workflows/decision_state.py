@@ -70,6 +70,8 @@ class FinalDecision(TypedDict):
     decision: str  # "APPROVE", "COUNTER_OFFER", "DECLINE"
     approved_amount: float
     approved_tenure: int
+    interest_rate: float           # Annual interest rate (e.g., 7.5)
+    disbursement_amount: float     # Amount after deducting origination fee
     explanation: str
     reasoning_steps: List[str]
 
@@ -79,6 +81,7 @@ class LoanTermOption(TypedDict):
     proposed_amount: float
     proposed_tenure_months: int
     proposed_interest_rate: float
+    disbursement_amount: float     # Amount after deducting origination fee
     monthly_payment_emi: float
     total_repayment: float
 
@@ -118,7 +121,10 @@ class LoanApplicationState(TypedDict):
 
     counter_offer_data: Optional[CounterOfferMetrics]
     
-    # --- 5. Final Output ---
+    # --- 5. Decision Result (for routing) ---
+    decision_result: Optional[Dict[str, Any]]  # {"decision": "APPROVE"|"COUNTER_OFFER"|"DECLINE"}
+    
+    # --- 6. Final Output ---
     final_decision: Optional[FinalDecision]
 
     parallel_tasks_completed: Annotated[list[str], list_append_reducer]
