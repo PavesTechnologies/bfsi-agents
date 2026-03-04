@@ -36,10 +36,10 @@ def execute_llm(
             if result is None:
                 continue
 
-            # If confidence exists check it
-            if hasattr(result, "confidence_score"):
-                if result.confidence_score < 0.75:
-                    continue
+            # # If confidence exists check it
+            # if hasattr(result, "confidence_score"):
+            #     if result.confidence_score < 0.75:
+            #         continue
             
             return result
 

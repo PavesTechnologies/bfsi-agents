@@ -37,6 +37,9 @@ from src.workflows.decision_engine.nodes.decision_llm_node import decision_llm_n
 from src.workflows.decision_engine.nodes.counter_offer_node import counter_offer_node
 from src.workflows.decision_engine.nodes.final_response_node import final_response_node
 
+from dotenv import load_dotenv
+load_dotenv()
+
 
 def build_underwriting_graph():
     

@@ -16,7 +16,7 @@ def get_llm(temperature: float = 0.0):
     """
 
     return ChatGroq(
-        model="openai/gpt-oss-120b",
+        model="openai/gpt-oss-20b",
         temperature=temperature,
     )
     
