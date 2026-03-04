@@ -13,6 +13,8 @@ from langgraph.graph import END, StateGraph
 
 from src.workflows.decision_state import LoanApplicationState
 
+import json
+
 # -----------------------
 # Risk Evaluation Nodes
 # -----------------------
@@ -125,13 +127,32 @@ def build_underwriting_graph():
     return graph.compile()
 
 
-# if __name__ == "__main__":
-#     workflow = build_underwriting_graph()
+if __name__ == "__main__":
+    workflow = build_underwriting_graph()
 
-#     result = workflow.invoke({})
+    # -------------------------
+    # 1️⃣ Read Experian JSON file
+    # -------------------------
+    with open(r"src\workflows\exp-prequal-fico9.json", "r", encoding="utf-8") as f:
+        experian_payload = json.load(f)
+    
+    # -------------------------
+    # 2️⃣ Build Initial State
+    # -------------------------
+    data = {
+        "application_id": "APP_001",
+        "raw_experian_data": experian_payload,
+        "user_request": {
+            "amount": 100000,
+            "tenure": 20
+        }
+    }
 
-#     # with open("underwriting_graph.png", "wb") as f:
-#     #     f.write(workflow.get_graph().draw_mermaid_png())
+    # print(experian_payload)
+    result = workflow.invoke(data)
+
+    # # with open("underwriting_graph.png", "wb") as f:
+    # #     f.write(workflow.get_graph().draw_mermaid_png())
         
-#     print("Final Decision:")
-#     print(result)
+    print("Final Decision:")
+    print(result)
