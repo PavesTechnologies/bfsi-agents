@@ -1,0 +1,27 @@
+pR:
+LLM attempt 0
+Final Decision:
+{'bankruptcy_present': True, 'years_since_bankruptcy': 5, 'public_record_severity': 'SEVERE', 'public_record_adjustment_factor': 0.5, 'hard_decline_flag': True, 'confidence_score': 0.85, 'model_reasoning': 'The single record has a filing date of 2020-09-02, which is 5 years and 6 months ago. The courtCode and status values indicate a bankruptcy filing. According to the policy, a bankruptcy filed 5 years ago or less is classified as SEVERE, leading to an adjustment factor of 0.5 and a hard decline flag of true. The confidence in this classification is high due to the clear filing date and status indicators.', 'timestamp': '2026-03-04 16:37:14'}
+
+
+Util:
+Final Decision:
+{'total_credit_limit': 22569.0, 'total_balance': 5668.0, 'utilization_ratio': 0.2511, 'utilization_risk': 'GOOD', 'utilization_adjustment_factor': 1.0, 'confidence_score': 0.85, 'model_reasoning': 'The total credit limit of $22,569 is derived from all revolving accounts with a low qualifier. The total balance of $5,668 comes from open revolving accounts with reported balances. The resulting utilization ratio of approximately 25% falls within the 16–35% range, classifying the risk as GOOD. The adjustment factor of 1.0 reflects the neutral multiplier for this tier. Confidence is high due to clear data availability for the relevant accounts.', 'timestamp': '2026-03-04 16:39:00'}
+
+
+Exp:
+Final Decision:
+{'total_existing_debt': 24182.0, 'monthly_obligation_estimate': 182.0, 'exposure_risk': 'LOW', 'confidence_score': 0.95, 'model_reasoning': 'The total monthly obligations of $182 are well below the $500 threshold for low risk, indicating a modest payment burden relative to the total debt of $24,182.', 'timestamp': '2026-03-04 16:40:01'}
+
+inq:
+Final Decision:
+{'inquiries_last_12m': 0, 'velocity_risk': 'LOW', 'inquiry_penalty_factor': 1.0, 'confidence_score': 0.95, 'model_reasoning': 'All recorded inquiries are older than 12 months from the current date, resulting in zero recent inquiries. According to the policy, a count of 0 falls into the LOW risk category, which carries a penalty factor of 1.0. The confidence in this assessment is high because the date comparison is straightforward and unambiguous.', 'timestamp': '2026-03-04 16:43:27'}
+
+
+behavior:
+Final Decision:
+{'delinquencies': 0, 'chargeoff_history': False, 'behavior_score': 100.0, 'behavior_risk': 'EXCELLENT', 'confidence_score': 0.95, 'model_reasoning': 'All tradelines show zero delinquencies and no charge‑off indicators, meeting the criteria for an excellent payment history.', 'timestamp': '2026-03-04 16:52:45'}
+
+income:
+Final Decision:
+{'estimated_dti': 99.9, 'income_risk': 'UNACCEPTABLE', 'affordability_flag': False, 'income_missing_flag': True, 'confidence_score': 0.1, 'model_reasoning': 'Monthly income is unknown, so the engine flags income as missing. With no income data, the DTI is set to a high placeholder value of 99.9 to indicate extreme risk. This leads to an "UNACCEPTABLE" risk classification and the affordability flag is set to false. Confidence is low due to lack of income information.', 'timestamp': '2026-03-04 17:30:03'}
