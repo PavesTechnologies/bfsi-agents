@@ -12,7 +12,7 @@ from src.workflows.decision_state import LoanApplicationState
 @track_node("public_record_engine")
 def public_record_node(state: LoanApplicationState) -> LoanApplicationState:
 
-    raw_experian = state.get("raw_experian_data") or {}
+    raw_experian = state.get("pi_masked_experian_data")
 
     public_record_data = {
         "bankruptcy_present": None,
