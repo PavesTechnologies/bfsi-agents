@@ -16,7 +16,7 @@ def get_llm(temperature: float = 0.0):
     """
 
     return ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         temperature=temperature,
         model_kwargs={
         "response_format": {"type": "json_object"}

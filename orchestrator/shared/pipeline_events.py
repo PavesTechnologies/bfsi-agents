@@ -1,0 +1,48 @@
+"""
+Pipeline Events
+
+Defines the canonical event types emitted as the loan application
+progresses through the agent pipeline.
+"""
+
+from enum import StrEnum
+
+
+class PipelineStage(StrEnum):
+    """Stages in the loan origination pipeline."""
+    INTAKE = "INTAKE"
+    KYC = "KYC"
+    DECISIONING = "DECISIONING"
+    DISBURSEMENT = "DISBURSEMENT"
+
+
+class PipelineEvent(StrEnum):
+    """Events emitted as the application moves through agents."""
+    APPLICATION_SUBMITTED = "APPLICATION_SUBMITTED"
+    KYC_TRIGGERED = "KYC_TRIGGERED"
+    KYC_PASSED = "KYC_PASSED"
+    KYC_FAILED = "KYC_FAILED"
+    UNDERWRITING_STARTED = "UNDERWRITING_STARTED"
+    APPLICATION_APPROVED = "APPLICATION_APPROVED"
+    APPLICATION_DECLINED = "APPLICATION_DECLINED"
+    COUNTER_OFFER_PENDING = "COUNTER_OFFER_PENDING"
+    COUNTER_OFFER_ACCEPTED = "COUNTER_OFFER_ACCEPTED"
+    COUNTER_OFFER_REJECTED = "COUNTER_OFFER_REJECTED"
+    DISBURSEMENT_STARTED = "DISBURSEMENT_STARTED"
+    FUNDS_DISBURSED = "FUNDS_DISBURSED"
+    DISBURSEMENT_FAILED = "DISBURSEMENT_FAILED"
+
+
+class ApplicationStatus(StrEnum):
+    """Overall application status visible to the applicant."""
+    SUBMITTED = "SUBMITTED"
+    KYC_IN_PROGRESS = "KYC_IN_PROGRESS"
+    KYC_PASSED = "KYC_PASSED"
+    KYC_FAILED = "KYC_FAILED"
+    UNDERWRITING_IN_PROGRESS = "UNDERWRITING_IN_PROGRESS"
+    APPROVED = "APPROVED"
+    DECLINED = "DECLINED"
+    COUNTER_OFFER = "COUNTER_OFFER"
+    DISBURSEMENT_IN_PROGRESS = "DISBURSEMENT_IN_PROGRESS"
+    DISBURSED = "DISBURSED"
+    FAILED = "FAILED"

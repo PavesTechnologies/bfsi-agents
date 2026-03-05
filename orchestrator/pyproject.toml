@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "orchestrator"
+version = "0.1.0"
+description = "Central Orchestrator for BFSI Agents"
+authors = ["AI <ai@example.com>"]
+
+[[tool.poetry.packages]]
+include = "src"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.110.0"
+uvicorn = "^0.29.0"
+httpx = "^0.27.0"
+pydantic = "^2.6.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+dev = "src.cli:dev"
+prod = "src.cli:prod"
+test = "src.cli:test"

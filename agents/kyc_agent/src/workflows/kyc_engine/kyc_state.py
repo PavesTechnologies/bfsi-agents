@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, TypedDict
+from typing import Annotated, TypedDict , Dict, Any
 
 
 def list_append_reducer(existing, new):
@@ -151,6 +151,7 @@ class RawKYCRequest:
 class KYCState(TypedDict, total=False):
     # Core
     raw_request: RawKYCRequest
+    raw_experian_data: Dict[str, Any] | None
 
     # Submodules
     ssn_validation: SSNValidationState | None

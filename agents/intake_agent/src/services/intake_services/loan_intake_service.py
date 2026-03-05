@@ -6,9 +6,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 from uuid import uuid4
 
-from vault.agent_services.source_code.ssn_service import SSNVaultService
-from vault.agent_services.source_code.email_service import EmailVaultService
-from vault.agent_services.source_code.phone_number_service import PhoneNumberVaultService
+# from vault.agent_services.source_code.ssn_service import SSNVaultService
+# from vault.agent_services.source_code.email_service import EmailVaultService
+# from vault.agent_services.source_code.phone_number_service import PhoneNumberVaultService
 
 # ============================
 # 🔹 ADDITIONS: Error Semantics
@@ -48,9 +48,9 @@ class LoanIntakeService:
         self.dao = LoanIntakeDAO(db)
         self.validation_repo = ValidationRepository()
         self.idempotency = idempotency or IdempotencyGuard(IdempotencyRepository(db))
-        self.ssn_service = SSNVaultService()
-        self.email_service = EmailVaultService()
-        self.phone_number_service = PhoneNumberVaultService()
+        # # self.ssn_service = SSNVaultService()
+        # self.email_service = EmailVaultService()
+        # self.phone_number_service = PhoneNumberVaultService()
 
     async def check(self) -> str:
         return "Loan Intake Service is operational."
@@ -119,12 +119,12 @@ class LoanIntakeService:
                         "last_name": applicant.last_name,
                         "suffix": applicant.suffix,
                         "date_of_birth": applicant.date_of_birth,
-                        "ssn_encrypted": self.ssn_service.protect_ssn(applicant.ssn_no),
+                        "ssn_encrypted": applicant.ssn_no, #self.ssn_service.protect_ssn(applicant.ssn_no),
                         "ssn_last4": applicant.ssn_last4,
                         "itin_number": applicant.itin_number,
                         "citizenship_status": applicant.citizenship_status,
-                        "email": self.email_service.protect_email(applicant.email),
-                        "phone_number": self.phone_number_service.protect_phone_number(applicant.phone_number),
+                        "email": applicant.email, #self.email_service.protect_email(applicant.email),
+                        "phone_number": applicant.phone_number, #self.phone_number_service.protect_phone_number(applicant.phone_number),
                         "gender": applicant.gender,
                     })
 

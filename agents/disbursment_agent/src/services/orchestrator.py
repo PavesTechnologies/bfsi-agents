@@ -26,8 +26,8 @@ def run_disbursement(request: DisbursementRequest) -> dict:
     initial_state = {
         "application_id": request.application_id,
         "decision": request.decision,
-        "risk_tier": request.risk_tier,
-        "risk_score": request.risk_score,
+        "risk_tier": request.aggregated_risk_tier,
+        "risk_score": request.aggregated_risk_score,
         "disbursement_status": "PENDING",
     }
 

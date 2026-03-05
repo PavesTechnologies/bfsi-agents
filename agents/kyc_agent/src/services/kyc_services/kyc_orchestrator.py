@@ -8,6 +8,7 @@ from src.repositories.kyc_repo.kyc_repository import KYCRepository
 from src.utils.hash_utils import generate_payload_hash
 from src.workflows.decision_flow import build_graph
 from src.workflows.kyc_engine.kyc_state import RawKYCRequest
+import json
 
 # Import your team's Pydantic models
 
@@ -23,9 +24,13 @@ class KYCOrchestratorService:
         Merged logic: Idempotency + Parallel Graph Execution.
         Uses Pydantic models for type safety instead of Dict[str, Any].
         """
+        print("KYC Orchestrator Service: Triggered KYC verification")
+
         # 1. Generate hash from the model for integrity checks
         payload_dict = payload.model_dump(mode="json")
         payload_hash = generate_payload_hash(payload_dict)
+
+        print("KYC Orchestrator Service: Generated payload hash")
 
         # 2. Idempotency Check (Domain Rule)
         existing = await self._check_idempotency(payload.idempotency_key, payload_hash)
@@ -91,6 +96,7 @@ class KYCOrchestratorService:
             status=IdempotencyStatus.SUCCESS,
         )
 
+
         return result
 
     async def _check_idempotency(self, key: str, current_hash: str) -> dict | None:
@@ -149,4 +155,5 @@ class KYCOrchestratorService:
                 "tasks": final_state.get("parallel_tasks_completed"),
                 "performance": final_state.get("node_execution_times"),
             },
+            "raw_experian_data": final_state.get("raw_experian_data"),
         }

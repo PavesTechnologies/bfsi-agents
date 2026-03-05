@@ -9,13 +9,13 @@ import uvicorn
 
 
 def dev():
-    uvicorn.run("src.main:app", reload=True, port=8000, reload_dirs=["src"])
+    uvicorn.run("src.main:app", reload=True, port=8001, reload_dirs=["src"])
 
 
 def prod():
     uvicorn.run(
         "src.main:app",
-        port=8000,
+        port=8001,
     )
 
 

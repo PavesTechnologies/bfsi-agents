@@ -6,13 +6,13 @@ import uvicorn
 
 
 def dev():
-    uvicorn.run("src.main:app", reload=True, port=8002, reload_dirs=["src"])
+    uvicorn.run("src.main:app", reload=True, port=8004, reload_dirs=["src"])
 
 
 def prod():
     uvicorn.run(
         "src.main:app",
-        port=8002,
+        port=8004,
     )
 
 
