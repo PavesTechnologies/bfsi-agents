@@ -1,15 +1,18 @@
 import logging
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, status, Request
 from src.core.database import get_db
-from src.core.deps import get_request_id
-from src.models.interfaces.schemas import IntakeRequest
+from src.core.logging import request_id_ctx
 from src.repositories.callback_repository import CallbackRepository
 from src.repositories.idempotency_repository import IdempotencyRepository
 from src.repositories.metadata_repository import MetadataRepository
+from src.services.metadata_service import MetadataService
 from src.services.idempotency_guard import IdempotencyGuard
 from src.services.intake_service import IntakeService
-from src.services.metadata_service import MetadataService
+from src.models.interfaces.schemas import IntakeRequest
+from src.core.deps import get_request_id
+
 
 router = APIRouter(
     prefix="/v1",
@@ -42,7 +45,9 @@ async def intake(
     """
     metadata = await MetadataService.extract(http_request)
 
-    guard = IdempotencyGuard(repo=IdempotencyRepository(db))
+    guard = IdempotencyGuard(
+        repo=IdempotencyRepository(db)
+    )
 
     service = IntakeService(
         idempotency=guard,

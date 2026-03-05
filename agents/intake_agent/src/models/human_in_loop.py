@@ -1,21 +1,13 @@
-import datetime
-import uuid
-
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import (
-    DateTime,
-    Enum,
-    ForeignKeyConstraint,
-    PrimaryKeyConstraint,
-    String,
-    Text,
-    text,
+    String, Text, DateTime, Enum,
+    ForeignKeyConstraint, PrimaryKeyConstraint, text
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.utils.migration_database import Base
-
+import uuid
+import datetime
+from src.utils.migration_database import Base 
 from .enums import HumanDecision
-
 
 class HumanReview(Base):
     __tablename__ = "human_review"

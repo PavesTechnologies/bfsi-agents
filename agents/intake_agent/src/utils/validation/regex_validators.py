@@ -4,18 +4,19 @@ Each function returns a ValidationResult and never raises exceptions. They are
 intended to be pure utilities that higher-level code can call and decide how to
 act on failures.
 """
-
 from __future__ import annotations
 
 import datetime
 import re
+from typing import Optional
 
 from .results import ValidationResult
+
 
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
 
-def validate_ssn_last4(value: str | None) -> ValidationResult:
+def validate_ssn_last4(value: Optional[str]) -> ValidationResult:
     """Valid if value is None or exactly 4 digits.
 
     Missing (None) is treated as valid per non-blocking rule for optional
@@ -26,22 +27,12 @@ def validate_ssn_last4(value: str | None) -> ValidationResult:
         if value is None:
             return ValidationResult(field=field_name, is_valid=True)
         if not isinstance(value, str):
-            return ValidationResult(
-                field=field_name,
-                is_valid=False,
-                reason="ssn_last4 must be a string of 4 digits",
-            )
+            return ValidationResult(field=field_name, is_valid=False, reason="ssn_last4 must be a string of 4 digits")
         if re.fullmatch(r"\d{4}", value.strip()):
             return ValidationResult(field=field_name, is_valid=True)
-        return ValidationResult(
-            field=field_name,
-            is_valid=False,
-            reason="ssn_last4 must be exactly 4 digits",
-        )
+        return ValidationResult(field=field_name, is_valid=False, reason="ssn_last4 must be exactly 4 digits")
     except Exception as exc:  # pragma: no cover - defensive
-        return ValidationResult(
-            field=field_name, is_valid=False, reason=f"validation error: {exc}"
-        )
+        return ValidationResult(field=field_name, is_valid=False, reason=f"validation error: {exc}")
 
 
 def validate_email(value: str) -> ValidationResult:
@@ -54,46 +45,30 @@ def validate_email(value: str) -> ValidationResult:
         if value is None:
             return ValidationResult(field=field_name, is_valid=True)
         if not isinstance(value, str):
-            return ValidationResult(
-                field=field_name, is_valid=False, reason="email must be a string"
-            )
+            return ValidationResult(field=field_name, is_valid=False, reason="email must be a string")
         value = value.strip()
         if not value:
-            return ValidationResult(
-                field=field_name, is_valid=False, reason="email must not be empty"
-            )
+            return ValidationResult(field=field_name, is_valid=False, reason="email must not be empty")
         if _EMAIL_RE.fullmatch(value):
             return ValidationResult(field=field_name, is_valid=True)
-        return ValidationResult(
-            field=field_name, is_valid=False, reason="invalid email format"
-        )
+        return ValidationResult(field=field_name, is_valid=False, reason="invalid email format")
     except Exception as exc:  # pragma: no cover - defensive
-        return ValidationResult(
-            field=field_name, is_valid=False, reason=f"validation error: {exc}"
-        )
+        return ValidationResult(field=field_name, is_valid=False, reason=f"validation error: {exc}")
 
 
 def validate_phone(value: str) -> ValidationResult:
-    """Phone is valid when 10 to 15 digits remain after stripping non-numeric characters."""  # noqa: E501
+    """Phone is valid when 10 to 15 digits remain after stripping non-numeric characters."""
     field_name = "phone"
     try:
         if not isinstance(value, str):
-            return ValidationResult(
-                field=field_name, is_valid=False, reason="phone must be a string"
-            )
+            return ValidationResult(field=field_name, is_valid=False, reason="phone must be a string")
         digits = re.sub(r"\D", "", value)
         length = len(digits)
         if 10 <= length <= 15:
             return ValidationResult(field=field_name, is_valid=True)
-        return ValidationResult(
-            field=field_name,
-            is_valid=False,
-            reason="phone must contain 10 to 15 digits after removing non-numeric characters",  # noqa: E501
-        )
+        return ValidationResult(field=field_name, is_valid=False, reason="phone must contain 10 to 15 digits after removing non-numeric characters")
     except Exception as exc:  # pragma: no cover - defensive
-        return ValidationResult(
-            field=field_name, is_valid=False, reason=f"validation error: {exc}"
-        )
+        return ValidationResult(field=field_name, is_valid=False, reason=f"validation error: {exc}")
 
 
 def validate_dob(value: datetime.date) -> ValidationResult:
@@ -104,18 +79,10 @@ def validate_dob(value: datetime.date) -> ValidationResult:
     field_name = "date_of_birth"
     try:
         if not isinstance(value, datetime.date):
-            return ValidationResult(
-                field=field_name, is_valid=False, reason="date_of_birth must be a date"
-            )
+            return ValidationResult(field=field_name, is_valid=False, reason="date_of_birth must be a date")
         today = datetime.date.today()
         if value <= today:
             return ValidationResult(field=field_name, is_valid=True)
-        return ValidationResult(
-            field=field_name,
-            is_valid=False,
-            reason="date_of_birth cannot be in the future",
-        )
+        return ValidationResult(field=field_name, is_valid=False, reason="date_of_birth cannot be in the future")
     except Exception as exc:  # pragma: no cover - defensive
-        return ValidationResult(
-            field=field_name, is_valid=False, reason=f"validation error: {exc}"
-        )
+        return ValidationResult(field=field_name, is_valid=False, reason=f"validation error: {exc}")

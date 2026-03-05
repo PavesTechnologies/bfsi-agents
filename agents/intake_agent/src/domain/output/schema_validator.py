@@ -5,9 +5,9 @@ Deterministic validation against the LOS schema.
 Raises domain-level exceptions with clear error messages.
 """
 
-from typing import Any
-
+from typing import Dict, Any, List, Optional
 from pydantic import ValidationError
+
 from src.domain.output.los_schema import LOSOutput
 
 
@@ -24,8 +24,8 @@ class LOSSchemaValidationError(Exception):
     def __init__(
         self,
         message: str,
-        invalid_fields: list[str] | None = None,
-        validation_errors: list[dict[str, Any]] | None = None,
+        invalid_fields: Optional[List[str]] = None,
+        validation_errors: Optional[List[Dict[str, Any]]] = None,
     ):
         self.message = message
         self.invalid_fields = invalid_fields or []
@@ -42,7 +42,7 @@ class LOSSchemaValidationError(Exception):
         if self.validation_errors:
             error_details = []
             for error in self.validation_errors:
-                loc = " -> ".join(str(l) for l in error.get("loc", []))  # noqa: E741
+                loc = " -> ".join(str(l) for l in error.get("loc", []))
                 msg = error.get("msg", "Unknown error")
                 error_details.append(f"  {loc}: {msg}")
             if error_details:
@@ -51,7 +51,7 @@ class LOSSchemaValidationError(Exception):
         return "\n".join(parts)
 
 
-def validate_los_output(output: dict[str, Any]) -> None:
+def validate_los_output(output: Dict[str, Any]) -> None:
     """
     Validate canonical output against LOS schema.
 

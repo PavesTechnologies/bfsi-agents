@@ -1,11 +1,8 @@
 import base64
-
-from src.adapters.vault.utilities.approle_auth import login_to_vault
-
 # from utilities.approle_auth import login_to_vault
 # from utilities.env_loader import load_env
 from src.adapters.vault.utilities.env_loader import load_env
-
+from src.adapters.vault.utilities.approle_auth import login_to_vault
 
 class SSNVaultService:
     def __init__(self):
@@ -15,12 +12,12 @@ class SSNVaultService:
         """
         # Load the Transit Key Name specifically for the SSN context
         self.key_name = load_env("VAULT_TRANSIT_SSN_KEY_NAME")
-
+        
         # Get the RoleID to be passed for authentication
         self.role_id = load_env("VAULT_SSN_ROLE_ID")
 
     # --- Formatting Utilities ---
-
+    
     def _to_base64(self, plain_text):
         return base64.b64encode(plain_text.encode()).decode()
 
@@ -43,10 +40,11 @@ class SSNVaultService:
 
         # 8. Perform encryption using the SSN-specific transit key
         response = client.secrets.transit.encrypt_data(
-            name=self.key_name, plaintext=b64_data
+            name=self.key_name,
+            plaintext=b64_data
         )
 
-        return response["data"]["ciphertext"]
+        return response['data']['ciphertext']
 
     def retrieve_ssn(self, ciphertext):
         """
@@ -59,13 +57,13 @@ class SSNVaultService:
 
         # 8. Perform decryption using the SSN-specific transit key
         response = client.secrets.transit.decrypt_data(
-            name=self.key_name, ciphertext=ciphertext
+            name=self.key_name,
+            ciphertext=ciphertext
         )
 
         # Convert from base64 and return
-        return self._from_base64(response["data"]["plaintext"])
-
+        return self._from_base64(response['data']['plaintext'])
+    
 
 # obj=SSNVaultService()
-# print(obj.retrieve_ssn("vault:v1:ju+mCD860XqM4CgD85FJQC6kBjaPoQTz75Y8I7FOfXneaH4qP\
-# Fch"))
+# print(obj.retrieve_ssn("vault:v1:ju+mCD860XqM4CgD85FJQC6kBjaPoQTz75Y8I7FOfXneaH4qPFch"))

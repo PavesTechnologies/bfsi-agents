@@ -1,11 +1,14 @@
+from sqlalchemy import event, inspect
 from datetime import date, datetime
+from uuid import UUID
 from decimal import Decimal
 from enum import Enum
-from uuid import UUID
 
-from sqlalchemy import bindparam, inspect
+from sqlalchemy import bindparam
 from sqlalchemy.dialects.postgresql import JSONB
+
 from src.models.models import AuditLogs
+
 
 SENSITIVE_FIELDS = {"ssn_encrypted", "itin_number"}
 
@@ -14,12 +17,11 @@ SENSITIVE_FIELDS = {"ssn_encrypted", "itin_number"}
 # Value serialization helpers
 # -----------------------------
 
-
 def serialize(value):
     if value is None:
         return None
 
-    if isinstance(value, (date | datetime)):
+    if isinstance(value, (date, datetime)):
         return value.isoformat()
 
     if isinstance(value, UUID):
@@ -33,7 +35,7 @@ def serialize(value):
 
     # 🔒 CRITICAL FIX:
     # Never attempt to serialize binary data into JSONB
-    if isinstance(value, (bytes | bytearray)):
+    if isinstance(value, (bytes, bytearray)):
         return None
 
     return value
@@ -54,7 +56,6 @@ def mask_last_four(value):
 # Model data collection
 # -----------------------------
 
-
 def collect_model_data(target):
     data = {}
 
@@ -74,13 +75,15 @@ def get_primary_key_value(mapper, target):
     pk_columns = mapper.primary_key
 
     # Always return JSON-compatible object
-    return {col.key: serialize(getattr(target, col.key)) for col in pk_columns}
+    return {
+        col.key: serialize(getattr(target, col.key))
+        for col in pk_columns
+    }
 
 
 # -----------------------------
 # Audit hooks
 # -----------------------------
-
 
 def after_insert(mapper, connection, target):
     if mapper.local_table.name == "audit_logs":
@@ -100,7 +103,7 @@ def after_insert(mapper, connection, target):
             "record_id": get_primary_key_value(mapper, target),
             "old_data": None,
             "new_data": collect_model_data(target),
-        },
+        }
     )
 
 
@@ -143,7 +146,7 @@ def after_update(mapper, connection, target):
             "record_id": get_primary_key_value(mapper, target),
             "old_data": old_data,
             "new_data": new_data,
-        },
+        }
     )
 
 
@@ -165,5 +168,5 @@ def before_delete(mapper, connection, target):
             "record_id": get_primary_key_value(mapper, target),
             "old_data": collect_model_data(target),
             "new_data": None,
-        },
+        }
     )

@@ -1,10 +1,8 @@
 import os
-
 from dotenv import load_dotenv
 
 # Load .env file automatically
 load_dotenv()
-
 
 def load_env(key):
     """

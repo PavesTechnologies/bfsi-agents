@@ -7,9 +7,10 @@ Priority:
 
 This intentionally keeps logic minimal and focused.
 """
+from typing import Optional
 
 
-def extract_ip(headers: dict[str, str], remote_addr: str | None = None) -> str:
+def extract_ip(headers: dict[str, str], remote_addr: Optional[str] = None) -> str:
     """Extract client IP using proxy-safe priority.
 
     Args:

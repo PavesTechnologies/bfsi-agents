@@ -1,15 +1,16 @@
 import cv2
 import numpy as np
 
-from .contrast import enhance_contrast
 from .deskew import deskew
 from .noise_reduction import denoise
-from .preprocessing_result import ImagePreprocessingResult
-from .quality_evaluator import (
-    compute_overall_quality,
-    is_low_quality,
-)
+from .contrast import enhance_contrast
 from .quality_metrics import compute_quality_metrics
+from .quality_evaluator import (
+    is_low_quality,
+    compute_overall_quality,
+)
+from .preprocessing_result import ImagePreprocessingResult
+from src.domain.image_processing.perspective import correct_perspective
 
 
 def preprocess(image_bytes: bytes) -> ImagePreprocessingResult:

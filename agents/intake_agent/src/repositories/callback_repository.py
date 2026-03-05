@@ -13,14 +13,11 @@ class CallbackRepository:
             VALUES (:request_id, :callback_url, :status)
             ON CONFLICT (request_id) DO NOTHING
         """)
-        await self.session.execute(
-            query,
-            {
-                "request_id": request_id,
-                "callback_url": str(callback_url),
-                "status": CallbackStatus.PENDING.value,
-            },
-        )
+        await self.session.execute(query, {
+            "request_id": request_id,
+            "callback_url": str(callback_url),
+            "status": CallbackStatus.PENDING.value,
+        })
         await self.session.commit()
 
     async def mark_sent(self, request_id: str) -> bool:
@@ -30,14 +27,11 @@ class CallbackRepository:
             WHERE request_id = :request_id
               AND status = :pending
         """)
-        result = await self.session.execute(
-            query,
-            {
-                "sent": CallbackStatus.SENT.value,
-                "pending": CallbackStatus.PENDING.value,
-                "request_id": request_id,
-            },
-        )
+        result = await self.session.execute(query, {
+            "sent": CallbackStatus.SENT.value,
+            "pending": CallbackStatus.PENDING.value,
+            "request_id": request_id,
+        })
         await self.session.commit()
         return result.rowcount == 1
 

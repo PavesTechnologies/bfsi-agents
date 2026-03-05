@@ -1,10 +1,10 @@
-import logging
 from datetime import datetime
-
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.repositories.callback_repository import CallbackRepository
 from src.adapters.http.callback_sender import CallbackSender
 from src.models.interfaces.callback import CallbackPayload
-from src.repositories.callback_repository import CallbackRepository
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -15,10 +15,9 @@ class CallbackService:
 
     async def send_success(self, request_id: str, data: dict):
         logger.info(
-            "callback_send_success_called",
-            extra={"request_id": request_id},
-        )
-
+        "callback_send_success_called",
+        extra={"request_id": request_id},)
+        
         await self._send(
             request_id=request_id,
             status="SUCCESS",

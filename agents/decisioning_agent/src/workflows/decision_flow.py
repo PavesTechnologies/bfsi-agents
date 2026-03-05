@@ -148,6 +148,9 @@ if __name__ == "__main__":
         "user_request": {
             "amount": 100000,
             "tenure": 20
+        },
+        "bank_statement_summary": {
+            "monthly_income": 10000
         }
     }
 

@@ -4,13 +4,13 @@ Repository for request metadata persistence
 Handles storing and retrieving request metadata from the database
 """
 
-import logging
 from uuid import UUID
-
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.models.metadata import RequestMetadata, RequestMetadataRecord
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
+import logging
+
+from src.models.metadata import RequestMetadataRecord, RequestMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -96,9 +96,7 @@ class MetadataRepository:
         )
         return result.scalars().first()
 
-    async def get_by_app_id(
-        self, app_id: UUID, limit: int = 100
-    ) -> list[RequestMetadataRecord]:
+    async def get_by_app_id(self, app_id: UUID, limit: int = 100) -> list[RequestMetadataRecord]:
         """
         Retrieve metadata records for an application.
 
@@ -117,9 +115,7 @@ class MetadataRepository:
         )
         return result.scalars().all()
 
-    async def get_by_ip_address(
-        self, ip_address: str, limit: int = 100
-    ) -> list[RequestMetadataRecord]:
+    async def get_by_ip_address(self, ip_address: str, limit: int = 100) -> list[RequestMetadataRecord]:
         """
         Retrieve metadata records by IP address.
 

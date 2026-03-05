@@ -1,3 +1,3 @@
-from .loan_models import ApplicantInfo, EmploymentInfo, LoanIntakeRequest
+from .loan_models import EmploymentInfo, ApplicantInfo, LoanIntakeRequest
 
 __all__ = ["EmploymentInfo", "ApplicantInfo", "LoanIntakeRequest"]

@@ -1,13 +1,14 @@
 from dataclasses import dataclass
+from typing import List, Tuple
 
 
 @dataclass(frozen=True)
 class OCRBlock:
     text: str
-    bbox: tuple[int, int, int, int]  # (x0, y0, x1, y1)
+    bbox: Tuple[int, int, int, int]  # (x0, y0, x1, y1)
 
 
 @dataclass(frozen=True)
 class OCRResult:
     full_text: str
-    blocks: list[OCRBlock]
+    blocks: List[OCRBlock]

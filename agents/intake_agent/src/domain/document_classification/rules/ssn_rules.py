@@ -1,6 +1,5 @@
 import re
 
-
 def match(text: str, ocr_blocks=None) -> float:
     if not text:
         return 0.0
