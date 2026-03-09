@@ -9,6 +9,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 
 from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
+from src.utils.audit_decorator import audit_node
 
 from src.services.llm_executor import execute_llm
 from src.services.income_model.income_parser import IncomeOutput
@@ -16,6 +17,7 @@ from src.services.income_model.income_prompt import INCOME_PROMPT
 
 
 @track_node("income_engine")
+@audit_node(agent_name="decisioning_agent")
 def income_node(state: LoanApplicationState) -> LoanApplicationState:
 
     income_output_parser = PydanticOutputParser(

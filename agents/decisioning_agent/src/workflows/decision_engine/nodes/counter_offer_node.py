@@ -9,6 +9,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 
 from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
+from src.utils.audit_decorator import audit_node
 
 from src.services.llm_executor import execute_llm
 from src.services.counter_offer_model.counter_offer_parser import CounterOfferOutput
@@ -16,6 +17,7 @@ from src.services.counter_offer_model.counter_offer_prompt import COUNTER_OFFER_
 
 
 @track_node("counter_offer_engine")
+@audit_node(agent_name="decisioning_agent")
 def counter_offer_node(state: LoanApplicationState) -> LoanApplicationState:
 
     counter_offer_output_parser = PydanticOutputParser(

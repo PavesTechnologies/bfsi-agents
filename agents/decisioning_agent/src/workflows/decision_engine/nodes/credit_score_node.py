@@ -8,6 +8,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 
 from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
+from src.utils.audit_decorator import audit_node
 
 from src.services.llm_executor import execute_llm
 from src.services.credit_score_model.credit_score_parser import CreditScoreOutput
@@ -16,6 +17,7 @@ from src.services.credit_score_model.credit_score_prompt import CREDIT_SCORE_PRO
 
 
 @track_node("credit_score_engine")
+@audit_node(agent_name="decisioning_agent")
 def credit_score_node(state: LoanApplicationState) -> LoanApplicationState:
 
     credit_score_output_parser = PydanticOutputParser(

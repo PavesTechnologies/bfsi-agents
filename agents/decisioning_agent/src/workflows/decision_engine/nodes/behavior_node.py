@@ -9,6 +9,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 
 from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
+from src.utils.audit_decorator import audit_node
 
 from src.services.llm_executor import execute_llm
 from src.services.behavior_model.behavior_parser import BehaviorOutput
@@ -16,6 +17,7 @@ from src.services.behavior_model.behavior_prompt import BEHAVIOR_PROMPT
 
 
 @track_node("behavior_engine")
+@audit_node(agent_name="decisioning_agent")
 def behavior_node(state: LoanApplicationState) -> LoanApplicationState:
 
     behavior_output_parser = PydanticOutputParser(

@@ -9,6 +9,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 
 from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
+from src.utils.audit_decorator import audit_node
 
 from src.services.llm_executor import execute_llm
 from src.services.decision_model.decision_parser import DecisionOutput
@@ -16,6 +17,7 @@ from src.services.decision_model.decision_prompt import DECISION_PROMPT
 
 
 @track_node("underwriting_decision_engine")
+@audit_node(agent_name="decisioning_agent")
 def decision_llm_node(state: LoanApplicationState) -> LoanApplicationState:
 
     decision_output_parser = PydanticOutputParser(
