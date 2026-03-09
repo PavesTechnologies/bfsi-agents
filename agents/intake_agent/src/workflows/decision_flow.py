@@ -11,9 +11,10 @@ from src.services.decision_llm_service import run_decision
 
 #-------------------------------------------
 #|   Nodes(if increase move to nodes.py)   |
-#-------------------------------------------
+#-------------------------------------------from src.utils.audit_decorator import audit_node
 
 
+@audit_node(agent_name="intake_agent")
 def execute_decision(state: WorkflowState) -> WorkflowState:
     return {
         **state,

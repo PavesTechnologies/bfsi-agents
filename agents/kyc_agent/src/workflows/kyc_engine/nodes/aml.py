@@ -8,9 +8,11 @@ PublicRecord) to derive AML / sanctions signals.
 from src.adapters.mock_adapters.mock_experian_adapter import MockExperianAdapter
 from src.core.telemetry import track_node
 from src.workflows.kyc_engine.kyc_state import AMLCheckState, KYCState
+from src.utils.audit_decorator import audit_node
 
 
 @track_node("aml")
+@audit_node(agent_name="kyc_agent")
 async def aml_node(state: KYCState) -> KYCState:
     req = state["raw_request"]
 

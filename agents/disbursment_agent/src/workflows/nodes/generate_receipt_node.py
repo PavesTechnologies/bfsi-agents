@@ -6,8 +6,13 @@ that can be returned via the API or stored in a database.
 """
 
 from src.workflows.state import DisbursementState
+from src.utils.audit_decorator import audit_node
+from src.repositories.disbursement_repository import DisbursementRepository
+from src.core.database import get_db
+import asyncio
 
 
+@audit_node(agent_name="disbursement_agent")
 def generate_receipt_node(state: DisbursementState) -> dict:
     """
     Builds the final DisbursementReceipt from the accumulated state.
@@ -58,6 +63,24 @@ def generate_receipt_node(state: DisbursementState) -> dict:
         "explanation": state.get("explanation"),
     }
 
-    return {
+    receipt_payload = {
         "disbursement_receipt": receipt,
     }
+
+    # Persistence logic for Storable Returns
+    async def persist():
+        async for session in get_db():
+            repo = DisbursementRepository(session)
+            await repo.save_record(receipt_payload["disbursement_receipt"])
+            break
+
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(persist())
+        else:
+            asyncio.run(persist())
+    except Exception as e:
+        print(f"Error persisting disbursement record: {e}")
+
+    return receipt_payload

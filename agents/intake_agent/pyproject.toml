@@ -41,6 +41,7 @@ dev = "src.cli:dev"
 prod = "src.cli:prod"
 test = "src.cli:test"
 migration = "src.cli:migration"
+migrate = "src.cli:migrate"
 initial_migration = "src.cli:migrate"
 migrate_new_model = "src.cli:migrate_new_model"
 
@@ -50,7 +51,6 @@ pytest = "^8.0.0"
 pytest-asyncio = "^0.23"
 python-dotenv = "^1.2.1"
 ruff = "^0.3.0"
-
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"

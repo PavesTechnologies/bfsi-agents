@@ -5,6 +5,7 @@ from src.models.enums import IdempotencyStatus, KYCStatus
 from src.models.identity_check import IdentityCheck
 from src.models.kyc_cases import KYC
 from src.models.kyc_request import KYCRequest
+from src.models.risk_decision import RiskDecision
 
 
 class KYCRepository:
@@ -160,4 +161,18 @@ class KYCRepository:
 
         await self.db.flush()
         await self.db.refresh(record)
+        return record
+
+    async def save_risk_decision(self, kyc_id: str, decision_data: dict):
+        record = RiskDecision(
+            kyc_id=kyc_id,
+            final_status=decision_data.get("final_status"),
+            aggregated_score=decision_data.get("aggregated_score"),
+            hard_fail_triggered=decision_data.get("hard_fail_triggered"),
+            decision_reason=decision_data.get("decision_reason"),
+            decision_rules_snapshot=decision_data.get("decision_rules_snapshot"),
+            model_versions=decision_data.get("model_versions")
+        )
+        self.db.add(record)
+        await self.db.commit()
         return record

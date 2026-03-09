@@ -7,8 +7,10 @@ actual disbursement of funds to the borrower's account.
 
 from src.workflows.state import DisbursementState
 from src.services.banking_gateway import execute_fund_transfer, BankingGatewayError
+from src.utils.audit_decorator import audit_node
 
 
+@audit_node(agent_name="disbursement_agent")
 def execute_transfer_node(state: DisbursementState) -> dict:
     """
     Triggers a fund transfer via the banking gateway.

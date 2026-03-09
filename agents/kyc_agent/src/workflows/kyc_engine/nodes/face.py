@@ -3,9 +3,11 @@ import time
 from src.core.telemetry import track_node
 from src.workflows.kyc_engine.kyc_state import KYCState
 # from src.services.face_liveness_service import face_liveness_service
+from src.utils.audit_decorator import audit_node
 
 
 @track_node("face")
+@audit_node(agent_name="kyc_agent")
 def face_node(state: KYCState) -> KYCState:
     """
     Face Match + Liveness Node

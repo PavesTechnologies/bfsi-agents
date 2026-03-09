@@ -37,12 +37,12 @@ sqlacodegen = "^3.2.0"
 sqlalchemy = "^2.0.46"
 uvicorn = "^0.29.0"
 
-
 [tool.poetry.scripts]
 dev = "src.cli:dev"
 prod = "src.cli:prod"
 test = "src.cli:test"
 migration = "src.cli:migration"
+migrate = "src.cli:migrate"
 initial_migration = "src.cli:migrate"
 down_grade = "src.cli:downgrade"
 lint = "src.cli:lint"
@@ -65,17 +65,9 @@ line-length = 88
 target-version = "py311"
 extend-exclude = ["alembic"]
 
-# Move these here to stop the warning
 [tool.ruff.lint]
-select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "B",   # bugbear
-    "UP",  # pyupgrade
-]
-ignore = ["B008"] # To allow FastAPI Depends()
+select = ["E", "W", "F", "I", "B", "UP"]
+ignore = ["B008"]
 
 [tool.ruff.format]
 quote-style = "double"
