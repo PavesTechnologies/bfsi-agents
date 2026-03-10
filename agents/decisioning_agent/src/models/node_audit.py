@@ -4,11 +4,7 @@ from typing import Optional
 from sqlalchemy import String, Integer, DateTime, Text, text, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
-from src.core.database import AsyncSessionLocal
-from sqlalchemy.orm import DeclarativeBase
-
-class Base(DeclarativeBase):
-    pass
+from src.utils.migration_database import Base
 
 class NodeAuditLog(Base):
     __tablename__ = 'node_audit_logs'

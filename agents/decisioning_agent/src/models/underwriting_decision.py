@@ -3,10 +3,8 @@ import datetime
 from typing import Optional
 from sqlalchemy import String, Integer, Numeric, DateTime, Text, text, Float, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
-
-class Base(DeclarativeBase):
-    pass
+from sqlalchemy.orm import Mapped, mapped_column
+from src.utils.migration_database import Base
 
 class UnderwritingDecision(Base):
     __tablename__ = 'underwriting_decisions'
