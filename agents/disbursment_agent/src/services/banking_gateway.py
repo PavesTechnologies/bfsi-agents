@@ -54,10 +54,11 @@ def execute_fund_transfer(
 
     transaction_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    gateway_status = "PENDING" if disbursement_amount >= 50000 else "SUCCESS"
 
     return {
         "transaction_id": transaction_id,
-        "status": "SUCCESS",
+        "status": gateway_status,
         "amount_transferred": disbursement_amount,
         "beneficiary_account": borrower_account or "MOCK-ACCT-XXXX-7890",
         "transfer_mode": "NEFT",

@@ -11,6 +11,7 @@ class UnderwritingDecision(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     application_id: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    correlation_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     decision: Mapped[str] = mapped_column(String(20), nullable=False)
     risk_tier: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     risk_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)

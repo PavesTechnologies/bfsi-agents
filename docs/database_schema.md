@@ -138,6 +138,7 @@ Final KYC-level risk aggregator.
 Persistent outcomes from the Decisioning Agent.
 - **id**: UUID (Primary Key)
 - **application_id**: String(50) (Unique ID for lookup)
+- **correlation_id**: String(100) (Upstream trace identifier propagated from request lineage)
 - **decision**: String(20) (APPROVE, DECLINE, COUNTER_OFFER)
 - **risk_tier**: String(10)
 - **risk_score**: Float
@@ -147,13 +148,57 @@ Persistent outcomes from the Decisioning Agent.
 - **explanation**: Text
 - **reasoning_steps**: JSONB (Snapshot of LLM reasoning)
 
+### `underwriting_idempotency`
+Replay protection for the Decisioning Agent keyed by the intake `application_id`.
+- **application_id**: String(50) (Primary Key)
+- **request_hash**: String(64)
+- **status**: String(32)
+- **response_payload**: JSONB
+- **error_message**: Text
+- **updated_at**: DateTime
+
 ### `disbursement_records`
 Persistent records of loan fund transfers.
 - **id**: UUID (Primary Key)
 - **application_id**: String(50)
+- **correlation_id**: String(100) (Upstream trace identifier propagated from request lineage)
 - **transaction_id**: String(100)
 - **status**: String(20) (INITIATED, COMPLETED, FAILED)
 - **disbursement_amount**: Numeric(12, 2)
 - **monthly_emi**: Numeric(12, 2)
 - **repayment_schedule**: JSONB (Full schedule)
 - **transfer_timestamp**: DateTime
+
+### `disbursement_idempotency`
+Replay protection for the Disbursement Agent keyed by the intake `application_id`.
+- **application_id**: String(50) (Primary Key)
+- **request_hash**: String(64)
+- **status**: String(32)
+- **response_payload**: JSONB
+- **error_message**: Text
+- **updated_at**: DateTime
+
+### `disbursement_transition_logs`
+Persistent lifecycle transitions for the Disbursement Agent state machine.
+- **id**: UUID (Primary Key)
+- **application_id**: String(50)
+- **correlation_id**: String(100)
+- **from_status**: String(32)
+- **to_status**: String(32)
+- **reason**: Text
+- **transition_metadata**: JSONB
+- **created_at**: DateTime
+
+### `service_audit_logs`
+Service-level execution audit records for non-node operations in Decisioning and Disbursement.
+- **id**: UUID (Primary Key)
+- **application_id**: String(50)
+- **correlation_id**: String(100)
+- **agent_name**: String(50)
+- **operation_name**: String(100)
+- **request_payload**: JSONB
+- **response_payload**: JSONB
+- **status**: String(20)
+- **error_message**: Text
+- **execution_time_ms**: Integer
+- **created_at**: DateTime

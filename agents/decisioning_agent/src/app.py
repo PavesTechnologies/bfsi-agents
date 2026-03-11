@@ -11,16 +11,26 @@ Responsibilities:
 Do NOT put business logic here.
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from src.api.routes import router
+from src.utils.migration_database import Base, engine
+import src.models  # noqa: F401
 
 
 def create_app() -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        Base.metadata.create_all(bind=engine)
+        yield
+
     app = FastAPI(
         title="decisioning_agent",
         description="Agent microservice: decisioning_agent",
         version="0.1.0",
+        lifespan=lifespan,
     )
 
     app.include_router(router)
