@@ -20,20 +20,13 @@ class PipelineService:
     def __init__(self):
         self.http_client = httpx.AsyncClient(timeout=AgentConfig.REQUEST_TIMEOUT_SECONDS)
 
-    async def execute_full_pipeline(self, raw_application: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_full_pipeline(self, application_id: str, raw_application: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Executes the end-to-end loan application flow starting with Intake.
+        Executes the remaining loan application flow starting with KYC.
+        Intake processing and document upload are assumed complete.
         """
+        print(f"Triggering pipeline for application_id: {application_id}")
         print(json.dumps(raw_application, indent=2))
-        # 1. Intake Phase
-        intake_response = await self.http_client.post(
-            f"{AgentConfig.INTAKE_AGENT_URL}/loan_intake/submit_application",
-            json=raw_application
-        )
-        intake_response.raise_for_status()
-        intake_data = intake_response.json()
-        
-        application_id = intake_data.get("application_id")
         
         # Extract applicant data from the raw application for subsequent mappers
         applicants = raw_application.get("applicants", [])

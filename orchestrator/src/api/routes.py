@@ -11,6 +11,7 @@ from src.services.pipeline_service import PipelineService
 router = APIRouter()
 
 class ApplicationTriggerRequest(BaseModel):
+    application_id: str
     raw_application: Dict[str, Any]
 
 
@@ -27,6 +28,7 @@ async def trigger_pipeline(request: ApplicationTriggerRequest):
     service = PipelineService()
     try:
         result = await service.execute_full_pipeline(
+            application_id=request.application_id,
             raw_application=request.raw_application
         )
         return result

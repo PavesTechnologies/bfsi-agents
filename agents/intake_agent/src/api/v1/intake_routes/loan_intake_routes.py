@@ -3,8 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.services.intake_services import loan_intake_service
 from src.utils.intake_database.db_session import get_db
 from src.services.intake_services.loan_intake_service import LoanIntakeService
-from src.models.interfaces.Loan_intake_interfaces import LoanIntakeRequest, LoanIntakeResponse
+from src.models.interfaces.Loan_intake_interfaces import LoanIntakeRequest, LoanIntakeResponse, OrchestratorTriggerRequest
 from src.dependencies.rate_limit import rate_limit_dependency
+import httpx
+from fastapi import HTTPException
+from src.core.config import get_settings
 router = APIRouter(prefix="/loan_intake", tags=["loan_intake"])
 
 @router.get("/check",dependencies=[Depends(rate_limit_dependency)])
@@ -26,3 +29,31 @@ async def submit_loan_application(
     if isinstance(response, dict):
         return LoanIntakeResponse.model_validate(response)
     return response
+
+@router.post("/trigger_orchestrator")
+async def trigger_orchestrator(
+    request: OrchestratorTriggerRequest,
+):
+    settings = get_settings()
+    url = f"{settings.ORCHESTRATOR_URL}/trigger_pipeline"
+    
+    payload = {
+        "application_id": request.application_id,
+        "raw_application": request.raw_application
+    }
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(url, json=payload, timeout=120.0)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(
+                status_code=exc.response.status_code,
+                detail=f"Orchestrator returned an error: {exc.response.text}"
+            )
+        except httpx.RequestError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Could not connect to Orchestrator at {url}: {str(exc)}"
+            )

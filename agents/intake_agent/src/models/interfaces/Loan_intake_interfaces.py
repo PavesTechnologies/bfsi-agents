@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict
+from typing import Any, List, Optional, Dict
 from datetime import date, datetime
 from uuid import UUID
 from pydantic import BaseModel, Field
@@ -171,3 +171,8 @@ class LoanIntakeResponse(BaseModel):
         default=None,
         description="Blocking validation summary collected during intake processing",
     )
+
+class OrchestratorTriggerRequest(BaseModel):
+    application_id: str
+    raw_application: Dict[str, Any]
+
