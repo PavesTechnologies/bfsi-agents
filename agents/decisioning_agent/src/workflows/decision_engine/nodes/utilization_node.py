@@ -9,6 +9,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 
 from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
+from src.utils.audit_decorator import audit_node
 
 from src.services.llm_executor import execute_llm
 from src.services.utilization_model.utilization_parser import UtilizationOutput
@@ -16,6 +17,7 @@ from src.services.utilization_model.utilization_prompt import UTILIZATION_PROMPT
 
 
 @track_node("utilization_engine")
+@audit_node(agent_name="decisioning_agent")
 def utilization_node(state: LoanApplicationState) -> LoanApplicationState:
 
     utilization_output_parser = PydanticOutputParser(

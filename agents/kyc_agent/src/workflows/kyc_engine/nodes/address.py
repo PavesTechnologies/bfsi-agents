@@ -8,9 +8,11 @@ from src.adapters.mock_adapters.mock_experian_adapter import MockExperianAdapter
 from src.core.telemetry import track_node
 from src.services.identity_service import IdentityService
 from src.workflows.kyc_engine.kyc_state import KYCState
+from src.utils.audit_decorator import audit_node
 
 
 @track_node("address")
+@audit_node(agent_name="kyc_agent")
 async def address_node(state: KYCState, config: RunnableConfig) -> KYCState:
     """
     Thin node: Orchestrates the sequence between Adapter and Service.

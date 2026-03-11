@@ -7,9 +7,11 @@ from Experian payload before downstream underwriting.
 from datetime import datetime
 from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
+from src.utils.audit_decorator import audit_node
 import copy
 
 @track_node("pi_deletion_engine")
+@audit_node(agent_name="decisioning_agent")
 def pi_deletion_node(state: LoanApplicationState) -> LoanApplicationState:
 
     # ==================================================

@@ -20,16 +20,21 @@ langchain-community = "^0.4.1"
 langchain-openai = "^1.1.10"
 langchain-groq = "^1.1.2"
 langchain-google-genai = "^4.2.1"
+alembic = "^1.18.3"
+psycopg2-binary = "^2.9.11"
+sqlalchemy = "^2.0.46"
+asyncpg = "^0.31.0"
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"
 prod = "src.cli:prod"
 test = "src.cli:test"
+migrate = "src.cli:migrate"
+migration = "src.cli:migration"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 ruff = "^0.3.0"
-
 
 [tool.poetry.group.telemetry.dependencies]
 opentelemetry-api = "^1.39.1"

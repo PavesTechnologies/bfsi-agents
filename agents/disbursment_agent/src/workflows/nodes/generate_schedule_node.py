@@ -7,8 +7,10 @@ month-by-month amortization schedule using the disbursement calculator.
 
 from src.workflows.state import DisbursementState
 from src.services.disbursement_calculator import generate_repayment_schedule
+from src.utils.audit_decorator import audit_node
 
 
+@audit_node(agent_name="disbursement_agent")
 def generate_schedule_node(state: DisbursementState) -> dict:
     """
     Reads approved_amount, interest_rate, and approved_tenure_months

@@ -5,9 +5,10 @@ Validates that the incoming decision from the Decisioning Agent
 is eligible for disbursement (APPROVE or accepted COUNTER_OFFER).
 """
 
-from src.workflows.state import DisbursementState
+from src.utils.audit_decorator import audit_node
 
 
+@audit_node(agent_name="disbursement_agent")
 def validate_decision_node(state: DisbursementState) -> dict:
     """
     Checks:

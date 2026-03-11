@@ -9,9 +9,14 @@ from src.core.telemetry import track_node
 from src.workflows.kyc_engine.kyc_state import KYCState
 from src.workflows.kyc_engine.rules.executor import execute_rules
 from src.workflows.kyc_engine.rules.loader import load_rule_set
+from src.utils.audit_decorator import audit_node
+from src.repositories.kyc_repo.kyc_repository import KYCRepository
+from src.core.database import get_db
+import asyncio
 
 
 @track_node("risk_aggregation_engine")
+@audit_node(agent_name="kyc_agent")
 def risk_aggregator_node(state: KYCState) -> KYCState:
     # ==================================================
     # 1️⃣ Load Rule Set (Versioned Policy)
@@ -108,4 +113,36 @@ def risk_aggregator_node(state: KYCState) -> KYCState:
         "reasoning_trace": reasoning_trace,
     }
 
-    return {"risk_decision": risk_decision}
+    risk_decision_data = {"risk_decision": risk_decision}
+
+    # Persistence logic for Storable Returns
+    async def persist():
+        try:
+            async for session in get_db():
+                repo = KYCRepository(session)
+                # Note: kyc_id is needed. State should have it or applicant_id to find latest.
+                kyc_id = state.get("kyc_id")
+                if not kyc_id:
+                    # Alternative: find latest by applicant_id if kyc_id not in state
+                    applicant_id = state.get("applicant_id")
+                    if applicant_id:
+                        latest = await repo.get_latest_attempt(applicant_id)
+                        if latest:
+                            kyc_id = latest.id
+                
+                if kyc_id:
+                    await repo.save_risk_decision(kyc_id, risk_decision_data["risk_decision"])
+                break
+        except Exception as e:
+            print(f"Error persisting KYC risk decision: {e}")
+
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(persist())
+        else:
+            asyncio.run(persist())
+    except Exception as e:
+        print(f"Loop management error: {e}")
+
+    return risk_decision_data

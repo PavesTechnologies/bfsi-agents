@@ -10,6 +10,7 @@ from datetime import datetime
 
 from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
+from src.utils.audit_decorator import audit_node
 
 
 # -------------------------------------------------------
@@ -63,6 +64,7 @@ def _normalize_risk_flag(flag: str) -> float:
 
 
 @track_node("underwriting_risk_aggregator")
+@audit_node(agent_name="decisioning_agent")
 def risk_aggregator_node(state: LoanApplicationState) -> LoanApplicationState:
 
     # ==================================================
