@@ -4,14 +4,7 @@ from typing import Optional
 from sqlalchemy import String, Integer, DateTime, Text, text, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
-from src.core.database import AsyncSessionLocal
-
-# We redefine the base or use a minimal version for SQLAlchemy ORM mapping
-# In KYC agent, we'll use a simple approach similar to Intake Agent
-from sqlalchemy.orm import DeclarativeBase
-
-class Base(DeclarativeBase):
-    pass
+from src.utils.migration_database import Base
 
 class NodeAuditLog(Base):
     __tablename__ = 'node_audit_logs'

@@ -1,5 +1,5 @@
 from src.utils.audit_decorator import audit_node
-
+from src.workflows.kyc_engine.kyc_state import KYCState, RawKYCRequest
 
 @audit_node(agent_name="kyc_agent")
 def normalize_node(state: KYCState) -> KYCState:
