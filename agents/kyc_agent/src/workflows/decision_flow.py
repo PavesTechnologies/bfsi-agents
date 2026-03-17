@@ -4,6 +4,8 @@ KYC Agent - Parallel Execution Graph
 """
 
 from langgraph.graph import END, StateGraph
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg_pool import AsyncConnectionPool 
 
 from src.workflows.kyc_engine.kyc_state import KYCState
 from src.workflows.kyc_engine.nodes.address import address_node
@@ -15,9 +17,15 @@ from src.workflows.kyc_engine.nodes.explanation import explanation_node
 from src.workflows.kyc_engine.nodes.normalize import normalize_node
 from src.workflows.kyc_engine.nodes.risk import risk_aggregator_node
 from src.workflows.kyc_engine.nodes.ssn import ssn_node
+from src.core.config import get_settings
+
+settings = get_settings()
 
 # from IPython.display import Image, display # type: ignore
-
+DB_URI = settings.DATABASE_GENERIC
+# ✅ Create pool and checkpointer as module-level singletons (not yet open)
+connection_pool = AsyncConnectionPool(conninfo=DB_URI, max_size=10, open=False)
+checkpointer = AsyncPostgresSaver(connection_pool)
 
 def build_graph():
     graph = StateGraph(KYCState)
@@ -96,9 +104,19 @@ def build_graph():
     # with open("graph.png", "wb") as f:
     #     f.write(workflow.get_graph().draw_mermaid_png())
 
-    return graph.compile()
-
-    # return workflow
+    # Ideally, the checkpointer is created outside or managed via a pool
+    # DB_URI = "postgresql://avnadmin:AVNS_X0ml0E8DUSxuuhGnQZX@pg-22ef5b8a-ajaykumar.h.aivencloud.com:15549/kyc_agent"
+    # connection_pool = AsyncConnectionPool(conninfo=DB_URI, max_size=10,open=False)
+    # checkpointer = AsyncPostgresSaver(connection_pool)
+    
+    workflow = graph.compile(checkpointer=checkpointer)
+    
+    # 2. Attach the pool and checkpointer to the workflow object 
+    # so we can open them from the Service or FastAPI startup
+    workflow.pool = connection_pool
+    workflow.checkpointer = checkpointer
+    
+    return workflow
 
 
 # workflow = build_graph()

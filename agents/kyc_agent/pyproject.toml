@@ -36,6 +36,7 @@ slowapi = "^0.1.9"
 sqlacodegen = "^3.2.0"
 sqlalchemy = "^2.0.46"
 uvicorn = "^0.29.0"
+langgraph-checkpoint-postgres = "^3.0.4"
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"

@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     REDIS_USERNAME: str = Field(..., alias="REDIS_USERNAME")
     REDIS_PASSWORD: str = Field(..., alias="REDIS_PASSWORD")
     ORCHESTRATOR_URL: str = Field("http://localhost:8004", alias="ORCHESTRATOR_URL")
+    DATABASE_GENERIC: str = Field(..., alias="DATABASE_GENERIC")
 
     model_config = {
         "case_sensitive": True,
