@@ -3,10 +3,10 @@ import sys
 import uvicorn
 
 def dev():
-    uvicorn.run("src.main:app", reload=True, port=8002, reload_dirs=["src"])
+    uvicorn.run("src.main:app", reload=True, port=8003, reload_dirs=["src"])
 
 def prod():
-    uvicorn.run("src.main:app", port=8002)
+    uvicorn.run("src.main:app", port=8003)
 
 def test():
     import pytest

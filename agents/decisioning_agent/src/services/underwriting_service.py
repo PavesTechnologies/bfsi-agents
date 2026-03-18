@@ -41,13 +41,39 @@ def run_underwriting(request: UnderwritingRequest) -> dict:
     # ─── Run the graph ───
     final_state = _graph.invoke(initial_state)
 
-    result =  {
-        "application_id": final_state.get("application_id"),
-        "aggregated_risk_tier": final_state.get("aggregated_risk_tier"),
-        "aggregated_risk_score": final_state.get("aggregated_risk_score"),
-        "decision": final_state.get("final_decision").get("decision"),
-        "timestamp": datetime.now().isoformat(),
-    }
+    final_payload = final_state.get("final_response_payload")
+    if final_payload:
+        result = dict(final_payload)
+        result.setdefault("application_id", final_state.get("application_id"))
+        result.setdefault("timestamp", datetime.now().isoformat())
+    else:
+        final_decision = final_state.get("final_decision") or {}
+        counter_offer_data = final_state.get("counter_offer_data")
+        result = {
+            "application_id": final_state.get("application_id"),
+            "aggregated_risk_tier": final_state.get("aggregated_risk_tier"),
+            "aggregated_risk_score": final_state.get("aggregated_risk_score"),
+            "decision": final_decision.get("decision"),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        decision = final_decision.get("decision")
+        if decision == "APPROVE":
+            result["loan_details"] = {
+                "approved_amount": final_decision.get("approved_amount"),
+                "approved_tenure_months": final_decision.get("approved_tenure"),
+                "interest_rate": final_decision.get("interest_rate"),
+                "disbursement_amount": final_decision.get("disbursement_amount"),
+                "explanation": final_decision.get("explanation"),
+            }
+        elif decision == "COUNTER_OFFER":
+            result["counter_offer"] = counter_offer_data
+            result["original_decision_explanation"] = final_decision.get(
+                "explanation"
+            )
+        elif decision == "DECLINE":
+            result["decline_reason"] = final_decision.get("explanation")
+            result["reasoning_steps"] = final_decision.get("reasoning_steps", [])
 
     print("Graph execution result Underwriting:", result )
     return result
