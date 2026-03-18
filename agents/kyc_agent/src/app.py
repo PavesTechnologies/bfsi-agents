@@ -11,19 +11,21 @@ Responsibilities:
 Do NOT put business logic here.
 """
 
+from contextlib import asynccontextmanager
 import logging
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from redis import Redis
-
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from src.api.routes import router
 from src.api.v1.kyc_routes import kyc_routes
 from src.core.exceptions import ComplianceHardFail, KYCBaseException
 from src.core.logging import setup_logging
 from src.core.telemetry import setup_telemetry
 from src.repositories.idempotency_repository import RedisIdempotencyRepository
+from src.workflows.decision_flow import connection_pool,DB_URI  # ✅ import singletons
 
 load_dotenv()
 # test logging
@@ -32,12 +34,30 @@ logger = logging.getLogger(__name__)
 
 def create_app() -> FastAPI:
     setup_logging()
+    
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # ✅ Step 1: Run migrations on a dedicated autocommit connection
+        # CREATE INDEX CONCURRENTLY requires autocommit=True (no transaction block)
+        async with AsyncPostgresSaver.from_conn_string(DB_URI) as tmp_checkpointer:
+            await tmp_checkpointer.setup()
+        logger.info("✅ LangGraph checkpointer migrations applied")
+
+        # ✅ Step 2: Open the shared pool used by the actual graph
+        await connection_pool.open()
+        logger.info("✅ LangGraph connection pool opened")
+
+        yield
+
+        await connection_pool.close()
+        logger.info("🔒 LangGraph connection pool closed")
 
     app = FastAPI(
         title="kyc_agent",
         description="Agent microservice: kyc_agent",
         version="0.1.0",
         root_path="/kyc",
+        lifespan=lifespan,
     )
 
     setup_telemetry(app)

@@ -24,7 +24,7 @@ def upgrade() -> None:
     op.add_column('kyc_cases', sa.Column('vendor_transaction_id', sa.String(length=128), nullable=True))
     op.create_index(op.f('ix_kyc_cases_vendor_transaction_id'), 'kyc_cases', ['vendor_transaction_id'], unique=False)
     op.add_column('vendor_responses', sa.Column('vendor_transaction_id', sa.String(length=128), nullable=True))
-    op.create_index(op.f('ix_vendor_responses_response_hash'), 'vendor_responses', ['response_hash'], unique=True)
+    op.create_index(op.f('ix_vendor_responses_response_hash'), 'vendor_responses', ['response_hash'], unique=False)
     op.create_index(op.f('ix_vendor_responses_vendor_transaction_id'), 'vendor_responses', ['vendor_transaction_id'], unique=False)
     op.create_unique_constraint('uq_vendor_txn_per_vendor', 'vendor_responses', ['vendor_name', 'vendor_transaction_id'])
     # ### end Alembic commands ###

@@ -9,7 +9,7 @@ from src.utils.hash_utils import generate_payload_hash
 from src.workflows.decision_flow import build_graph
 from src.workflows.kyc_engine.kyc_state import RawKYCRequest
 import json
-
+from src.repositories.langgraph_failed_thread_repository import KYCFailedThreadRepository
 # Import your team's Pydantic models
 
 
@@ -18,6 +18,7 @@ class KYCOrchestratorService:
         self.db = db
         self.repo = KYCRepository(db)
         self.graph = build_graph()
+        self.failed_repo = KYCFailedThreadRepository(db) 
 
     async def verify_identity(self, payload: KYCTriggerRequest) -> dict:
         """
@@ -48,13 +49,11 @@ class KYCOrchestratorService:
 
         await self.db.flush()  # Commit to generate KYC ID for logging in adapters
 
-        config = RunnableConfig(
-            configurable={
-                "db": self.db,
-                "kyc_id": kyc_case.id,
-                "applicant_id": payload.applicant_id,
-            }
-        )
+        config = {
+                    "db": self.db,
+                    "kyc_id": kyc_case.id,
+                    "applicant_id": payload.applicant_id,
+                }
 
         # 4. Execution: Run the Parallel LangGraph workflow
         result = await self._run_graph_execution(payload, config=config)
@@ -118,8 +117,9 @@ class KYCOrchestratorService:
         return record.response_payload
 
     async def _run_graph_execution(self, payload: KYCTriggerRequest, config) -> dict:
-        """Maps Pydantic model to RawKYCRequest and runs the graph."""
-        # Mapping model attributes to the internal KYCState shape
+        application_id = payload.applicant_id
+
+        # ✅ Always build input state from payload
         raw_req: RawKYCRequest = {
             "applicant_id": payload.applicant_id,
             "full_name": payload.full_name,
@@ -136,15 +136,46 @@ class KYCOrchestratorService:
             "email": payload.email,
         }
 
-        initial_state = {
+        input_state = {
             "raw_request": raw_req,
             "hard_stop": False,
             "parallel_tasks_completed": [],
             "node_execution_times": {},
         }
 
-        # Parallel fan-out execution
-        final_state = await self.graph.ainvoke(initial_state, config=config)
+        # 🔁 Check failed thread — reuse thread_id if resuming, else create fresh
+        failed_record = await self.failed_repo.get_failed_thread(application_id)
+
+        if failed_record:
+            print("🔁 Resuming failed workflow")
+            thread_id = failed_record.thread_id  # ✅ reuse old thread_id for checkpoint lookup
+        else:
+            print("🆕 Starting fresh workflow")
+            thread_id = f"kyc_{application_id}"
+
+        try:
+            final_state = await self.graph.ainvoke(
+                input_state,  # ✅ always pass input — never None
+                config=RunnableConfig(
+                    configurable={
+                        "db": self.db,
+                        "kyc_id": config["kyc_id"],
+                        "applicant_id": config["applicant_id"],
+                        "thread_id": thread_id,
+                    }
+                ),
+            )
+
+            await self.failed_repo.delete_failed_thread(application_id)
+
+        except Exception as e:
+            await self.failed_repo.save_failure(
+                application_id=application_id,
+                thread_id=thread_id,
+                failed_node="unknown",
+                error_message=str(e),
+            )
+            raise e
 
         return {
             "applicant_id": payload.applicant_id,
