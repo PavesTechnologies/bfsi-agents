@@ -35,7 +35,7 @@ async def trigger_orchestrator(
     request: OrchestratorTriggerRequest,
 ):
     settings = get_settings()
-    url = f"{settings.ORCHESTRATOR_URL}/trigger_pipeline"
+    url = f"{settings.ORCHESTRATOR_URL}/trigger_pipeline_async"
     
     payload = {
         "application_id": request.application_id,
@@ -44,7 +44,7 @@ async def trigger_orchestrator(
     
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(url, json=payload, timeout=120.0)
+            response = await client.post(url, json=payload, timeout=15.0)
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as exc:

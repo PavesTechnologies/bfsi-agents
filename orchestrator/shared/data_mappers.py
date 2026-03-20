@@ -121,19 +121,55 @@ def map_decisioning_to_disbursement(
         A dict matching DisbursementRequest shape.
     """
     decision = decisioning_response.get("decision", "DECLINE")
+    loan_details = decisioning_response.get("loan_details") or {
+        "approved_amount": decisioning_response.get("approved_amount"),
+        "approved_tenure_months": decisioning_response.get("approved_tenure_months"),
+        "interest_rate": decisioning_response.get("interest_rate"),
+        "disbursement_amount": decisioning_response.get("disbursement_amount"),
+        "explanation": decisioning_response.get("terms_summary"),
+    }
+
+    counter_offer = decisioning_response.get("counter_offer")
+    if not counter_offer:
+        options = decisioning_response.get("counter_offer_options")
+        if options:
+            counter_offer = {
+                "generated_options": [
+                    {
+                        "option_id": option.get("offer_id"),
+                        "description": option.get("label"),
+                        "proposed_amount": option.get("principal_amount"),
+                        "proposed_tenure_months": option.get("tenure_months"),
+                        "proposed_interest_rate": option.get("interest_rate"),
+                        "disbursement_amount": option.get(
+                            "disbursement_amount",
+                            round(
+                                float(option.get("principal_amount", 0))
+                                - float(decisioning_response.get("processing_fee", 0.0)),
+                                2,
+                            ),
+                        ),
+                        "monthly_payment_emi": option.get("monthly_emi"),
+                        "total_repayment": option.get("total_repayment"),
+                    }
+                    for option in options
+                ]
+            }
 
     payload = {
         "application_id": decisioning_response.get("application_id"),
         "decision": decision,
-        "risk_tier": decisioning_response.get("risk_tier"),
-        "risk_score": decisioning_response.get("risk_score"),
+        "risk_tier": decisioning_response.get("risk_tier")
+        or decisioning_response.get("aggregated_risk_tier"),
+        "risk_score": decisioning_response.get("risk_score")
+        or decisioning_response.get("aggregated_risk_score"),
     }
 
     if decision == "APPROVE":
-        payload["loan_details"] = decisioning_response.get("loan_details")
+        payload["loan_details"] = loan_details
 
     elif decision == "COUNTER_OFFER":
-        payload["counter_offer"] = decisioning_response.get("counter_offer")
+        payload["counter_offer"] = counter_offer
         payload["selected_option_id"] = selected_option_id
 
     elif decision == "DECLINE":
