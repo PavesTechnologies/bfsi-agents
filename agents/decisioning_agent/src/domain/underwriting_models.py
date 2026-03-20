@@ -13,10 +13,6 @@ from pydantic import BaseModel, Field
 class UnderwritingRequest(BaseModel):
     """Input payload for the underwriting decision pipeline."""
     application_id: str = Field(description="Unique loan application identifier")
-    correlation_id: Optional[str] = Field(
-        default=None,
-        description="Correlation ID propagated from upstream systems; defaults to application_id.",
-    )
     raw_experian_data: Dict[str, Any] = Field(description="Full Experian credit report JSON")
     requested_amount: float = Field(description="Loan amount requested by the applicant", gt=0)
     requested_tenure_months: int = Field(description="Requested loan tenure in months", gt=0)

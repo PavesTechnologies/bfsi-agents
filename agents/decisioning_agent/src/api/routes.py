@@ -2,16 +2,14 @@
 API Routes for the Decisioning Agent
 """
 
-from fastapi import APIRouter, HTTPException, Request, status
-from src.core.exceptions import (
-    DuplicateRequestInProgressError,
-    IdempotencyConflictError,
-)
-from src.core.request_context import resolve_correlation_id
+from fastapi import APIRouter, HTTPException, Depends
 from src.domain.underwriting_models import UnderwritingRequest, UnderwritingResponse
-from src.services.underwriting_service import run_underwriting
+from src.utils.db_session import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.services.underwriting_service import UnderwritingService
 
-router = APIRouter()
+
+router = APIRouter(tags=["Underwriting"])
 
 
 @router.get("/")
@@ -20,8 +18,10 @@ def health_check():
     return {"status": "ok", "agent": "decisioning_agent"}
 
 
-@router.post("/underwrite", response_model=UnderwritingResponse)
-def underwrite(request: UnderwritingRequest, http_request: Request):
+@router.post("/underwrite")
+async def underwrite(
+    request: UnderwritingRequest, db: AsyncSession = Depends(get_db)
+):
     """
     Trigger the underwriting decision workflow.
 
@@ -30,18 +30,7 @@ def underwrite(request: UnderwritingRequest, http_request: Request):
     decision (APPROVE, COUNTER_OFFER, or DECLINE).
     """
     try:
-        correlation_id = resolve_correlation_id(
-            http_request,
-            request.correlation_id,
-            request.application_id,
-        )
-        result = run_underwriting(
-            request.model_copy(update={"correlation_id": correlation_id})
-        )
-        return result
-    except IdempotencyConflictError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    except DuplicateRequestInProgressError as e:
-        raise HTTPException(status_code=status.HTTP_202_ACCEPTED, detail=str(e))
+        service = UnderwritingService(db)
+        return await service.execute_underwriting(request)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

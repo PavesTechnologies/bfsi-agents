@@ -24,6 +24,7 @@ alembic = "^1.18.3"
 psycopg2-binary = "^2.9.11"
 sqlalchemy = "^2.0.46"
 asyncpg = "^0.31.0"
+langgraph-checkpoint-postgres = "^3.0.5"
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"

@@ -5,115 +5,118 @@ Entry point for running the decisioning workflow.
 Accepts an UnderwritingRequest and returns the final decision payload.
 """
 
-import asyncio
-import time
 
-from src.core.database import AsyncSessionLocal
-from src.core.exceptions import (
-    DuplicateRequestInProgressError,
-    IdempotencyConflictError,
+import uuid
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.domain.underwriting_models import UnderwritingRequest
+from src.repositories.langgraph_failed_th_repository import (
+    DecisioningFailedThreadRepository,
 )
-from src.domain.underwriting_models import UnderwritingRequest, UnderwritingResponse
-from src.repositories.idempotency_repository import UnderwritingIdempotencyRepository
-from src.repositories.service_audit_repository import ServiceAuditRepository
-from src.repositories.underwriting_repository import UnderwritingRepository
-from src.utils.hash import stable_payload_hash
-from src.services.idempotency import resolve_idempotent_response
 from src.workflows.decision_flow import build_underwriting_graph
+from fastapi import HTTPException
+
+# _graph = build_underwriting_graph()
 
 
-_graph = build_underwriting_graph()
+# async def _execute_underwriting(request: UnderwritingRequest) -> dict:
+#     request_payload = request.model_dump(mode="json")
+#     request_hash = stable_payload_hash(request_payload)
+#     initial_state = {
+#                 "application_id": request.application_id,
+#                 # "correlation_id": correlation_id,
+#                 "raw_experian_data": request.raw_experian_data,
+#                 "user_request": {
+#                     "amount": request.requested_amount,
+#                     "tenure": request.requested_tenure_months,
+#                 },
+#                 "bank_statement_summary": {
+#                     "monthly_income": request.monthly_income,
+#                 },
+#             }
+
+#     final_state = await _graph.ainvoke(initial_state)
+#     response_payload = final_state.get("final_response_payload", {})
+#     return response_payload
+
+# def run_underwriting(request: UnderwritingRequest) -> dict:
+#     """
+#     Execute the underwriting decision workflow.
+
+#     Args:
+#         request: An UnderwritingRequest containing applicant, credit,
+#                  and financial data for risk evaluation.
+
+#     Returns:
+#         The final decision response payload as a dict.
+#     """
+
+#     result = _execute_underwriting(request)
+#     print("Graph execution result Underwriting:", result)
+#     return result
 
 
-async def _execute_underwriting(request: UnderwritingRequest) -> dict:
-    request_payload = request.model_dump(mode="json")
-    request_hash = stable_payload_hash(request_payload)
-    correlation_id = request.correlation_id or request.application_id
-    started_at = time.time()
-    response_payload = None
-    status = "SUCCESS"
-    error_message = None
-    idempotency_created = False
+class UnderwritingService:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+        self.failed_thread_repo = DecisioningFailedThreadRepository(db)
+        self.graph = build_underwriting_graph()
 
-    async with AsyncSessionLocal() as session:
-        idempotency_repo = UnderwritingIdempotencyRepository(session)
-        repo = UnderwritingRepository(session)
-        audit_repo = ServiceAuditRepository(session)
-
+    async def execute_underwriting(self, request: UnderwritingRequest) -> dict:
+        
+        failed_app = await self.failed_thread_repo.get_failed_thread(request.application_id)
+        
+        if failed_app:
+            thread_id = failed_app.thread_id
+            print("Resuming failed thread:", thread_id)
+        else:
+            print("New workflow for application:", request.application_id)
+            thread_id = f"underwriting_{request.application_id}"
+        
+        config = {"configurable": {"thread_id": thread_id}}
         try:
-            existing = await idempotency_repo.get(request.application_id)
-            try:
-                cached_response = resolve_idempotent_response(
-                    existing,
-                    request.application_id,
-                    request_hash,
-                )
-                if cached_response:
-                    response_payload = cached_response
-                    status = "IDEMPOTENT_HIT"
-                    return cached_response
-            except IdempotencyConflictError:
-                status = "CONFLICT"
-                raise
-            except DuplicateRequestInProgressError:
-                status = "IN_PROGRESS"
-                raise
-
-            await idempotency_repo.create(request.application_id, request_hash)
-            idempotency_created = True
-
             initial_state = {
-                "application_id": request.application_id,
-                "correlation_id": correlation_id,
-                "raw_experian_data": request.raw_experian_data,
-                "user_request": {
-                    "amount": request.requested_amount,
-                    "tenure": request.requested_tenure_months,
-                },
-                "bank_statement_summary": {
-                    "monthly_income": request.monthly_income,
-                },
-            }
+                    "application_id": request.application_id,
+                    # "correlation_id": correlation_id,
+                    "raw_experian_data": request.raw_experian_data,
+                    "user_request": {
+                        "amount": request.requested_amount,
+                        "tenure": request.requested_tenure_months,
+                    },
+                    "bank_statement_summary": {
+                        "monthly_income": request.monthly_income,
+                    },
+                }
 
-            final_state = _graph.invoke(initial_state)
-            response_payload = final_state.get("final_response_payload", {})
-            result = UnderwritingResponse.model_validate(response_payload).model_dump()
-            response_payload = result
-
-            await repo.save_decision(result)
-            await idempotency_repo.mark_completed(request.application_id, result)
-            return result
-        except Exception as exc:
-            error_message = str(exc)
-            if idempotency_created:
-                await idempotency_repo.mark_failed(request.application_id, str(exc))
-            raise
-        finally:
-            await audit_repo.save_log(
-                application_id=request.application_id,
-                correlation_id=correlation_id,
-                agent_name="decisioning_agent",
-                operation_name="underwrite",
-                request_payload=request_payload,
-                response_payload=response_payload,
-                status=status,
-                error_message=error_message,
-                execution_time_ms=int((time.time() - started_at) * 1000),
+            final_state = await self.graph.ainvoke(initial_state, config=config)
+            response_payload = final_state.get(
+                "final_decision", {}
             )
 
+            if not response_payload:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Graph execution completed but no final response payload was produced.",
+                )
 
-def run_underwriting(request: UnderwritingRequest) -> dict:
-    """
-    Execute the underwriting decision workflow.
+            if (response_payload.get("decision") == "COUNTER_OFFER"):
+                
+                response_payload["counter_offer_data"] = final_state.get("counter_offer_data", {})
 
-    Args:
-        request: An UnderwritingRequest containing applicant, credit,
-                 and financial data for risk evaluation.
+            await self.failed_thread_repo.delete_failed_thread(request.application_id)
+            return response_payload
 
-    Returns:
-        The final decision response payload as a dict.
-    """
-
-    result = asyncio.run(_execute_underwriting(request))
-    print("Graph execution result Underwriting:", result)
-    return result
+        except HTTPException as e:
+            await self.failed_thread_repo.save_failure(
+                application_id=request.application_id,
+                thread_id=thread_id,
+                error_message=str(e.detail),
+            )
+            raise
+        except Exception as e:
+            await self.failed_thread_repo.save_failure(
+                application_id=request.application_id,
+                thread_id=thread_id,
+                error_message=str(e),
+            )
+            raise HTTPException(status_code=500, detail=str(e))

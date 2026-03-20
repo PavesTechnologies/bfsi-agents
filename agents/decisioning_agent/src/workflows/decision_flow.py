@@ -14,7 +14,8 @@ from langgraph.graph import END, StateGraph
 from src.workflows.decision_state import LoanApplicationState
 
 import json
-
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg_pool import AsyncConnectionPool 
 # -----------------------
 # Risk Evaluation Nodes
 # -----------------------
@@ -36,9 +37,16 @@ from src.workflows.decision_engine.nodes.risk_aggregator_node import risk_aggreg
 from src.workflows.decision_engine.nodes.decision_llm_node import decision_llm_node
 from src.workflows.decision_engine.nodes.counter_offer_node import counter_offer_node
 from src.workflows.decision_engine.nodes.final_response_node import final_response_node
+from src.core.config import get_settings
 
+settings = get_settings()
 from dotenv import load_dotenv
 load_dotenv()
+# from IPython.display import Image, display # type: ignore
+DB_URI = settings.DATABASE_GENERIC
+# ✅ Create pool and checkpointer as module-level singletons (not yet open)
+connection_pool = AsyncConnectionPool(conninfo=DB_URI, max_size=4, open=False)
+checkpointer = AsyncPostgresSaver(connection_pool)
 
 
 def build_underwriting_graph():
@@ -127,7 +135,16 @@ def build_underwriting_graph():
     # Final node → END
     graph.add_edge("final_response", END)
 
-    return graph.compile()
+    workflow = graph.compile(checkpointer=checkpointer)
+    
+    # 2. Attach the pool and checkpointer to the workflow object 
+    # so we can open them from the Service or FastAPI startup
+    workflow.pool = connection_pool
+    workflow.checkpointer = checkpointer
+    
+    # workflow = graph.compile()
+    
+    return workflow   
 
 
 if __name__ == "__main__":

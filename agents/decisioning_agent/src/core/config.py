@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     DATABASE_URL_SYNC: str = Field(..., alias="DATABASE_URL_SYNC")
     llm_model: str = Field("openai/gpt-oss-120b", alias="LLM_MODEL")
     llm_max_retries: int = Field(2, alias="LLM_MAX_RETRIES")
+    DATABASE_GENERIC: str = Field(..., alias="DATABASE_GENERIC")
 
     model_config = {
         "case_sensitive": True,
