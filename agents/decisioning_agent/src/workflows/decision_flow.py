@@ -45,7 +45,7 @@ load_dotenv()
 # from IPython.display import Image, display # type: ignore
 DB_URI = settings.DATABASE_GENERIC
 # ✅ Create pool and checkpointer as module-level singletons (not yet open)
-connection_pool = AsyncConnectionPool(conninfo=DB_URI, max_size=4, open=False)
+connection_pool = AsyncConnectionPool(conninfo=DB_URI,min_size=1 ,max_size=2, open=False)
 checkpointer = AsyncPostgresSaver(connection_pool)
 
 

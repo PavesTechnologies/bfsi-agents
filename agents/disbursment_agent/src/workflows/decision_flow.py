@@ -59,3 +59,22 @@ def build_disbursement_graph():
     graph.add_edge("generate_receipt", END)
 
     return graph.compile()
+
+
+# if __name__ == "__main__":
+    
+#     workflow = build_disbursement_graph()
+    # initial_state = {
+    #     "application_id": "APP123",
+    #     "decision": "APPROVE",
+    #     "risk_tier": "A",
+    #     "risk_score": 750.0,
+    #     "approved_amount": 100000.0,
+    #     "approved_tenure_months": 12,
+    #     "interest_rate": 8.5,
+    #     "disbursement_amount": 100000.0,
+    #     "explanation": "Approved for standard terms",
+    #     "disbursement_status": "PENDING"
+    # }
+#     result = workflow.invoke(initial_state)
+#     print(result)

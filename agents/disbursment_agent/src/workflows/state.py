@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional, TypedDict
 
 class DisbursementState(TypedDict, total=False):
     application_id: str
-    correlation_id: Optional[str]
     decision: str
     risk_tier: Optional[str]
     risk_score: Optional[float]
