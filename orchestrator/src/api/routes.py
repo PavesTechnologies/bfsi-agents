@@ -12,6 +12,11 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from src.models.pipeline import (
+    ApplicationTriggerRequest,
+    ConfirmApprovalRequest,
+    ResumeWithOfferRequest,
+)
 from src.services.pipeline_service import PipelineService
 
 router = APIRouter()
@@ -39,7 +44,6 @@ class ProgressBroker:
         for application_id, terminal_time in self._terminal_at.items():
             if (now - terminal_time) < self._ttl:
                 continue
-            # Keep data if a client is still connected for this application.
             if self._subscribers.get(application_id):
                 continue
             expired_application_ids.append(application_id)
@@ -69,7 +73,9 @@ class ProgressBroker:
         for queue in queues:
             queue.put_nowait(event)
 
-    async def subscribe(self, application_id: str) -> tuple[asyncio.Queue, list[Dict[str, Any]]]:
+    async def subscribe(
+        self, application_id: str
+    ) -> tuple[asyncio.Queue, list[Dict[str, Any]]]:
         queue: asyncio.Queue = asyncio.Queue()
         async with self._lock:
             self._cleanup_expired_locked(datetime.now(timezone.utc))
@@ -126,10 +132,6 @@ async def _run_pipeline(application_id: str, raw_application: Dict[str, Any]) ->
         await service.close()
         active_pipeline_tasks.pop(application_id, None)
 
-class ApplicationTriggerRequest(BaseModel):
-    application_id: str
-    raw_application: Dict[str, Any]
-
 
 class ApplicationTriggerAcceptedResponse(BaseModel):
     application_id: str
@@ -145,15 +147,14 @@ def health_check():
 @router.post("/trigger_pipeline")
 async def trigger_pipeline(request: ApplicationTriggerRequest):
     """
-    Triggers the end-to-end pipeline given a raw application payload.
+    Triggers the pipeline until a user decision is required or it is declined.
     """
     service = PipelineService()
     try:
-        result = await service.execute_full_pipeline(
+        return await service.execute_until_decision(
             application_id=request.application_id,
-            raw_application=request.raw_application
+            raw_application=request.raw_application,
         )
-        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -235,3 +236,38 @@ async def pipeline_updates(application_id: str):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.post("/select_counter_offer")
+async def select_counter_offer(request: ResumeWithOfferRequest):
+    """Resume disbursement after the user chooses a counter offer."""
+    service = PipelineService()
+    try:
+        return await service.resume_after_counter_offer_selection(
+            application_id=request.application_id,
+            selected_offer_id=request.selected_offer_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await service.close()
+
+
+@router.post("/confirm_approval")
+async def confirm_approval(request: ConfirmApprovalRequest):
+    """Resume or cancel an approved application based on user confirmation."""
+    service = PipelineService()
+    try:
+        if not request.accepted:
+            return service.cancel_pending_application(request.application_id)
+        return await service.resume_after_approval_confirmation(
+            application_id=request.application_id
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await service.close()

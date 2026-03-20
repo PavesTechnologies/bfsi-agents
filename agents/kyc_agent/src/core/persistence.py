@@ -14,12 +14,16 @@ def persist_vendor_artifact(attempt_id: str, vendor: str, raw_content: str):
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     s3_key = f"audit/{attempt_id}/{vendor}_{timestamp}.json"
 
-    s3.put_object(
-        Bucket="dev-kyc-audit-logs",
-        Key=s3_key,
-        Body=content_bytes,
-        ContentType="application/json",
-        ServerSideEncryption="AES256",  # Meets PII security
-    )
+    try:
+        s3.put_object(
+            Bucket="dev-kyc-audit-logs",
+            Key=s3_key,
+            Body=content_bytes,
+            ContentType="application/json",
+            ServerSideEncryption="AES256",  # Meets PII security
+        )   
+    except Exception as e:
+        print(f"Error uploading to S3: {e}")
+        return {"hash": sha256_hash, "s3_uri": None}
 
     return {"hash": sha256_hash, "s3_uri": f"s3://dev-kyc-audit-logs/{s3_key}"}
