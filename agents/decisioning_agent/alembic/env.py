@@ -15,6 +15,20 @@ config = context.config
 
 config.set_main_option("sqlalchemy.url",settings.DATABASE_URL_SYNC)
 
+def include_object(object, name, type_, reflected, compare_to):
+    # 🚫 Skip LangGraph checkpoint tables
+    langgraph_tables = {
+        "checkpoints",
+        "checkpoint_blobs",
+        "checkpoint_writes",
+        "checkpoint_migrations",
+    }
+
+    if type_ == "table" and name in langgraph_tables:
+        return False
+
+    return True
+
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
@@ -54,6 +68,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object
     )
 
     with context.begin_transaction():
@@ -75,7 +90,7 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata, include_object=include_object
         )
 
         with context.begin_transaction():

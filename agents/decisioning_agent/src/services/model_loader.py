@@ -5,8 +5,10 @@ LLM Model Loader
 from langchain_groq import ChatGroq
 
 from dotenv import load_dotenv
+from src.core.config import get_settings
 
 load_dotenv()
+settings = get_settings()
 
 def get_llm(temperature: float = 0.0):
     """
@@ -16,7 +18,7 @@ def get_llm(temperature: float = 0.0):
     """
 
     return ChatGroq(
-        model="openai/gpt-oss-120b",
+        model=settings.llm_model,
         temperature=temperature,
         model_kwargs={
         "response_format": {"type": "json_object"}

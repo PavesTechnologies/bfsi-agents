@@ -16,6 +16,59 @@ from src.services.decision_model.decision_parser import DecisionOutput
 from src.services.decision_model.decision_prompt import DECISION_PROMPT
 
 
+def _build_fallback_decision(state: LoanApplicationState) -> DecisionOutput:
+    user_request = state.get("user_request", {})
+    requested_amount = float(user_request.get("amount", 0) or 0)
+    requested_tenure = int(user_request.get("tenure", 0) or 0)
+    risk_score = float(state.get("aggregated_risk_score", 0) or 0)
+
+    if risk_score >= 75:
+        return DecisionOutput(
+            decision="APPROVE",
+            approved_amount=requested_amount,
+            approved_tenure=requested_tenure,
+            interest_rate=12.0,
+            disbursement_amount=round(requested_amount * 0.98, 2),
+            explanation="Fallback approval generated from deterministic risk thresholds.",
+            reasoning_steps=[
+                "LLM decision output was unavailable.",
+                "Deterministic underwriting fallback approved the request.",
+            ],
+            confidence_score=0.0,
+        )
+
+    if risk_score >= 55:
+        reduced_amount = round(requested_amount * 0.8, 2)
+        extended_tenure = max(requested_tenure, 24)
+        return DecisionOutput(
+            decision="COUNTER_OFFER",
+            approved_amount=reduced_amount,
+            approved_tenure=extended_tenure,
+            interest_rate=14.5,
+            disbursement_amount=round(reduced_amount * 0.98, 2),
+            explanation="Fallback counter offer generated from deterministic risk thresholds.",
+            reasoning_steps=[
+                "LLM decision output was unavailable.",
+                "Deterministic underwriting fallback reduced the amount and extended tenure.",
+            ],
+            confidence_score=0.0,
+        )
+
+    return DecisionOutput(
+        decision="DECLINE",
+        approved_amount=0.0,
+        approved_tenure=0,
+        interest_rate=0.0,
+        disbursement_amount=0.0,
+        explanation="Fallback decline generated because the aggregated risk score is below policy threshold.",
+        reasoning_steps=[
+            "LLM decision output was unavailable.",
+            "Deterministic underwriting fallback declined the request.",
+        ],
+        confidence_score=0.0,
+    )
+
+
 @track_node("underwriting_decision_engine")
 @audit_node(agent_name="decisioning_agent")
 def decision_llm_node(state: LoanApplicationState) -> LoanApplicationState:
@@ -61,6 +114,7 @@ def decision_llm_node(state: LoanApplicationState) -> LoanApplicationState:
         prompt_template=DECISION_PROMPT,
         inputs=inputs,
         parser=decision_output_parser,
+        fallback_result=lambda: _build_fallback_decision(state),
     )
 
     # ==================================================

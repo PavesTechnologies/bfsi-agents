@@ -9,6 +9,7 @@ class DisbursementRepository:
     async def save_record(self, receipt_data: dict):
         record = DisbursementRecord(
             application_id=receipt_data.get("application_id"),
+            correlation_id=receipt_data.get("correlation_id"),
             transaction_id=receipt_data.get("transaction_id"),
             status=receipt_data.get("disbursement_status"),
             disbursement_amount=receipt_data.get("disbursement_amount"),

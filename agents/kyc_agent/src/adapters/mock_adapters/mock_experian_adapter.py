@@ -135,8 +135,8 @@ class MockExperianAdapter:
     Mock for Experian Credit Profile API using Pydantic for validation.
     """
 
-    @audited_adapter(vendor_name="EXPERIAN", vendor_service="credit_profile_v3")
-    def get_credit_report(
+    # @audited_adapter(vendor_name="EXPERIAN", vendor_service="credit_profile_v3")
+    async def get_credit_report(
         self, raw_payload: dict[str, Any], **kwargs
     ) -> ExperianResponse:
         request = ExperianRequestPayload(**raw_payload)

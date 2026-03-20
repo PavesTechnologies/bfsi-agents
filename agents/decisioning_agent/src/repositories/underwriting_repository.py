@@ -9,6 +9,7 @@ class UnderwritingRepository:
     async def save_decision(self, decision_data: dict):
         decision = UnderwritingDecision(
             application_id=decision_data.get("application_id"),
+            correlation_id=decision_data.get("correlation_id"),
             decision=decision_data.get("decision"),
             risk_tier=decision_data.get("risk_tier"),
             risk_score=decision_data.get("risk_score"),

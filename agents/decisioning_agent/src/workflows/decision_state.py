@@ -94,6 +94,7 @@ class CounterOfferMetrics(TypedDict):
 class LoanApplicationState(TypedDict):
     # --- 1. Raw Inputs (From KYC/Intake) ---
     application_id: str
+    correlation_id: str
     raw_experian_data: Dict[str, Any]  # The full JSON dump from Experian
     
     pi_masked_experian_data: Dict[str, Any]  # The full JSON dump from Experian

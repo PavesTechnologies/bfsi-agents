@@ -7,6 +7,7 @@ actual disbursement of funds to the borrower's account.
 
 from src.workflows.state import DisbursementState
 from src.services.banking_gateway import execute_fund_transfer, BankingGatewayError
+from src.services.transfer_state import build_transfer_failure, build_transfer_result
 from src.utils.audit_decorator import audit_node
 
 
@@ -26,15 +27,7 @@ def execute_transfer_node(state: DisbursementState) -> dict:
             application_id=application_id,
             disbursement_amount=disbursement_amount,
         )
-
-        return {
-            "disbursement_status": "DISBURSED",
-            "transaction_id": result["transaction_id"],
-            "transfer_timestamp": result["timestamp"],
-        }
+        return build_transfer_result(result)
 
     except BankingGatewayError as e:
-        return {
-            "disbursement_status": "FAILED",
-            "error": f"Fund transfer failed: {str(e)}",
-        }
+        return build_transfer_failure(f"Fund transfer failed: {str(e)}")

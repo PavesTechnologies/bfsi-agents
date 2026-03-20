@@ -2,11 +2,14 @@
 API Routes for the Decisioning Agent
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from src.domain.underwriting_models import UnderwritingRequest, UnderwritingResponse
-from src.services.underwriting_service import run_underwriting
+from src.utils.db_session import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.services.underwriting_service import UnderwritingService
 
-router = APIRouter()
+
+router = APIRouter(tags=["Underwriting"])
 
 
 @router.get("/")
@@ -15,8 +18,10 @@ def health_check():
     return {"status": "ok", "agent": "decisioning_agent"}
 
 
-@router.post("/underwrite", response_model=UnderwritingResponse)
-def underwrite(request: UnderwritingRequest):
+@router.post("/underwrite")
+async def underwrite(
+    request: UnderwritingRequest, db: AsyncSession = Depends(get_db)
+):
     """
     Trigger the underwriting decision workflow.
 
@@ -25,7 +30,7 @@ def underwrite(request: UnderwritingRequest):
     decision (APPROVE, COUNTER_OFFER, or DECLINE).
     """
     try:
-        result = run_underwriting(request)
-        return result
+        service = UnderwritingService(db)
+        return await service.execute_underwriting(request)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
