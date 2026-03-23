@@ -163,6 +163,27 @@ class KYCRepository:
         await self.db.refresh(record)
         return record
 
+    async def update_kyc_case_response(
+        self,
+        *,
+        kyc_id,
+        status: KYCStatus,
+    ) -> KYC | None:
+        result = await self.db.execute(
+            select(KYC).where(KYC.id == kyc_id)
+        )
+        record = result.scalar_one_or_none()
+
+        if not record:
+            return None
+
+        # record.response_payload = response_payload
+        record.status = status
+
+        await self.db.flush()
+        await self.db.refresh(record)
+        return record
+
     async def save_risk_decision(self, kyc_id: str, decision_data: dict):
         record = RiskDecision(
             kyc_id=kyc_id,

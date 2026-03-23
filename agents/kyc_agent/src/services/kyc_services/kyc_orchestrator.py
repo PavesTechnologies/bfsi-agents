@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from langchain_core.runnables import RunnableConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.enums import IdempotencyStatus
+from src.models.enums import IdempotencyStatus, KYCStatus
 from src.models.interfaces.kyc_interface.kyc_request_interface import KYCTriggerRequest
 from src.repositories.kyc_repo.kyc_repository import KYCRepository
 from src.utils.hash_utils import generate_payload_hash
@@ -61,7 +61,7 @@ class KYCOrchestratorService:
             "Graph execution result:", result
         )  # For debugging; replace with proper logging
 
-        await self.db.commit()
+        # await self.db.commit()
         # 5. Finalize: Update DB with results for audit artifacts
         # await self.repo.update_kyc_request_response(
         #     kyc_id=kyc_case.id,
@@ -89,13 +89,17 @@ class KYCOrchestratorService:
             model_versions=kyc_result.get("model_versions"),
             audit_payload=result.get("audit"),
         )  # 5. Finalize idempotency record
+        
         await self.repo.update_kyc_request_response(
             kyc_id=kyc_case.id,
             response_payload=result,
             status=IdempotencyStatus.SUCCESS,
         )
 
-
+        await self.repo.update_kyc_case_response(
+            kyc_id=kyc_case.id,
+            status=KYCStatus.PASSED,
+        )
         return result
 
     async def _check_idempotency(self, key: str, current_hash: str) -> dict | None:
