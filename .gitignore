@@ -80,3 +80,4 @@ poetry.lock
 **/.hypothesis/
 
 **/.ruff_cache/
+**/.claude/

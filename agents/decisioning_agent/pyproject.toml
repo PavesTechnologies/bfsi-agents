@@ -26,7 +26,6 @@ pydantic = "^2.6.0"
 pydantic-settings = "^2.13.1"
 sqlalchemy = "^2.0.46"
 uvicorn = "^0.29.0"
-psycopg = {extras = ["binary"], version = "^3.3.3"}
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"
