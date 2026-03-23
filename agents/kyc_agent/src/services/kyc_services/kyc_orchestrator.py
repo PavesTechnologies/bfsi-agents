@@ -96,9 +96,19 @@ class KYCOrchestratorService:
             status=IdempotencyStatus.SUCCESS,
         )
 
+        
+        status = kyc_result.get("final_status")
+        
+        if status == "PASS":
+            kyc_status = KYCStatus.PASSED
+        elif status == "FAIL":
+            kyc_status = KYCStatus.FAILED
+        else:
+            kyc_status = KYCStatus.PENDING
+            
         await self.repo.update_kyc_case_response(
             kyc_id=kyc_case.id,
-            status=KYCStatus.PASSED,
+            status=kyc_status,
         )
         return result
 
