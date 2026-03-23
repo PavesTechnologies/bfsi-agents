@@ -33,6 +33,7 @@ async def address_node(state: KYCState, config: RunnableConfig) -> KYCState:
             "state": req["address"]["state"],
             "zip": req["address"]["zip"],
             "ssn": req["ssn"],
+            "dob": str(req["dob"]),
         },
         db=db,
         kyc_id=kyc_id,

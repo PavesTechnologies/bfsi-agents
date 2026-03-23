@@ -202,7 +202,10 @@ class PipelineService:
                 stage=PipelineStage.DECISIONING,
                 status="completed",
                 message="Underwriting completed: application declined",
-                details={"decision": decision},
+                details={
+                    "decision": decision,
+                    "reason": uw_data.get("decline_reason") or uw_data.get("explanation"),
+                },
                 is_terminal=True,
             )
             return {
@@ -226,7 +229,16 @@ class PipelineService:
                 stage=PipelineStage.DECISIONING,
                 status="completed",
                 message="Underwriting completed: application approved",
-                details={"decision": decision},
+                details={
+                    "decision": decision,
+                    "reason": uw_data.get("explanation") or uw_data.get("terms_summary"),
+                    "approved_amount": uw_data.get("approved_amount"),
+                    "approved_tenure_months": uw_data.get("approved_tenure_months"),
+                    "interest_rate": uw_data.get("interest_rate"),
+                    "monthly_emi": uw_data.get("monthly_emi"),
+                    "processing_fee": uw_data.get("processing_fee"),
+                    "terms_summary": uw_data.get("terms_summary"),
+                },
                 is_terminal=True,
             )
             return {
@@ -263,6 +275,7 @@ class PipelineService:
                 message="Underwriting completed: counter offer generated",
                 details={
                     "decision": decision,
+                    "reason": uw_data.get("original_decision_explanation") or uw_data.get("explanation"),
                     "counter_offer_options": options,
                 },
                 is_terminal=True,
