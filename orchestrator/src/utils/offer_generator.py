@@ -19,7 +19,7 @@ def calculate_emi(principal: float, annual_rate: float, months: int) -> float:
 def generate_counter_offer_options(uw_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Generate fallback counter-offer options from a base underwriting response."""
     base_amount = float(uw_data["approved_amount"])
-    base_tenure = int(uw_data["approved_tenure_months"])
+    base_tenure = int(uw_data["approved_tenure"])
     base_rate = float(uw_data["interest_rate"])
 
     shorter_tenure = max(12, base_tenure - 12)

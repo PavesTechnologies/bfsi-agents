@@ -193,7 +193,8 @@ class PipelineService:
             raise
 
         decision = uw_data.get("decision")
-
+        print(f"Underwriting decision: {decision}")
+        
         if decision == "DECLINE":
             await self._emit_progress(
                 application_id=application_id,
@@ -254,10 +255,12 @@ class PipelineService:
             }
 
         if decision == "COUNTER_OFFER":
-            options = uw_data.get("counter_offer_options") or generate_counter_offer_options(
-                uw_data
-            )
-            uw_data["counter_offer_options"] = options
+            print("Generating counter offer options..........................")
+            options = uw_data.get("counter_offer_data") # or generate_counter_offer_options(
+            #     uw_data
+            # )
+            uw_data["counter_offer_options"] = options.get("generated_options")
+            print("Before saving state")
             save_state(
                 application_id,
                 {
@@ -266,6 +269,7 @@ class PipelineService:
                     "options": deepcopy(options),
                 },
             )
+            print("Counter offer options generated************************")
             await self._emit_progress(
                 application_id=application_id,
                 progress_callback=progress_callback,
