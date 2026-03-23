@@ -49,6 +49,8 @@ class PipelineService:
         if details:
             payload["details"] = details
 
+        print(f"Emitting progress update: {json.dumps(payload, indent=2)}")
+
         await progress_callback(payload)
 
     async def execute_full_pipeline(

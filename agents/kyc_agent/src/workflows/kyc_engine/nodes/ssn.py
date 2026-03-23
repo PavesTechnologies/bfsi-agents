@@ -29,6 +29,7 @@ async def ssn_node(state: KYCState, config: RunnableConfig) -> KYCState:
             "state": req["address"]["state"],
             "zip": req["address"]["zip"],
             "ssn": req["ssn"],
+            "dob": str(req["dob"]),
         },
         db=db,
         kyc_id=kyc_id,
@@ -41,7 +42,7 @@ async def ssn_node(state: KYCState, config: RunnableConfig) -> KYCState:
 
     return {
         "ssn_validation": ssn_validation_state,
-        "raw_experian_data": experian_data,
+        "raw_experian_data": experian_data.model_dump(),
         # "parallel_tasks_completed": ["ssn"],
         # "node_execution_times": {"ssn": time.time() - start_time}
     }

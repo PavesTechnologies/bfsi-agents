@@ -61,21 +61,13 @@ class KYCOrchestratorService:
             "Graph execution result:", result
         )  # For debugging; replace with proper logging
 
-        # await self.db.commit()
-        # 5. Finalize: Update DB with results for audit artifacts
-        # await self.repo.update_kyc_request_response(
-        #     kyc_id=kyc_case.id,
-        #     response_payload=result,
-        #     status=IdempotencyStatus.SUCCESS
-        # )
-        # ⭐ NEW — persist identity check
-        kyc_result = result.get("kyc_result", {})
-        ssn_snapshot = kyc_result.get("ssn_risk_snapshot", {})
+        kyc_result = result.get("kyc_result") or {}
+        ssn_snapshot = result.get("ssn_validation") or {}
         await self.repo.create_identity_check(
             kyc_id=kyc_case.id,
             applicant_id=payload.applicant_id,
             final_status=kyc_result.get("final_status"),
-            aggregated_score=kyc_result.get("aggregated_score"),
+            aggregated_score=kyc_result.get("confidence_score"),
             hard_fail_triggered=kyc_result.get("hard_fail_triggered"),
             # 🔹 SSN flags
             ssn_valid=ssn_snapshot.get("ssn_valid"),
@@ -88,14 +80,12 @@ class KYCOrchestratorService:
             decision_rules_snapshot=kyc_result.get("decision_rules_snapshot"),
             model_versions=kyc_result.get("model_versions"),
             audit_payload=result.get("audit"),
-        )  # 5. Finalize idempotency record
-        
+        )
         await self.repo.update_kyc_request_response(
             kyc_id=kyc_case.id,
             response_payload=result,
             status=IdempotencyStatus.SUCCESS,
         )
-
         
         status = kyc_result.get("final_status")
         
@@ -110,6 +100,8 @@ class KYCOrchestratorService:
             kyc_id=kyc_case.id,
             status=kyc_status,
         )
+        
+        await self.db.commit()
         return result
 
     async def _check_idempotency(self, key: str, current_hash: str) -> dict | None:
@@ -195,6 +187,7 @@ class KYCOrchestratorService:
             "applicant_id": payload.applicant_id,
             "status": final_state.get("risk_decision", {}).get("final_status"),
             "kyc_result": final_state.get("risk_decision"),
+            "ssn_validation": final_state.get("ssn_validation"),
             "final_explanation": final_state.get("decision_explanation"),
             "audit": {
                 "tasks": final_state.get("parallel_tasks_completed"),
