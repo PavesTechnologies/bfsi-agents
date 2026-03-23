@@ -57,7 +57,7 @@ class UnderwritingService:
                         "tenure": request.requested_tenure_months,
                     },
                     "bank_statement_summary": {
-                        "monthly_income": request.monthly_income,
+                        "monthly_income": 15000,
                     },
                 }
 
