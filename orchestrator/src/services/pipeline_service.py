@@ -177,8 +177,8 @@ class PipelineService:
             )
             self._raise_for_status_with_detail(uw_response, "Decisioning underwrite")
             uw_raw = uw_response.json()
-            print(json.dumps(uw_raw, indent=2))
             uw_data = self._normalize_underwriting_response(uw_raw)
+            print("Underwriting data received:", json.dumps(uw_data, indent=2))
         except Exception as exc:
             await self._emit_progress(
                 application_id=application_id,
@@ -233,7 +233,7 @@ class PipelineService:
                     "decision": decision,
                     "reason": uw_data.get("explanation") or uw_data.get("terms_summary"),
                     "approved_amount": uw_data.get("approved_amount"),
-                    "approved_tenure_months": uw_data.get("approved_tenure_months"),
+                    "approved_tenure_months": uw_data.get("approved_tenure"),
                     "interest_rate": uw_data.get("interest_rate"),
                     "monthly_emi": uw_data.get("monthly_emi"),
                     "processing_fee": uw_data.get("processing_fee"),
@@ -245,7 +245,7 @@ class PipelineService:
                 "status": "AWAITING_APPROVAL_CONFIRMATION",
                 "application_id": application_id,
                 "approved_amount": uw_data["approved_amount"],
-                "approved_tenure_months": uw_data["approved_tenure_months"],
+                "approved_tenure_months": uw_data["approved_tenure"],
                 "interest_rate": uw_data["interest_rate"],
                 "monthly_emi": uw_data["monthly_emi"],
                 "processing_fee": uw_data.get("processing_fee", 0.0),
