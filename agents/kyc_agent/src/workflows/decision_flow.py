@@ -24,7 +24,7 @@ settings = get_settings()
 # from IPython.display import Image, display # type: ignore
 DB_URI = settings.DATABASE_GENERIC
 # ✅ Create pool and checkpointer as module-level singletons (not yet open)
-connection_pool = AsyncConnectionPool(conninfo=DB_URI, min_size=1 ,max_size=2, open=False)
+connection_pool = AsyncConnectionPool(conninfo=DB_URI, min_size=1 ,max_size=1, open=False)
 checkpointer = AsyncPostgresSaver(connection_pool)
 
 def build_graph():
