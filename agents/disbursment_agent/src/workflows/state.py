@@ -7,17 +7,12 @@ from typing import Any, Dict, List, Optional, TypedDict
 
 class DisbursementState(TypedDict, total=False):
     application_id: str
-    decision: str
-    risk_tier: Optional[str]
-    risk_score: Optional[float]
+    correlation_id: str
 
     approved_amount: Optional[float]
     approved_tenure_months: Optional[int]
     interest_rate: Optional[float]
     disbursement_amount: Optional[float]
-
-    counter_offer: Optional[Dict[str, Any]]
-    selected_option_id: Optional[str]
     explanation: Optional[str]
 
     disbursement_status: str

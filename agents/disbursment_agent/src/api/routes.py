@@ -21,22 +21,20 @@ def health_check():
 
 
 @router.post("/disburse")
-def disburse(request: DisbursementRequest, http_request: Request):
+async def disburse(request: DisbursementRequest, http_request: Request):
     """
     Trigger the loan disbursement workflow.
 
-    Accepts the output of the Decisioning Agent and returns
-    a DisbursementReceipt with transfer details and repayment schedule.
+    Accepts pre-resolved loan terms and returns a DisbursementReceipt
+    with transfer details and repayment schedule.
     """
     try:
         correlation_id = resolve_correlation_id(
             http_request,
-            request.correlation_id,
+            None,
             request.application_id,
         )
-        receipt = run_disbursement(
-            request.model_copy(update={"correlation_id": correlation_id})
-        )
+        receipt = await run_disbursement(request, correlation_id)
         return receipt
     except IdempotencyConflictError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))

@@ -53,7 +53,7 @@ def execute_fund_transfer(
         )
 
     transaction_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now().isoformat()
     gateway_status = "PENDING" if disbursement_amount >= 50000 else "SUCCESS"
 
     return {

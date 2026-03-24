@@ -3,7 +3,7 @@ API Routes for the Decisioning Agent
 """
 
 from fastapi import APIRouter, HTTPException, Depends
-from src.domain.underwriting_models import UnderwritingRequest, UnderwritingResponse
+from src.domain.underwriting_models import UnderwritingRequest
 from src.utils.db_session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.services.underwriting_service import UnderwritingService

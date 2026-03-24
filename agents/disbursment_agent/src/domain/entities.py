@@ -1,8 +1,9 @@
 """
 Domain entities for the disbursement agent.
 
-The request contract mirrors the canonical decisioning response so the
-handoff between agents stays explicit and testable.
+DisbursementRequest accepts pre-resolved loan terms — the caller
+(decisioning_agent /confirm or /select-offer) is responsible for
+resolving the correct terms before invoking disbursement.
 """
 
 from typing import List, Optional
@@ -10,63 +11,14 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
-class LoanDetails(BaseModel):
-    approved_amount: float
-    approved_tenure_months: int
-    interest_rate: float
-    disbursement_amount: float
-    explanation: str
-
-
-class CounterOfferOption(BaseModel):
-    option_id: str
-    description: str
-    proposed_amount: float
-    proposed_tenure_months: int
-    proposed_interest_rate: float
-    disbursement_amount: float
-    monthly_payment_emi: float
-    total_repayment: float
-
-
-class CounterOfferDetails(BaseModel):
-    original_request_dti: float
-    max_affordable_emi: float
-    counter_offer_logic: str
-    generated_options: List[CounterOfferOption]
-    confidence_score: float
-    timestamp: Optional[str] = None
-
-
 class DisbursementRequest(BaseModel):
-    """Input payload received from the Decisioning Agent."""
+    """Input payload — flat, decision-type-agnostic loan terms."""
     application_id: str = Field(description="Unique loan application identifier")
-    correlation_id: Optional[str] = Field(
-        default=None,
-        description="Correlation ID propagated from upstream systems; defaults to application_id.",
-    )
-    decision: str = Field(description="Decision from decisioning agent: APPROVE, COUNTER_OFFER, DECLINE")
-    risk_tier: Optional[str] = Field(default=None, description="Aggregated risk tier: A, B, C, F")
-    risk_score: Optional[float] = Field(default=None, description="Aggregated risk score")
-
-    # Loan details (populated for APPROVE)
-    loan_details: Optional[LoanDetails] = Field(
-        default=None,
-        description="Loan details: approved_amount, approved_tenure_months, interest_rate, disbursement_amount"
-    )
-
-    # Counter offer (populated for COUNTER_OFFER)
-    counter_offer: Optional[CounterOfferDetails] = Field(
-        default=None,
-        description="Counter offer data from decisioning agent"
-    )
-    selected_option_id: Optional[str] = Field(
-        default=None,
-        description="User-selected counter offer option ID (e.g., OPT_LOWER_AMT)"
-    )
-
-    # Decline info
-    decline_reason: Optional[str] = Field(default=None, description="Reason for decline")
+    approved_amount: float = Field(description="Approved loan principal")
+    approved_tenure_months: int = Field(description="Repayment tenure in months")
+    interest_rate: float = Field(description="Annual interest rate (%)")
+    disbursement_amount: float = Field(description="Net amount to transfer (after origination fee)")
+    explanation: Optional[str] = Field(default=None, description="Decision explanation from upstream")
 
 
 class EMIInstallment(BaseModel):
@@ -95,9 +47,7 @@ class RepaymentSchedule(BaseModel):
 class DisbursementReceipt(BaseModel):
     """Final output receipt after disbursement is complete."""
     application_id: str
-    correlation_id: Optional[str] = None
     disbursement_status: str            # "DISBURSED", "FAILED", "REJECTED"
-    decision_type: str                  # "APPROVE" or "COUNTER_OFFER"
 
     # Amounts
     approved_amount: float

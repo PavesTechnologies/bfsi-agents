@@ -16,9 +16,7 @@ def build_receipt(state: DisbursementState) -> dict:
 
     return {
         "application_id": state.get("application_id", "UNKNOWN"),
-        "correlation_id": state.get("correlation_id"),
         "disbursement_status": state.get("disbursement_status", "UNKNOWN"),
-        "decision_type": state.get("decision", "UNKNOWN"),
         "approved_amount": approved_amount,
         "disbursement_amount": disbursement_amount,
         "origination_fee_deducted": origination_fee,

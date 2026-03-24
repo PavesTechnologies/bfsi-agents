@@ -5,7 +5,6 @@ Entry point for running the disbursement workflow.
 Accepts a ``DisbursementRequest`` and returns the final receipt.
 """
 
-import asyncio
 import time
 
 from src.core.database import AsyncSessionLocal
@@ -28,10 +27,9 @@ from src.workflows.decision_flow import build_disbursement_graph
 _graph = build_disbursement_graph()
 
 
-async def _execute_disbursement(request: DisbursementRequest) -> dict:
+async def _execute_disbursement(request: DisbursementRequest, correlation_id: str) -> dict:
     request_payload = request.model_dump(mode="json")
     request_hash = stable_payload_hash(request_payload)
-    correlation_id = request.correlation_id or request.application_id
     started_at = time.time()
     response_payload = None
     status = "SUCCESS"
@@ -69,23 +67,13 @@ async def _execute_disbursement(request: DisbursementRequest) -> dict:
             initial_state = {
                 "application_id": request.application_id,
                 "correlation_id": correlation_id,
-                "decision": request.decision,
-                "risk_tier": request.risk_tier,
-                "risk_score": request.risk_score,
+                "approved_amount": request.approved_amount,
+                "approved_tenure_months": request.approved_tenure_months,
+                "interest_rate": request.interest_rate,
+                "disbursement_amount": request.disbursement_amount,
+                "explanation": request.explanation,
                 "disbursement_status": "PENDING",
             }
-
-            if request.decision == "APPROVE" and request.loan_details:
-                initial_state["approved_amount"] = request.loan_details.approved_amount
-                initial_state["approved_tenure_months"] = request.loan_details.approved_tenure_months
-                initial_state["interest_rate"] = request.loan_details.interest_rate
-                initial_state["disbursement_amount"] = request.loan_details.disbursement_amount
-                initial_state["explanation"] = request.loan_details.explanation
-            elif request.decision == "COUNTER_OFFER" and request.counter_offer:
-                initial_state["counter_offer"] = request.counter_offer.model_dump()
-                initial_state["selected_option_id"] = request.selected_option_id
-            elif request.decision == "DECLINE":
-                initial_state["explanation"] = request.decline_reason
 
             final_state = _graph.invoke(initial_state)
             receipt = final_state.get("disbursement_receipt", {})
@@ -121,8 +109,8 @@ async def _execute_disbursement(request: DisbursementRequest) -> dict:
             )
 
 
-def run_disbursement(request: DisbursementRequest) -> dict:
+async def run_disbursement(request: DisbursementRequest, correlation_id: str) -> dict:
     """
     Execute the disbursement workflow and persist the final receipt.
     """
-    return asyncio.run(_execute_disbursement(request))
+    return await _execute_disbursement(request, correlation_id)

@@ -5,7 +5,7 @@ Functions that transform one agent's output into the next agent's input.
 These follow the payload transformation mappings defined in the architecture plan.
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, List, Optional
 
 
 # ─────────────────────────────────────────────────────────────
@@ -110,69 +110,26 @@ def map_decisioning_to_disbursement(
     selected_option_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Transform the Decisioning Agent's final response into the
+    Transform the Decisioning Agent's resolved response into the
     Disbursement Agent's DisbursementRequest shape.
 
+    By the time this is called, the pipeline_service has already resolved
+    the correct loan terms into decisioning_response (flat fields), so
+    this is a straight field projection regardless of APPROVE or COUNTER_OFFER.
+
     Args:
-        decisioning_response: The final_response_payload from the Decisioning Agent.
-        selected_option_id: If decision is COUNTER_OFFER and user accepted an option.
+        decisioning_response: uw_data with flat approved_amount, interest_rate, etc.
+        selected_option_id: Unused — option resolution happens upstream in pipeline_service.
 
     Returns:
         A dict matching DisbursementRequest shape.
     """
-    decision = decisioning_response.get("decision", "DECLINE")
-    loan_details = decisioning_response.get("loan_details") or {
+    return {
+        "application_id": decisioning_response.get("application_id"),
         "approved_amount": decisioning_response.get("approved_amount"),
         "approved_tenure_months": decisioning_response.get("approved_tenure_months"),
         "interest_rate": decisioning_response.get("interest_rate"),
         "disbursement_amount": decisioning_response.get("disbursement_amount"),
-        "explanation": decisioning_response.get("terms_summary"),
+        "explanation": decisioning_response.get("explanation")
+            or decisioning_response.get("terms_summary"),
     }
-
-    counter_offer = decisioning_response.get("counter_offer")
-    if not counter_offer:
-        options = decisioning_response.get("counter_offer_options")
-        if options:
-            counter_offer = {
-                "generated_options": [
-                    {
-                        "option_id": option.get("offer_id"),
-                        "description": option.get("label"),
-                        "proposed_amount": option.get("principal_amount"),
-                        "proposed_tenure_months": option.get("tenure_months"),
-                        "proposed_interest_rate": option.get("interest_rate"),
-                        "disbursement_amount": option.get(
-                            "disbursement_amount",
-                            round(
-                                float(option.get("principal_amount", 0))
-                                - float(decisioning_response.get("processing_fee", 0.0)),
-                                2,
-                            ),
-                        ),
-                        "monthly_payment_emi": option.get("monthly_emi"),
-                        "total_repayment": option.get("total_repayment"),
-                    }
-                    for option in options
-                ]
-            }
-
-    payload = {
-        "application_id": decisioning_response.get("application_id"),
-        "decision": decision,
-        "risk_tier": decisioning_response.get("risk_tier")
-        or decisioning_response.get("aggregated_risk_tier"),
-        "risk_score": decisioning_response.get("risk_score")
-        or decisioning_response.get("aggregated_risk_score"),
-    }
-
-    if decision == "APPROVE":
-        payload["loan_details"] = loan_details
-
-    elif decision == "COUNTER_OFFER":
-        payload["counter_offer"] = counter_offer
-        payload["selected_option_id"] = selected_option_id
-
-    elif decision == "DECLINE":
-        payload["decline_reason"] = decisioning_response.get("decline_reason")
-
-    return payload
