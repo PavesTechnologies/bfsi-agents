@@ -336,6 +336,6 @@ docker tag kyc-agent kyc-agent:v1
 Run Compose:
 
 ```bash
-docker compose -f  .\infra\docker-compose.yml  up -d  --build
+docker compose -f  .\infra\dec_compose.yml  up -d  --build
 ```
 ---

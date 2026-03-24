@@ -1,0 +1,18 @@
+services:
+  kyc-agent:
+    build:
+      context: ..
+      dockerfile: infra/dec_docker.Dockerfile
+    image: decisioning:test
+    container_name: decisioning-container
+
+    ports:
+      - "8002:8002"
+
+    env_file:
+      - ../.env
+    
+    volumes:
+      - ../src:/app/src   # optional (for development)
+
+    restart: unless-stopped

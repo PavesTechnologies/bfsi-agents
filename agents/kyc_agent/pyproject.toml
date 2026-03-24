@@ -26,7 +26,6 @@ opentelemetry-exporter-otlp-proto-grpc = "^1.39.1"
 opentelemetry-instrumentation-fastapi = "^0.60b1"
 opentelemetry-sdk = "^1.39.1"
 phonenumbers = "^9.0.24"
-psycopg2 = "^2.9.11"
 psycopg2-binary = "^2.9.11"
 pydantic = {extras = ["email"], version = "^2.12.5"}
 pydantic-settings = "^2.12.0"

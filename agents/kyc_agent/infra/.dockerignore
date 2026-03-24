@@ -7,3 +7,5 @@ test_payloads
 .env
 .git
 .gitignore
+*.pyc
+.git
