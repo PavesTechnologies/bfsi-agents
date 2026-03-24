@@ -35,6 +35,9 @@ COPY src /app/src
 # Set PATH to use .venv
 ENV PATH="/app/.venv/bin:$PATH"
 
+# Ensure src package in /app is importable
+ENV PYTHONPATH="/app"
+
 USER appuser
 
 EXPOSE 8002

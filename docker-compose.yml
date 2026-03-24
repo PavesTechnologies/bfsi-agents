@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  kyc-agent:
+    build:
+      context: ./agents/kyc_agent
+      dockerfile: infra/docker/kyc_docker.Dockerfile
+    image: kyc-agent:test
+    container_name: kyc-agent-container
+
+    ports:
+      - "8001:8001"
+
+    env_file:
+      - agents/kyc_agent/.env
+
+
+    volumes:
+      - kyc_data:/app/data
+    # volumes:
+    #   - ./agents/kyc_agent/src:/app/src # dev only
+
+    restart: unless-stopped
+
+  dec-agent:
+    build:
+      context: ./agents/decisioning_agent
+      dockerfile: infra/dec_docker.Dockerfile
+    image: dec-agent:test
+    container_name: dec-agent-container
+
+    ports:
+      - "8002:8002"
+
+    env_file:
+      - agents/decisioning_agent/.env
+
+    volumes:
+      - dec_data:/app/data
+
+    # volumes:
+    #   - ./agents/decisioning_agent/src:/app/src # dev only
+
+    restart: unless-stopped
+
+# 🔥 DEFINE VOLUMES HERE (IMPORTANT)
+volumes:
+  kyc_data:
+  dec_data:
