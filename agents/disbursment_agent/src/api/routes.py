@@ -35,6 +35,7 @@ async def disburse(request: DisbursementRequest, http_request: Request):
             request.application_id,
         )
         receipt = await run_disbursement(request, correlation_id)
+        print(receipt)
         return receipt
     except IdempotencyConflictError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
