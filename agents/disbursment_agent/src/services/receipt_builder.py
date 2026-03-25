@@ -5,10 +5,10 @@ def build_receipt(state: DisbursementState) -> dict:
     schedule = state.get("repayment_schedule", [])
 
     schedule_preview = []
-    if schedule:
-        schedule_preview = schedule[:3]
-        if len(schedule) > 3:
-            schedule_preview.append(schedule[-1])
+    # if schedule:
+    #     schedule_preview = schedule[:3]
+    #     if len(schedule) > 3:
+    #         schedule_preview.append(schedule[-1])
 
     approved_amount = state.get("approved_amount", 0)
     disbursement_amount = state.get("disbursement_amount", 0)
@@ -30,6 +30,6 @@ def build_receipt(state: DisbursementState) -> dict:
         "transfer_status": state.get("transfer_status"),
         "transfer_timestamp": state.get("transfer_timestamp"),
         "reconciliation_required": state.get("reconciliation_required", False),
-        "schedule_preview": schedule_preview,
+        "schedule_preview": schedule,
         "explanation": state.get("explanation"),
     }
