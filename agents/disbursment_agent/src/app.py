@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from src.api.routes import router
 from src.utils.migration_database import Base, engine
 import src.models  # noqa: F401
-
+from fastapi.middleware.cors import CORSMiddleware
 
 def create_app() -> FastAPI:
     @asynccontextmanager
@@ -31,7 +31,13 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
-
+     # cors setup
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.include_router(router)
 
     return app
