@@ -1,7 +1,3 @@
-import os
-import base64
-import time
-from ollama import chat
 import re
 # from .ocr_text_extraction import ocr_text_extraction_from_image_bytes
 from .aws_text_extraction import AWSOCR
