@@ -14,6 +14,7 @@ class AgentConfig:
     KYC_AGENT_URL: str = os.getenv("KYC_AGENT_URL", "http://localhost:8001")
     DECISIONING_AGENT_URL: str = os.getenv("DECISIONING_AGENT_URL", "http://localhost:8002")
     DISBURSEMENT_AGENT_URL: str = os.getenv("DISBURSEMENT_AGENT_URL", "http://localhost:8003")
+    ADMIN_SERVICE_URL: str = os.getenv("ADMIN_SERVICE_URL", "http://localhost:8005")
 
     # Pipeline Settings
     REQUEST_TIMEOUT_SECONDS: int = int(os.getenv("AGENT_TIMEOUT", "120"))

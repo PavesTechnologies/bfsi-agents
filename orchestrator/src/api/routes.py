@@ -6,7 +6,7 @@ import asyncio
 import json
 from collections import deque
 from datetime import datetime, timedelta, timezone
-from typing import Any, Deque, Dict
+from typing import Any, Deque, Dict, Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -264,6 +264,58 @@ async def confirm_approval(request: ConfirmApprovalRequest):
             return service.cancel_pending_application(request.application_id)
         return await service.resume_after_approval_confirmation(
             application_id=request.application_id
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await service.close()
+
+
+class HumanReviewApproveRequest(BaseModel):
+    application_id: str
+    override_amount: Optional[float] = None
+    override_rate: Optional[float] = None
+    override_tenure: Optional[int] = None
+    selected_offer_id: Optional[str] = None
+
+
+class HumanReviewRejectRequest(BaseModel):
+    application_id: str
+    notes: Optional[str] = None
+
+
+@router.post("/human_review/approve")
+async def human_review_approve(request: HumanReviewApproveRequest):
+    """Called by admin_service when a bank officer approves an application."""
+    service = PipelineService()
+    try:
+        return await service.resume_after_human_review_approval(
+            application_id=request.application_id,
+            override_amount=request.override_amount,
+            override_rate=request.override_rate,
+            override_tenure=request.override_tenure,
+            selected_offer_id=request.selected_offer_id,
+            progress_callback=lambda event: _publish_event(request.application_id, event),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await service.close()
+
+
+@router.post("/human_review/reject")
+async def human_review_reject(request: HumanReviewRejectRequest):
+    """Called by admin_service when a bank officer rejects an application."""
+    service = PipelineService()
+    try:
+        return await service.resume_after_human_review_rejection(
+            application_id=request.application_id,
+            notes=request.notes,
+            progress_callback=lambda event: _publish_event(request.application_id, event),
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -219,73 +219,63 @@ class PipelineService:
             save_state(
                 application_id,
                 {
-                    "phase": "AWAITING_APPROVAL_CONFIRMATION",
+                    "phase": "AWAITING_HUMAN_REVIEW",
+                    "original_decision": "APPROVE",
                     "uw_data": deepcopy(uw_data),
+                    "options": None,
                 },
             )
+            await self._notify_human_review_queue(application_id, uw_data)
             await self._emit_progress(
                 application_id=application_id,
                 progress_callback=progress_callback,
-                event=PipelineEvent.APPLICATION_APPROVED,
-                stage=PipelineStage.DECISIONING,
-                status="completed",
-                message="Underwriting completed: application approved",
+                event=PipelineEvent.HUMAN_REVIEW_REQUIRED,
+                stage=PipelineStage.HUMAN_REVIEW,
+                status="started",
+                message="AI approved — awaiting bank officer review",
                 details={
                     "decision": decision,
-                    "reason": uw_data.get("explanation") or uw_data.get("terms_summary"),
-                    "approved_amount": uw_data.get("approved_amount"),
-                    "approved_tenure_months": uw_data.get("approved_tenure"),
-                    "interest_rate": uw_data.get("interest_rate"),
-                    "monthly_emi": uw_data.get("monthly_emi"),
-                    "processing_fee": uw_data.get("processing_fee"),
-                    "terms_summary": uw_data.get("terms_summary"),
+                    "ai_suggested_amount": uw_data.get("approved_amount"),
+                    "ai_suggested_rate": uw_data.get("interest_rate"),
+                    "ai_suggested_tenure": uw_data.get("approved_tenure_months") or uw_data.get("approved_tenure"),
                 },
                 is_terminal=True,
             )
             return {
-                "status": "AWAITING_APPROVAL_CONFIRMATION",
+                "status": "AWAITING_HUMAN_REVIEW",
                 "application_id": application_id,
-                "approved_amount": uw_data["approved_amount"],
-                "approved_tenure_months": uw_data["approved_tenure"],
-                "interest_rate": uw_data["interest_rate"],
-                "monthly_emi": uw_data["monthly_emi"],
-                "processing_fee": uw_data.get("processing_fee", 0.0),
-                "terms_summary": uw_data.get("terms_summary", ""),
                 "underwriting_details": uw_data,
             }
 
         if decision == "COUNTER_OFFER":
-            print("Generating counter offer options..........................")
-            options = uw_data.get("counter_offer_data") # or generate_counter_offer_options(
-            #     uw_data
-            # )
-            uw_data["counter_offer_options"] = options.get("generated_options")
-            print("Before saving state")
+            options = uw_data.get("counter_offer_data")
+            uw_data["counter_offer_options"] = options.get("generated_options") if options else []
             save_state(
                 application_id,
                 {
-                    "phase": "AWAITING_OFFER_SELECTION",
+                    "phase": "AWAITING_HUMAN_REVIEW",
+                    "original_decision": "COUNTER_OFFER",
                     "uw_data": deepcopy(uw_data),
                     "options": deepcopy(options),
                 },
             )
-            print("Counter offer options generated************************")
+            await self._notify_human_review_queue(application_id, uw_data, options)
             await self._emit_progress(
                 application_id=application_id,
                 progress_callback=progress_callback,
-                event=PipelineEvent.COUNTER_OFFER_PENDING,
-                stage=PipelineStage.DECISIONING,
-                status="completed",
-                message="Underwriting completed: counter offer generated",
+                event=PipelineEvent.HUMAN_REVIEW_REQUIRED,
+                stage=PipelineStage.HUMAN_REVIEW,
+                status="started",
+                message="AI generated counter offer — awaiting bank officer review",
                 details={
                     "decision": decision,
-                    "reason": uw_data.get("original_decision_explanation") or uw_data.get("explanation"),
+                    "reason": uw_data.get("explanation"),
                     "counter_offer_options": options,
                 },
                 is_terminal=True,
             )
             return {
-                "status": "COUNTER_OFFER_PENDING",
+                "status": "AWAITING_HUMAN_REVIEW",
                 "application_id": application_id,
                 "counter_offer_options": options,
                 "underwriting_details": uw_data,
@@ -389,6 +379,128 @@ class PipelineService:
             "status": "CANCELLED_BY_USER",
             "application_id": application_id,
         }
+
+    async def _notify_human_review_queue(
+        self,
+        application_id: str,
+        uw_data: Dict[str, Any],
+        options: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Fire-and-forget webhook to admin_service to create a human review queue entry."""
+        payload = {
+            "application_id": application_id,
+            "ai_decision": uw_data.get("decision"),
+            "ai_risk_tier": uw_data.get("risk_tier"),
+            "ai_risk_score": uw_data.get("risk_score"),
+            "ai_suggested_amount": uw_data.get("approved_amount"),
+            "ai_suggested_rate": uw_data.get("interest_rate"),
+            "ai_suggested_tenure": uw_data.get("approved_tenure_months") or uw_data.get("approved_tenure"),
+            "ai_counter_options": options,
+            "ai_reasoning": uw_data.get("reasoning_steps"),
+            "ai_decline_reason": uw_data.get("decline_reason"),
+        }
+        try:
+            response = await self.http_client.post(
+                f"{AgentConfig.ADMIN_SERVICE_URL}/internal/review-queue",
+                json=payload,
+            )
+            response.raise_for_status()
+            print(f"Human review queue entry created for {application_id}")
+        except Exception as exc:
+            print(f"Warning: Could not notify admin_service for {application_id}: {exc}")
+
+    async def resume_after_human_review_approval(
+        self,
+        application_id: str,
+        override_amount: Optional[float] = None,
+        override_rate: Optional[float] = None,
+        override_tenure: Optional[int] = None,
+        selected_offer_id: Optional[str] = None,
+        progress_callback: Optional[ProgressCallback] = None,
+    ) -> Dict[str, Any]:
+        """Resume pipeline after bank officer approves — proceed to disbursement."""
+        state = get_state(application_id)
+        if not state or state.get("phase") != "AWAITING_HUMAN_REVIEW":
+            raise ValueError(f"No pending human review for application {application_id}")
+
+        uw_data = deepcopy(state["uw_data"])
+        uw_data["application_id"] = application_id
+        options = state.get("options")
+
+        # If officer selected a counter-offer option
+        if selected_offer_id and options:
+            gen_options = options.get("generated_options", [])
+            selected = next((o for o in gen_options if o.get("offer_id") == selected_offer_id), None)
+            if selected:
+                uw_data["approved_amount"] = selected["principal_amount"]
+                uw_data["approved_tenure_months"] = selected["tenure_months"]
+                uw_data["interest_rate"] = selected["interest_rate"]
+                uw_data["monthly_emi"] = selected["monthly_emi"]
+                uw_data["disbursement_amount"] = selected.get("disbursement_amount", selected["principal_amount"])
+
+        # Apply officer term overrides
+        if override_amount is not None:
+            uw_data["approved_amount"] = override_amount
+        if override_rate is not None:
+            uw_data["interest_rate"] = override_rate
+        if override_tenure is not None:
+            uw_data["approved_tenure_months"] = override_tenure
+
+        # Ensure disbursement_amount is set
+        if not uw_data.get("disbursement_amount") and uw_data.get("approved_amount"):
+            uw_data["disbursement_amount"] = uw_data["approved_amount"]
+        if uw_data.get("approved_amount") and uw_data.get("disbursement_amount"):
+            uw_data["processing_fee"] = round(
+                float(uw_data["approved_amount"]) - float(uw_data["disbursement_amount"]), 2
+            )
+
+        await self._emit_progress(
+            application_id=application_id,
+            progress_callback=progress_callback,
+            event=PipelineEvent.HUMAN_REVIEW_APPROVED,
+            stage=PipelineStage.HUMAN_REVIEW,
+            status="completed",
+            message="Bank officer approved the application",
+        )
+
+        disburse_payload = map_decisioning_to_disbursement(uw_data)
+        disburse_data = await self._disburse(
+            application_id=application_id,
+            disburse_payload=disburse_payload,
+            progress_callback=progress_callback,
+        )
+        clear_state(application_id)
+
+        return {
+            "status": "DISBURSED",
+            "application_id": application_id,
+            "disbursement_receipt": disburse_data,
+        }
+
+    async def resume_after_human_review_rejection(
+        self,
+        application_id: str,
+        notes: Optional[str] = None,
+        progress_callback: Optional[ProgressCallback] = None,
+    ) -> Dict[str, Any]:
+        """Terminate pipeline after bank officer rejects."""
+        state = get_state(application_id)
+        if not state or state.get("phase") != "AWAITING_HUMAN_REVIEW":
+            raise ValueError(f"No pending human review for application {application_id}")
+
+        clear_state(application_id)
+
+        await self._emit_progress(
+            application_id=application_id,
+            progress_callback=progress_callback,
+            event=PipelineEvent.HUMAN_REVIEW_REJECTED,
+            stage=PipelineStage.HUMAN_REVIEW,
+            status="failed",
+            message=notes or "Application rejected by bank officer",
+            is_terminal=True,
+        )
+
+        return {"status": "REJECTED_BY_BANK", "application_id": application_id}
 
     async def _disburse(
         self,
