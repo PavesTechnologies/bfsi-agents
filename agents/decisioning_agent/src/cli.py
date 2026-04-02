@@ -1,6 +1,18 @@
 import subprocess
 import sys
+import asyncio
+import json
 import uvicorn
+
+from src.core.database import AsyncSessionLocal
+from src.repositories.underwriting_monitoring_snapshot_repository import (
+    UnderwritingMonitoringSnapshotRepository,
+)
+from src.repositories.underwriting_repository import UnderwritingRepository
+from src.services.monitoring.snapshot_job import run_monitoring_snapshot_job
+from src.services.validation.release_artifact_writer import (
+    write_release_evidence_bundle,
+)
 
 def dev():
     uvicorn.run("src.main:app", reload=True, port=8002, reload_dirs=["src"])
@@ -93,3 +105,29 @@ def lint():
     else:
         print("Linting issues found.")
         sys.exit(1)
+
+
+def run_monitoring_snapshot():
+    async def _run():
+        async with AsyncSessionLocal() as session:
+            repo = UnderwritingRepository(session)
+            snapshot_repo = UnderwritingMonitoringSnapshotRepository(session)
+            result = await run_monitoring_snapshot_job(
+                underwriting_repository=repo,
+                snapshot_repository=snapshot_repo,
+                segment_key="default_segment",
+            )
+            print(json.dumps(result, indent=2, default=str))
+
+    asyncio.run(_run())
+
+
+def export_release_evidence():
+    output_dir = sys.argv[1] if len(sys.argv) > 1 else "release_artifacts"
+    path = write_release_evidence_bundle(
+        output_dir=output_dir,
+        validation_summary={"source": "cli", "status": "manual_export"},
+        monitoring_summary={},
+        sample_outputs={},
+    )
+    print(path)

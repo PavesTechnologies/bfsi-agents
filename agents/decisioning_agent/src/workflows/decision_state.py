@@ -96,6 +96,8 @@ class LoanApplicationState(TypedDict):
     application_id: str
     correlation_id: str
     raw_experian_data: Dict[str, Any]  # The full JSON dump from Experian
+    policy_metadata: Dict[str, Any]
+    version_metadata: Dict[str, Any]
     
     pi_masked_experian_data: Dict[str, Any]  # The full JSON dump from Experian
     bank_statement_summary: Dict[str, Any]
@@ -119,8 +121,10 @@ class LoanApplicationState(TypedDict):
     # The "Risk Aggregator Node" reads the sections above and populates this:
     aggregated_risk_score: Optional[float] 
     aggregated_risk_tier: Optional[str]    # "A", "B", "C", "F"
+    reasoning_trace: Optional[Dict[str, Any]]
 
     counter_offer_data: Optional[CounterOfferMetrics]
+    human_review_packet: Optional[Dict[str, Any]]
     
     # --- 5. Decision Result (for routing) ---
     decision_result: Optional[Dict[str, Any]]  # {"decision": "APPROVE"|"COUNTER_OFFER"|"DECLINE"}

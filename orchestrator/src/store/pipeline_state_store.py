@@ -1,17 +1,46 @@
-"""In-memory store for paused pipeline state."""
+"""Persistent store for paused pipeline state backed by PostgreSQL."""
 
-from typing import Any, Dict
+import json
+from typing import Any, Dict, Optional
 
-_store: Dict[str, Dict[str, Any]] = {}
+from sqlalchemy import select, delete
 
-
-def save_state(application_id: str, state: Dict[str, Any]) -> None:
-    _store[application_id] = state
-
-
-def get_state(application_id: str) -> Dict[str, Any] | None:
-    return _store.get(application_id)
+from src.store.database import AsyncSessionLocal
+from src.store.models import PipelineStateModel
 
 
-def clear_state(application_id: str) -> None:
-    _store.pop(application_id, None)
+async def save_state(application_id: str, state: Dict[str, Any]) -> None:
+    """Upsert pipeline state for an application into the database."""
+    serialized = json.loads(json.dumps(state, default=str))
+    async with AsyncSessionLocal() as session:
+        existing = await session.get(PipelineStateModel, application_id)
+        if existing:
+            existing.state_json = serialized
+        else:
+            session.add(
+                PipelineStateModel(
+                    application_id=application_id,
+                    state_json=serialized,
+                )
+            )
+        await session.commit()
+
+
+async def get_state(application_id: str) -> Optional[Dict[str, Any]]:
+    """Retrieve pipeline state for an application from the database."""
+    async with AsyncSessionLocal() as session:
+        result = await session.get(PipelineStateModel, application_id)
+        if result:
+            return result.state_json
+        return None
+
+
+async def clear_state(application_id: str) -> None:
+    """Remove pipeline state for an application from the database."""
+    async with AsyncSessionLocal() as session:
+        await session.execute(
+            delete(PipelineStateModel).where(
+                PipelineStateModel.application_id == application_id
+            )
+        )
+        await session.commit()

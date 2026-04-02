@@ -48,10 +48,30 @@ class CounterOfferDetails(BaseModel):
     timestamp: Optional[str] = None
 
 
+class ReviewPacket(BaseModel):
+    application_id: str
+    recommended_action: str
+    summary: Optional[str] = None
+    requested_amount: float
+    requested_tenure_months: int
+    risk_tier: Optional[str] = None
+    risk_score: Optional[float] = None
+    key_factors: List[str]
+    reasoning_steps: List[str]
+    suggested_reason_keys: List[str]
+    candidate_reason_codes: Optional[List[Dict[str, Any]]] = None
+    policy_citations: Optional[List[Dict[str, Any]]] = None
+    feature_attribution_summary: Optional[Dict[str, Any]] = None
+    metrics: Dict[str, Any]
+    audit_summary: Optional[Dict[str, Any]] = None
+
+
 class UnderwritingResponse(BaseModel):
     """Output payload returned by the underwriting decision pipeline."""
     application_id: str
     correlation_id: Optional[str] = None
+    policy_version: Optional[str] = None
+    audit_summary: Optional[Dict[str, Any]] = None
     decision: str = Field(description="APPROVE, COUNTER_OFFER, or DECLINE")
     risk_tier: Optional[str] = Field(default=None, description="Aggregated risk tier: A, B, C, F")
     risk_score: Optional[float] = Field(default=None, description="Aggregated risk score")
@@ -69,7 +89,21 @@ class UnderwritingResponse(BaseModel):
         description="Counter offer data with alternative options"
     )
     original_decision_explanation: Optional[str] = None
+    review_packet: Optional[ReviewPacket] = None
 
     # DECLINE path
     decline_reason: Optional[str] = None
+    primary_reason_key: Optional[str] = None
+    secondary_reason_key: Optional[str] = None
+    adverse_action_reasons: Optional[List[Dict[str, str]]] = None
+    adverse_action_notice: Optional[str] = None
+    reasoning_summary: Optional[str] = None
+    key_factors: Optional[List[str]] = None
     reasoning_steps: Optional[List[str]] = None
+    candidate_reason_codes: Optional[List[Dict[str, Any]]] = None
+    selected_reason_codes: Optional[List[Dict[str, Any]]] = None
+    policy_citations: Optional[List[Dict[str, Any]]] = None
+    retrieval_evidence: Optional[List[Dict[str, Any]]] = None
+    feature_attribution_summary: Optional[Dict[str, Any]] = None
+    explanation_generation_mode: Optional[str] = None
+    critic_failures: Optional[List[str]] = None

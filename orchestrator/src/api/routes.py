@@ -261,7 +261,7 @@ async def confirm_approval(request: ConfirmApprovalRequest):
     service = PipelineService()
     try:
         if not request.accepted:
-            return service.cancel_pending_application(request.application_id)
+            return await service.cancel_pending_application(request.application_id)
         return await service.resume_after_approval_confirmation(
             application_id=request.application_id
         )

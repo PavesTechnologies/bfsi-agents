@@ -216,7 +216,7 @@ class PipelineService:
             }
 
         if decision == "APPROVE":
-            save_state(
+            await save_state(
                 application_id,
                 {
                     "phase": "AWAITING_APPROVAL_CONFIRMATION",
@@ -261,7 +261,7 @@ class PipelineService:
             # )
             uw_data["counter_offer_options"] = options.get("generated_options")
             print("Before saving state")
-            save_state(
+            await save_state(
                 application_id,
                 {
                     "phase": "AWAITING_OFFER_SELECTION",
@@ -300,7 +300,7 @@ class PipelineService:
         progress_callback: Optional[ProgressCallback] = None,
     ) -> Dict[str, Any]:
         """Resume the pipeline after the user picks a counter offer."""
-        state = get_state(application_id)
+        state = await get_state(application_id)
         if not state or state.get("phase") != "AWAITING_OFFER_SELECTION":
             raise ValueError(
                 f"No pending counter offer selection for application {application_id}"
@@ -347,7 +347,7 @@ class PipelineService:
             disburse_payload=disburse_payload,
             progress_callback=progress_callback,
         )
-        clear_state(application_id)
+        await clear_state(application_id)
 
         return {
             "status": "DISBURSED",
@@ -361,7 +361,7 @@ class PipelineService:
         progress_callback: Optional[ProgressCallback] = None,
     ) -> Dict[str, Any]:
         """Resume the pipeline after the user accepts approved terms."""
-        state = get_state(application_id)
+        state = await get_state(application_id)
         if not state or state.get("phase") != "AWAITING_APPROVAL_CONFIRMATION":
             raise ValueError(
                 f"No pending approval confirmation for application {application_id}"
@@ -374,7 +374,7 @@ class PipelineService:
             disburse_payload=disburse_payload,
             progress_callback=progress_callback,
         )
-        clear_state(application_id)
+        await clear_state(application_id)
 
         return {
             "status": "DISBURSED",
@@ -382,9 +382,9 @@ class PipelineService:
             "disbursement_receipt": disburse_data,
         }
 
-    def cancel_pending_application(self, application_id: str) -> Dict[str, Any]:
+    async def cancel_pending_application(self, application_id: str) -> Dict[str, Any]:
         """Cancel any paused pipeline state for an application."""
-        clear_state(application_id)
+        await clear_state(application_id)
         return {
             "status": "CANCELLED_BY_USER",
             "application_id": application_id,

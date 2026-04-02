@@ -17,6 +17,14 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(router)
+
+    @app.on_event("startup")
+    async def _create_tables():
+        from src.store.database import engine
+        from src.store.models import Base
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
     return app
 
 app = create_app()

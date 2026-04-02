@@ -24,7 +24,20 @@ class UnderwritingDecision(Base):
     # --- Decision Details ---
     explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     decline_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # For DECLINE decisions
+    primary_reason_key: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    secondary_reason_key: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    adverse_action_reasons: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    adverse_action_notice: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    reasoning_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    key_factors: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     reasoning_steps: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    candidate_reason_codes: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    selected_reason_codes: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    policy_citations: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    retrieval_evidence: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    feature_attribution_summary: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    explanation_generation_mode: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    critic_failures: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     
     # --- Counter Offer (when decision = COUNTER_OFFER) ---
     counter_offer_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
@@ -34,6 +47,14 @@ class UnderwritingDecision(Base):
     execution_time_ms: Mapped[Optional[BigInteger]] = mapped_column(BigInteger, nullable=True)
     parallel_tasks_executed: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)  # List of executed nodes
     node_execution_times: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)  # Performance metrics per node
+    policy_version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    model_version: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    prompt_version: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    audit_narrative: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    human_review_required: Mapped[Optional[bool]] = mapped_column(default=False, nullable=True)
+    human_review_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    human_review_outcome: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    latest_human_review_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     
     # --- Full Audit Trail ---
     raw_decision_payload: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)

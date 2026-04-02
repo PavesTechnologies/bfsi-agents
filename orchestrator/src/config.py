@@ -17,3 +17,9 @@ class AgentConfig:
 
     # Pipeline Settings
     REQUEST_TIMEOUT_SECONDS: int = int(os.getenv("AGENT_TIMEOUT", "120"))
+    
+    # Store settings
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_GENERIC", 
+        "postgresql+asyncpg://test_user:test_password@localhost:5432/bfsi_db"
+    )
