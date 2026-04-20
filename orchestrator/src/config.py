@@ -19,7 +19,4 @@ class AgentConfig:
     REQUEST_TIMEOUT_SECONDS: int = int(os.getenv("AGENT_TIMEOUT", "120"))
     
     # Store settings
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_GENERIC", 
-        "postgresql+asyncpg://test_user:test_password@localhost:5432/bfsi_db"
-    )
+    DATABASE_URL: str = "postgresql+asyncpg://avnadmin:AVNS_X0ml0E8DUSxuuhGnQZX@pg-22ef5b8a-ajaykumar.h.aivencloud.com:15549/defaultdb"

@@ -131,7 +131,8 @@ class UnderwritingService:
             final_state = await self.graph.ainvoke(initial_state, config=config)
             execution_time_ms = int((time.time() - start_time) * 1000)
             response_payload = final_state.get("final_response_payload", {})
-
+            print("*********************************************")
+            print("Final response payload:", final_state)
             if not response_payload:
                 raise HTTPException(
                     status_code=500,
