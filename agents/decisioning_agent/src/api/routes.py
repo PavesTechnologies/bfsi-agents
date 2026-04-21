@@ -46,10 +46,13 @@ async def underwrite(
             application_id=payload.application_id,
         )
         service = UnderwritingService(db)
-        return await service.execute_underwriting(
+        result = await service.execute_underwriting(
             payload,
             correlation_id=correlation_id,
         )
+        print("** Underwriting result:", result)
+        return result
+    
     except HTTPException:
         raise
     except Exception as e:

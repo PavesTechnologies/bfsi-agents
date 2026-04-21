@@ -130,43 +130,43 @@ class UnderwritingService:
 
             final_state = await self.graph.ainvoke(initial_state, config=config)
             execution_time_ms = int((time.time() - start_time) * 1000)
-            response_payload = final_state.get("final_response_payload", {})
+            response_payload = final_state.get("final_decision", {})
             print("*********************************************")
-            print("Final response payload:", final_state)
+            # print("Final response payload:", final_state)
             if not response_payload:
                 raise HTTPException(
                     status_code=500,
                     detail="Graph execution completed but no final response payload was produced.",
                 )
 
-            audit_narrative = build_audit_narrative(final_state, response_payload)
+            # audit_narrative = build_audit_narrative(final_state, response_payload)
 
-            decision = response_payload.get("decision", "UNKNOWN")
-            counter_offer_data = response_payload.get("counter_offer")
+            # decision = response_payload.get("decision", "UNKNOWN")
+            # counter_offer_data = response_payload.get("counter_offer")
 
-            await self.underwriting_repo.save_decision(
-                application_id=request.application_id,
-                decision=decision,
-                final_decision=response_payload,
-                aggregated_risk_score=final_state.get("aggregated_risk_score"),
-                aggregated_risk_tier=final_state.get("aggregated_risk_tier"),
-                counter_offer_data=counter_offer_data,
-                thread_id=thread_id,
-                execution_time_ms=execution_time_ms,
-                parallel_tasks_executed=final_state.get("parallel_tasks_completed", []),
-                node_execution_times=final_state.get("node_execution_times", {}),
-                policy_version=(final_state.get("policy_metadata") or {}).get("policy_version"),
-                model_version=(final_state.get("version_metadata") or {}).get("model_version"),
-                prompt_version=(final_state.get("version_metadata") or {}).get("prompt_version"),
-                audit_narrative=audit_narrative,
-                raw_state=final_state,
-            )
+            # await self.underwriting_repo.save_decision(
+            #     application_id=request.application_id,
+            #     decision=decision,
+            #     final_decision=response_payload,
+            #     aggregated_risk_score=final_state.get("aggregated_risk_score"),
+            #     aggregated_risk_tier=final_state.get("aggregated_risk_tier"),
+            #     counter_offer_data=counter_offer_data,
+            #     thread_id=thread_id,
+            #     execution_time_ms=execution_time_ms,
+            #     parallel_tasks_executed=final_state.get("parallel_tasks_completed", []),
+            #     node_execution_times=final_state.get("node_execution_times", {}),
+            #     policy_version=(final_state.get("policy_metadata") or {}).get("policy_version"),
+            #     model_version=(final_state.get("version_metadata") or {}).get("model_version"),
+            #     prompt_version=(final_state.get("version_metadata") or {}).get("prompt_version"),
+            #     audit_narrative=audit_narrative,
+            #     raw_state=final_state,
+            # )
 
-            await self.idempotency_repo.mark_completed(
-                request.application_id,
-                response_payload,
-            )
-            await self.failed_thread_repo.delete_failed_thread(request.application_id)
+            # await self.idempotency_repo.mark_completed(
+            #     request.application_id,
+            #     response_payload,
+            # )
+            # await self.failed_thread_repo.delete_failed_thread(request.application_id)
             return response_payload
 
         except (DuplicateRequestInProgressError, IdempotencyConflictError) as exc:
@@ -203,14 +203,14 @@ class UnderwritingService:
             raise HTTPException(status_code=500, detail=error_message) from exc
         finally:
             execution_time_ms = int((time.time() - start_time) * 1000)
-            await self.service_audit_repo.save_log(
-                application_id=request.application_id,
-                correlation_id=correlation_id,
-                agent_name="decisioning_agent",
-                operation_name="underwrite",
-                request_payload=request_payload,
-                response_payload=response_payload,
-                status=status,
-                error_message=error_message,
-                execution_time_ms=execution_time_ms,
-            )
+            # await self.service_audit_repo.save_log(
+            #     application_id=request.application_id,
+            #     correlation_id=correlation_id,
+            #     agent_name="decisioning_agent",
+            #     operation_name="underwrite",
+            #     request_payload=request_payload,
+            #     response_payload=response_payload,
+            #     status=status,
+            #     error_message=error_message,
+            #     execution_time_ms=execution_time_ms,
+            # )
