@@ -1,5 +1,6 @@
+from typing import Annotated, Any, Dict, List, NotRequired, Optional, TypedDict
+
 from pydantic import Field
-from typing import List, Optional, Dict, Any, TypedDict, Annotated
 
 
 def list_append_reducer(existing, new):
@@ -74,6 +75,7 @@ class FinalDecision(TypedDict):
     disbursement_amount: float     # Amount after deducting origination fee
     explanation: str
     reasoning_steps: List[str]
+    maximum_approved_amount: NotRequired[float]
 
 class LoanTermOption(TypedDict):
     option_id: str          # e.g., "OPT_LOWER_AMT" or "OPT_LONGER_TERM"

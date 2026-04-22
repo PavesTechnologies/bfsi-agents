@@ -91,3 +91,42 @@ def test_underwriting_response_accepts_canonical_decline_payload():
     assert response.secondary_reason_key == "DTI_HIGH"
     assert response.adverse_action_notice is not None
     assert response.key_factors is not None
+
+
+def test_underwriting_response_accepts_counter_offer_maximum_approved_amount():
+    payload = {
+        "application_id": "APP-789",
+        "correlation_id": "REQ-789",
+        "policy_version": "v2.0",
+        "decision": "COUNTER_OFFER",
+        "risk_tier": "A",
+        "risk_score": 88.0,
+        "timestamp": "2026-04-22 12:00:00",
+        "maximum_approved_amount": 60000.0,
+        "counter_offer": {
+            "original_request_dti": 0.28,
+            "max_affordable_emi": 12500.0,
+            "counter_offer_logic": "Alternatives generated from deterministic affordability constraints.",
+            "generated_options": [
+                {
+                    "option_id": "OPT_REDUCED_AMOUNT",
+                    "description": "Reduce principal while keeping the requested tenure.",
+                    "proposed_amount": 60000.0,
+                    "proposed_tenure_months": 24,
+                    "proposed_interest_rate": 7.5,
+                    "disbursement_amount": 58800.0,
+                    "monthly_payment_emi": 2700.0,
+                    "total_repayment": 64800.0,
+                }
+            ],
+            "confidence_score": 1.0,
+            "timestamp": "2026-04-22 12:00:00",
+        },
+        "original_decision_explanation": "A counter offer was generated because the requested amount exceeded deterministic lending capacity.",
+    }
+
+    response = UnderwritingResponse.model_validate(payload)
+
+    assert response.decision == "COUNTER_OFFER"
+    assert response.maximum_approved_amount == 60000.0
+    assert response.counter_offer is not None

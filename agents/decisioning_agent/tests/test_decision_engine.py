@@ -66,3 +66,4 @@ def test_make_underwriting_decision_routes_to_counter_offer_when_amount_exceeds_
 
     assert result.decision == "COUNTER_OFFER"
     assert result.interest_rate == 13.5
+    assert result.model_dump()["maximum_approved_amount"] == 6480.0

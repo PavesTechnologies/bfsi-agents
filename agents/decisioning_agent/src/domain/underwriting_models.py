@@ -88,6 +88,7 @@ class UnderwritingResponse(BaseModel):
         default=None,
         description="Counter offer data with alternative options"
     )
+    maximum_approved_amount: Optional[float] = None
     original_decision_explanation: Optional[str] = None
     review_packet: Optional[ReviewPacket] = None
 

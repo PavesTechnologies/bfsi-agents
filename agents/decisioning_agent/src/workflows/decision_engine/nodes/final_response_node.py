@@ -44,6 +44,7 @@ def final_response_node(state: LoanApplicationState) -> LoanApplicationState:
 
     elif decision_type == "COUNTER_OFFER":
         response_payload["counter_offer"] = counter_offer
+        response_payload["maximum_approved_amount"] = final_decision.get("maximum_approved_amount")
         response_payload["original_decision_explanation"] = final_decision.get("explanation")
 
     elif decision_type == "REFER_TO_HUMAN":

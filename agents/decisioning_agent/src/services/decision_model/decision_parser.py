@@ -1,8 +1,11 @@
-from pydantic import BaseModel, Field
 from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DecisionOutput(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     decision: str = Field(description="One of: APPROVE, COUNTER_OFFER, DECLINE, REFER_TO_HUMAN")
     approved_amount: float = Field(description="Loan amount approved (0 if declined)")
     approved_tenure: int = Field(description="Approved repayment tenure in months (0 if declined)")

@@ -197,4 +197,5 @@ def make_underwriting_decision(
         explanation="Counter offer required because the requested amount exceeds deterministic lending capacity.",
         reasoning_steps=reasoning_steps,
         confidence_score=1.0,
+        maximum_approved_amount=max_approved_amount,
     )
