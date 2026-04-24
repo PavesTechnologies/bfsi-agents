@@ -19,28 +19,47 @@ def validate_last_name(value: str) -> ValidationResult:
             "Last name contains invalid characters"
         )
     return ValidationResult.success()
-from .constants import SSN_REGEX, SSN_LAST4_REGEX
+from .constants import AADHAAR_REGEX, AADHAAR_LAST4_REGEX, PAN_REGEX
 
 
-def validate_ssn(value: str) -> ValidationResult:
-    if not SSN_REGEX.match(value):
+def validate_aadhaar(value: str) -> ValidationResult:
+    if value is None:
         return ValidationResult.failure(
-            ValidationReasonCode.INVALID_SSN_FORMAT,
-            "SSN must follow AAA-GG-SSSS format"
+            ValidationReasonCode.INVALID_AADHAAR_FORMAT,
+            "Aadhaar number is required"
+        )
+    if not AADHAAR_REGEX.match(value):
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_AADHAAR_FORMAT,
+            "Aadhaar must be a 12-digit number"
         )
     return ValidationResult.success()
 
 
-def validate_ssn_last4(value: str) -> ValidationResult:
+def validate_aadhaar_last4(value: str) -> ValidationResult:
     if value is None:
         return ValidationResult.failure(
-            ValidationReasonCode.INVALID_SSN_LAST4,
-            "SSN last4 is required"
+            ValidationReasonCode.INVALID_AADHAAR_LAST4,
+            "Aadhaar last4 is required"
         )
-    if not SSN_LAST4_REGEX.match(value):
+    if not AADHAAR_LAST4_REGEX.match(value):
         return ValidationResult.failure(
-            ValidationReasonCode.INVALID_SSN_LAST4,
-            "SSN last4 must be exactly 4 digits"
+            ValidationReasonCode.INVALID_AADHAAR_LAST4,
+            "Aadhaar last4 must be exactly 4 digits"
+        )
+    return ValidationResult.success()
+
+
+def validate_pan(value: str) -> ValidationResult:
+    if value is None:
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_PAN_FORMAT,
+            "PAN number is required"
+        )
+    if not PAN_REGEX.match(value):
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_PAN_FORMAT,
+            "PAN must be a standard format like ABCDE1234F"
         )
     return ValidationResult.success()
 from datetime import date

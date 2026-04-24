@@ -10,8 +10,9 @@ from dataclasses import dataclass
 from src.domain.validation.typed_field_validators import (
     validate_first_name,
     validate_last_name,
-    validate_ssn_last4,
-    validate_ssn,
+    validate_aadhaar,
+    validate_aadhaar_last4,
+    validate_pan,
     validate_dob,
     validate_email,
     validate_address_line,
@@ -77,18 +78,25 @@ def validate_applicant_blocking(applicant) -> BlockingValidationSummary:
     if not result.passed:
         errors.append(ValidationError(field="applicant.last_name", message=result.message))
     
-    # SSN Last 4
-    ssn_last4 = getattr(applicant, "ssn_last4", None)
-    result = validate_ssn_last4(ssn_last4)
+    # Aadhaar Last 4
+    aadhaar_last4 = getattr(applicant, "aadhaar_last4", None)
+    result = validate_aadhaar_last4(aadhaar_last4)
     if not result.passed:
-        errors.append(ValidationError(field="applicant.ssn_last4", message=result.message))
+        errors.append(ValidationError(field="applicant.aadhaar_last4", message=result.message))
 
-    # SSN Full (New Addition)
-    ssn_no = getattr(applicant, "ssn_no", None)
-    if ssn_no:
-        result = validate_ssn(ssn_no)
+    # Aadhaar Full
+    aadhaar_no = getattr(applicant, "aadhaar_no", None)
+    if aadhaar_no:
+        result = validate_aadhaar(aadhaar_no)
         if not result.passed:
-            errors.append(ValidationError(field="applicant.ssn_no", message=result.message))
+            errors.append(ValidationError(field="applicant.aadhaar_no", message=result.message))
+
+    # PAN Full
+    pan_number = getattr(applicant, "pan_number", None)
+    if pan_number:
+        result = validate_pan(pan_number)
+        if not result.passed:
+            errors.append(ValidationError(field="applicant.pan_number", message=result.message))
     
     # Date of birth
     dob = getattr(applicant, "date_of_birth", None)

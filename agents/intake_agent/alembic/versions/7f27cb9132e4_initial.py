@@ -1,8 +1,8 @@
-"""new setup
+"""initial
 
-Revision ID: d6246ae57292
+Revision ID: 7f27cb9132e4
 Revises: 
-Create Date: 2026-02-03 11:43:06.442713
+Create Date: 2026-04-24 16:10:37.784050
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'd6246ae57292'
+revision: str = '7f27cb9132e4'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -70,12 +70,25 @@ def upgrade() -> None:
     sa.Column('requested_term_months', sa.Integer(), nullable=True),
     sa.Column('preferred_payment_day', sa.Integer(), nullable=True),
     sa.Column('origination_channel', sa.String(length=20), nullable=True),
-    sa.Column('application_status', sa.String(length=30), nullable=True),
+    sa.Column('application_status', sa.Enum('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'REVISION_REQUIRED', 'APPROVED', 'REJECTED', name='applicant_status_enum'), server_default=sa.text("'SUBMITTED'"), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.CheckConstraint("credit_type::text = ANY (ARRAY['individual'::character varying, 'joint'::character varying]::text[])", name='loan_application_credit_type_check'),
     sa.CheckConstraint('preferred_payment_day >= 1 AND preferred_payment_day <= 28', name='loan_application_preferred_payment_day_check'),
     sa.CheckConstraint('requested_amount > 0::numeric', name='loan_application_requested_amount_check'),
     sa.PrimaryKeyConstraint('application_id', name='loan_application_pkey')
+    )
+    op.create_table('node_audit_logs',
+    sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('application_id', sa.String(length=50), nullable=False),
+    sa.Column('agent_name', sa.String(length=50), nullable=False),
+    sa.Column('node_name', sa.String(length=100), nullable=False),
+    sa.Column('input_state', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('output_state', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('status', sa.String(length=20), nullable=True),
+    sa.Column('error_message', sa.Text(), nullable=True),
+    sa.Column('execution_time_ms', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('request_metadata',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -104,11 +117,16 @@ def upgrade() -> None:
     sa.Column('applicant_role', sa.String(length=20), nullable=True),
     sa.Column('middle_name', sa.String(length=100), nullable=True),
     sa.Column('suffix', sa.String(length=10), nullable=True),
-    sa.Column('email', sa.String(length=255), nullable=True),
-    sa.Column('ssn_encrypted', sa.Text(), nullable=True),
-    sa.Column('ssn_last4', sa.CHAR(length=4), nullable=True),
-    sa.Column('itin_number', sa.String(length=15), nullable=True),
+    sa.Column('email', sa.Text(), nullable=True),
+    sa.Column('aadhaar_encrypted', sa.Text(), nullable=True),
+    sa.Column('aadhaar_last4', sa.CHAR(length=4), nullable=True),
+    sa.Column('pan_number', sa.String(length=10), nullable=True),
+    sa.Column('pan_last4', sa.CHAR(length=4), nullable=True),
+    sa.Column('father_name', sa.String(length=100), nullable=True),
+    sa.Column('mother_name', sa.String(length=100), nullable=True),
     sa.Column('citizenship_status', sa.String(length=30), nullable=True),
+    sa.Column('phone_number', sa.Text(), nullable=False),
+    sa.Column('gender', sa.Enum('MALE', 'FEMALE', 'NON_BINARY', 'OTHER', 'PREFER_NOT_TO_SAY', name='gender_enum'), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.CheckConstraint("applicant_role::text = ANY (ARRAY['primary'::character varying, 'co_applicant'::character varying]::text[])", name='applicant_applicant_role_check'),
     sa.ForeignKeyConstraint(['application_id'], ['loan_application.application_id'], name='fk_applicant_application', ondelete='CASCADE'),
@@ -124,14 +142,31 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['application_id'], ['loan_application.application_id'], name='fk_document_application', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('document_id', name='document_pkey')
     )
+    op.create_table('human_review',
+    sa.Column('id', sa.UUID(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('application_id', sa.UUID(), nullable=False),
+    sa.Column('reviewer_id', sa.String(length=100), nullable=False),
+    sa.Column('decision', sa.Enum('APPROVE', 'REJECT', name='human_decision_enum'), nullable=False),
+    sa.Column('reason_codes', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('comments', sa.Text(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['application_id'], ['loan_application.application_id'], name='fk_human_review_application', ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id', name='human_review_pkey')
+    )
     op.create_table('pgsqldocument',
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('application_id', sa.Uuid(), nullable=False),
+    sa.Column('document_type', sa.String(length=50), nullable=False),
+    sa.Column('document_confidence', sa.Float(), nullable=True),
+    sa.Column('classification_method', sa.String(length=50), nullable=True),
     sa.Column('file_name', sa.String(), nullable=False),
     sa.Column('mime_type', sa.String(length=100), nullable=False),
     sa.Column('file_size', sa.BigInteger(), nullable=False),
     sa.Column('content', sa.LargeBinary(), nullable=False),
     sa.Column('uploaded_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_low_quality', sa.Boolean(), nullable=False),
+    sa.Column('quality_metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.CheckConstraint("document_type::text = ANY (ARRAY['ssn_card', 'passport', 'drivers_license', 'state_id', 'itr', 'w2', 'aadhaar_card', 'pan_card', 'pay_stub', 'bank_statement', 'tax_return', 'utility_bill', 'lease_agreement', 'photo']::text[])", name='pgsqldocument_document_type_check'),
     sa.ForeignKeyConstraint(['application_id'], ['loan_application.application_id'], name='fk_pgsqldocument_application', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name='pgsqldocument_pkey')
     )
@@ -144,7 +179,8 @@ def upgrade() -> None:
     sa.Column('zip_code', sa.String(length=10), nullable=False),
     sa.Column('address_type', sa.String(length=20), nullable=True),
     sa.Column('address_line2', sa.String(length=255), nullable=True),
-    sa.Column('country', sa.String(length=50), server_default=sa.text("'USA'::character varying"), nullable=True),
+    sa.Column('district', sa.String(length=100), nullable=True),
+    sa.Column('country', sa.String(length=50), server_default=sa.text("'INDIA'"), nullable=True),
     sa.Column('housing_status', sa.String(length=30), nullable=True),
     sa.Column('monthly_housing_payment', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('years_at_address', sa.Integer(), nullable=True),
@@ -231,12 +267,14 @@ def downgrade() -> None:
     op.drop_table('asset')
     op.drop_table('address')
     op.drop_table('pgsqldocument')
+    op.drop_table('human_review')
     op.drop_table('document')
     op.drop_table('applicant')
     op.drop_index(op.f('ix_request_metadata_request_id'), table_name='request_metadata')
     op.drop_index(op.f('ix_request_metadata_created_at'), table_name='request_metadata')
     op.drop_index(op.f('ix_request_metadata_app_id'), table_name='request_metadata')
     op.drop_table('request_metadata')
+    op.drop_table('node_audit_logs')
     op.drop_table('loan_application')
     op.drop_table('intake_validation_result')
     op.drop_table('intake_idempotency')

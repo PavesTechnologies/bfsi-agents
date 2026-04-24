@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import List
 
 from .age_validators import validate_minimum_age
-from .regex_validators import validate_email, validate_ssn_last4, validate_dob
+from .regex_validators import validate_email, validate_aadhaar_last4, validate_pan, validate_dob
 from .results import ValidationResult
 
 
@@ -34,7 +34,8 @@ def validate_applicant(applicant) -> ValidationSummary:
 
     try:
         email = getattr(applicant, "email", None)
-        ssn_last4 = getattr(applicant, "ssn_last4", None)
+        aadhaar_last4 = getattr(applicant, "aadhaar_last4", None)
+        pan_number = getattr(applicant, "pan_number", None)
         dob = getattr(applicant, "date_of_birth", None)
 
         # Run validators individually and capture any unexpected errors as
@@ -45,9 +46,14 @@ def validate_applicant(applicant) -> ValidationSummary:
             results.append(ValidationResult(field="email", is_valid=False, reason=f"validation error: {exc}"))
 
         try:
-            results.append(validate_ssn_last4(ssn_last4))
+            results.append(validate_aadhaar_last4(aadhaar_last4))
         except Exception as exc:  # pragma: no cover - defensive
-            results.append(ValidationResult(field="ssn_last4", is_valid=False, reason=f"validation error: {exc}"))
+            results.append(ValidationResult(field="aadhaar_last4", is_valid=False, reason=f"validation error: {exc}"))
+
+        try:
+            results.append(validate_pan(pan_number))
+        except Exception as exc:  # pragma: no cover - defensive
+            results.append(ValidationResult(field="pan_number", is_valid=False, reason=f"validation error: {exc}"))
 
         try:
             results.append(validate_dob(dob))

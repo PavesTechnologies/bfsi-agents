@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.domain.normalization.application_form import RequestNormalizer
 from src.models.interfaces.Loan_intake_interfaces import LoanIntakeRequest, LoanIntakeResponse
 from src.repositories.intake_repo.loan_intake_repo import LoanIntakeDAO
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime
 from uuid import uuid4
 
@@ -16,7 +16,8 @@ from uuid import uuid4
 from src.domain.validation.typed_field_validators import (
     validate_first_name,
     validate_last_name,
-    validate_ssn_last4,
+    validate_aadhaar_last4,
+    validate_pan,
     validate_dob,
     validate_email,
     validate_address_line,
@@ -119,9 +120,12 @@ class LoanIntakeService:
                         "last_name": applicant.last_name,
                         "suffix": applicant.suffix,
                         "date_of_birth": applicant.date_of_birth,
-                        "ssn_encrypted": applicant.ssn_no, #self.ssn_service.protect_ssn(applicant.ssn_no),
-                        "ssn_last4": applicant.ssn_last4,
-                        "itin_number": applicant.itin_number,
+                        "aadhaar_encrypted": applicant.aadhaar_no,
+                        "aadhaar_last4": applicant.aadhaar_last4,
+                        "pan_number": applicant.pan_number,
+                        "pan_last4": applicant.pan_last4,
+                        "father_name": applicant.father_name,
+                        "mother_name": applicant.mother_name,
                         "citizenship_status": applicant.citizenship_status,
                         "email": applicant.email, #self.email_service.protect_email(applicant.email),
                         "phone_number": applicant.phone_number, #self.phone_number_service.protect_phone_number(applicant.phone_number),
@@ -134,7 +138,8 @@ class LoanIntakeService:
                     validations = [
                         ("first_name", validate_first_name(applicant.first_name)),
                         ("last_name", validate_last_name(applicant.last_name)),
-                        ("ssn_last4", validate_ssn_last4(applicant.ssn_last4)),
+                        ("aadhaar_last4", validate_aadhaar_last4(applicant.aadhaar_last4)),
+                        ("pan_number", validate_pan(applicant.pan_number)),
                         ("dob", validate_dob(applicant.date_of_birth)),
                         ("email", validate_email(applicant.email)),
                     ]
@@ -279,6 +284,12 @@ class LoanIntakeService:
             )
         except SQLAlchemyError as e:
             await self.db.rollback()
+            error_msg = str(e)
+            if "uq_applicant_email" in error_msg or "UniqueViolationError" in error_msg:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Applicant with this email already exists."
+                )
             raise HTTPException(status_code=500, detail=f"Database error occurred: {e}")
         
         except RuntimeError:

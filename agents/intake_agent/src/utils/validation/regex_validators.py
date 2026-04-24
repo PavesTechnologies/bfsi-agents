@@ -16,21 +16,35 @@ from .results import ValidationResult
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
 
-def validate_ssn_last4(value: Optional[str]) -> ValidationResult:
+def validate_aadhaar_last4(value: Optional[str]) -> ValidationResult:
     """Valid if value is None or exactly 4 digits.
 
     Missing (None) is treated as valid per non-blocking rule for optional
     fields.
     """
-    field_name = "ssn_last4"
+    field_name = "aadhaar_last4"
     try:
         if value is None:
             return ValidationResult(field=field_name, is_valid=True)
         if not isinstance(value, str):
-            return ValidationResult(field=field_name, is_valid=False, reason="ssn_last4 must be a string of 4 digits")
+            return ValidationResult(field=field_name, is_valid=False, reason="aadhaar_last4 must be a string of 4 digits")
         if re.fullmatch(r"\d{4}", value.strip()):
             return ValidationResult(field=field_name, is_valid=True)
-        return ValidationResult(field=field_name, is_valid=False, reason="ssn_last4 must be exactly 4 digits")
+        return ValidationResult(field=field_name, is_valid=False, reason="aadhaar_last4 must be exactly 4 digits")
+    except Exception as exc:  # pragma: no cover - defensive
+        return ValidationResult(field=field_name, is_valid=False, reason=f"validation error: {exc}")
+
+
+def validate_pan(value: Optional[str]) -> ValidationResult:
+    field_name = "pan_number"
+    try:
+        if value is None:
+            return ValidationResult(field=field_name, is_valid=True)
+        if not isinstance(value, str):
+            return ValidationResult(field=field_name, is_valid=False, reason="pan_number must be a string")
+        if re.fullmatch(r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", value.strip()):
+            return ValidationResult(field=field_name, is_valid=True)
+        return ValidationResult(field=field_name, is_valid=False, reason="pan_number format invalid")
     except Exception as exc:  # pragma: no cover - defensive
         return ValidationResult(field=field_name, is_valid=False, reason=f"validation error: {exc}")
 

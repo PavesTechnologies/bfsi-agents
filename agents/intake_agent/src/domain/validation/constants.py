@@ -5,8 +5,9 @@ NAME_REGEX = re.compile(r"^[A-Za-z\s\-']{1,50}$")
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 PHONE_REGEX = re.compile(r"^\+1\d{10}$")
 
-SSN_REGEX = re.compile(r"^\d{3}-\d{2}-\d{4}$")
-SSN_LAST4_REGEX = re.compile(r"^\d{4}$")
+AADHAAR_REGEX = re.compile(r"^\d{12}$")
+AADHAAR_LAST4_REGEX = re.compile(r"^\d{4}$")
+PAN_REGEX = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$")
 
 ZIP_REGEX = re.compile(r"^\d{5}(-\d{4})?$")
 STATE_CODES = {

@@ -140,9 +140,12 @@ class Applicant(Base):
     middle_name: Mapped[Optional[str]] = mapped_column(String(100))
     suffix: Mapped[Optional[str]] = mapped_column(String(10))
     email: Mapped[Optional[str]] = mapped_column(Text)
-    ssn_encrypted: Mapped[Optional[str]] = mapped_column(Text)
-    ssn_last4: Mapped[Optional[str]] = mapped_column(CHAR(4))
-    itin_number: Mapped[Optional[str]] = mapped_column(String(15))
+    aadhaar_encrypted: Mapped[Optional[str]] = mapped_column(Text)  # AES-256 encrypted
+    aadhaar_last4: Mapped[Optional[str]] = mapped_column(CHAR(4))
+    pan_number: Mapped[Optional[str]] = mapped_column(String(10))  # ABCDE1234F
+    pan_last4: Mapped[Optional[str]] = mapped_column(CHAR(4))
+    father_name: Mapped[Optional[str]] = mapped_column(String(100))  # Common in Indian docs
+    mother_name: Mapped[Optional[str]] = mapped_column(String(100))
     citizenship_status: Mapped[Optional[str]] = mapped_column(String(30))
     phone_number: Mapped[str] = mapped_column(Text,nullable=False)
     gender: Mapped[Gender] = mapped_column(Enum(Gender, name="gender_enum"),nullable=False,)
@@ -192,13 +195,13 @@ class Address(Base):
     zip_code: Mapped[str] = mapped_column(String(10), nullable=False)
     address_type: Mapped[Optional[str]] = mapped_column(String(20))
     address_line2: Mapped[Optional[str]] = mapped_column(String(255))
-    country: Mapped[Optional[str]] = mapped_column(String(50), server_default=text("'USA'::character varying"))
+    district: Mapped[Optional[str]] = mapped_column(String(100))
+    country: Mapped[Optional[str]] = mapped_column(String(50), server_default=text("'INDIA'"))
     housing_status: Mapped[Optional[str]] = mapped_column(String(30))
     monthly_housing_payment: Mapped[Optional[decimal.Decimal]] = mapped_column(Numeric(10, 2))
     years_at_address: Mapped[Optional[int]] = mapped_column(Integer)
     months_at_address: Mapped[Optional[int]] = mapped_column(Integer)
     address_verified: Mapped[Optional[bool]] = mapped_column(Boolean, server_default=text('false'))
-
     applicant: Mapped['Applicant'] = relationship('Applicant', back_populates='address', lazy="selectin")
 
 
@@ -314,6 +317,8 @@ class PgsqlDocument(Base):
             "'state_id', "
             "'itr', "
             "'w2', "
+            "'aadhaar_card', "
+            "'pan_card', "
             "'pay_stub', "
             "'bank_statement', "
             "'tax_return', "

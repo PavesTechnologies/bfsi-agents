@@ -69,7 +69,14 @@ class RequestNormalizer:
             applicant.suffix = cls._clean_str(applicant.suffix, upper=True)
             applicant.email = cls._clean_str(applicant.email).lower() if applicant.email else None
             applicant.phone_number = cls.format_international_phone(applicant.phone_number)
-            applicant.ssn_last4 = cls._clean_str(applicant.ssn_last4)
+            if hasattr(applicant, "aadhaar_no") and applicant.aadhaar_no:
+                applicant.aadhaar_no = cls._clean_str(applicant.aadhaar_no)
+            if hasattr(applicant, "aadhaar_last4") and applicant.aadhaar_last4:
+                applicant.aadhaar_last4 = cls._clean_str(applicant.aadhaar_last4)
+            if hasattr(applicant, "pan_number") and applicant.pan_number:
+                applicant.pan_number = cls._clean_str(applicant.pan_number, upper=True)
+            if hasattr(applicant, "pan_last4") and applicant.pan_last4:
+                applicant.pan_last4 = cls._clean_str(applicant.pan_last4, upper=True)
 
             # 3. Normalize Addresses
             for addr in applicant.addresses:

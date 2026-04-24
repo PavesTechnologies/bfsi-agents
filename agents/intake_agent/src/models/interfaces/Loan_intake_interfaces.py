@@ -100,9 +100,12 @@ class ApplicantSchema(BaseModel):
     date_of_birth: Optional[date] = None
 
     # ⚠️ NO length / regex constraints here
-    ssn_no: Optional[str] = None
-    ssn_last4: Optional[str] = None
-    itin_number: Optional[str] = None
+    aadhaar_no: Optional[str] = None
+    aadhaar_last4: Optional[str] = None
+    pan_number: Optional[str] = None
+    pan_last4: Optional[str] = None
+    father_name: Optional[str] = None
+    mother_name: Optional[str] = None
     citizenship_status: Optional[str] = None
     email: Optional[str] = None
 
