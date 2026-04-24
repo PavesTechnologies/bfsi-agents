@@ -5,7 +5,7 @@ from PIL import Image
 from botocore.exceptions import ClientError
 from datetime import datetime
 import uuid
-
+import pypdfium2 as pdfium
 
 # ================= CONFIG =================
 
@@ -36,7 +36,6 @@ class AWSOCR:
                 raise ValueError("Unsupported file type")
                 
             if ext == ".pdf":
-                import pypdfium2 as pdfium
                 pdf = pdfium.PdfDocument(file_path)
                 page = pdf[0]
                 pil_image = page.render(scale=2).to_pil()
