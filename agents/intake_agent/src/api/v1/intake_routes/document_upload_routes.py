@@ -208,3 +208,36 @@ async def upload_photo(
         file=file,
         document_type="photo",
     )
+
+
+# -------------------------------
+# Aadhaar
+# -------------------------------
+@router.post("/upload/aadhaar")
+async def upload_aadhaar(
+    application_id: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _upload_with_document_type(
+        db=db,
+        application_id=application_id,
+        file=file,
+        document_type="aadhaar_card",
+    )
+
+# -------------------------------
+# PAN Card
+# -------------------------------
+@router.post("/upload/pan")
+async def upload_pan(
+    application_id: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _upload_with_document_type(
+        db=db,
+        application_id=application_id,
+        file=file,
+        document_type="pan_card",
+    )

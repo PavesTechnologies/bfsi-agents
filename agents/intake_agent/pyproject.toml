@@ -31,6 +31,7 @@ sqlalchemy = "^2.0.46"
 ua-parser = "^0.18.0"
 uvicorn = "^0.29.0"
 hvac = "^2.4.0"
+pypdfium2 = "^5.7.1"
 
 [tool.poetry.scripts]
 dev = "src.cli:dev"

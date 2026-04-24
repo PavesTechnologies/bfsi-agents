@@ -113,6 +113,16 @@ DOCUMENT_RULES = {
         "max_size_mb": 5,
         "max_resolution": (4000, 4000),
     },
+    "aadhaar_card": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg"},
+        "max_size_mb": 200,
+        "max_resolution": (4000, 4000),
+    },
+    "pan_card": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg"},
+        "max_size_mb": 200,
+        "max_resolution": (4000, 4000),
+    },
 }
 
 
@@ -369,9 +379,51 @@ class DocumentService:
         )
            
             # -----------------------------
+            # Aadhaar validation
+            # -----------------------------
+            if document_type == "aadhaar_card":
+                from src.domain.document_validation.aws_text_extraction import AWSOCR
+                aws_ocr = AWSOCR()
+                validation_result = aws_ocr.validate_aadhaar(temp_path, application_id)
+                confidence = validation_result.get("confidence", 0)
+                
+                if not validation_result.get("valid"):
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "message": "Aadhaar validation failed",
+                            "reason": validation_result.get("reason", "Unknown"),
+                            "confidence_score": confidence
+                        }
+                    )
+
+            # -----------------------------
+            # PAN validation
+            # -----------------------------
+            if document_type == "pan_card":
+                from src.domain.document_validation.aws_text_extraction import AWSOCR
+                aws_ocr = AWSOCR()
+                validation_result = aws_ocr.validate_pan(temp_path, application_id)
+                confidence = validation_result.get("confidence", 0)
+                
+                if not validation_result.get("valid"):
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "message": "PAN validation failed",
+                            "reason": validation_result.get("reason", "Unknown"),
+                            "confidence_score": confidence
+                        }
+                    )
+
+            # -----------------------------
             # OCR + KEYWORD INTENT VALIDATION
             # -----------------------------
-            if document_type not in ["passport", "ssn_card", "drivers_license"]:
+            if document_type not in ["passport", "ssn_card", "drivers_license", "aadhaar_card", "pan_card"]:
                 ocr_result = extract_ocr(
                     file_bytes=file_bytes,
                     mime_type=file.content_type,
