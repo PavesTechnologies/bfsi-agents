@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from src.services.orchestrator import run_kyc
+from src.services.india_orchestrator import run_kyc_india
 
 router = APIRouter()
 
@@ -26,3 +27,8 @@ def greet():
 @router.post("/kyc/execute")
 async def execute_kyc(request: Request, body: KYCRequest):
     return await run_kyc(request, body)
+
+
+@router.post("/india/kyc/execute")
+async def execute_kyc_india(request: Request, body: KYCRequest):
+    return await run_kyc_india(request, body)
