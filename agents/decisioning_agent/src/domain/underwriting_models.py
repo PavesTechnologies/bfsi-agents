@@ -19,6 +19,16 @@ class UnderwritingRequest(BaseModel):
     monthly_income: float = Field(description="Applicant's gross monthly income", ge=0)
 
 
+class CIBILUnderwritingRequest(BaseModel):
+    """Input payload for the post-KYC CIBIL decisioning pipeline (Indian bureau)."""
+    application_id: str = Field(description="Unique loan application ID", example="APP-IND-2026-001")
+    pan: str = Field(description="Verified PAN number from KYC agent (10 chars)", example="ABCDE0001F")
+    full_name: str = Field(description="Applicant full name", example="Ravi Kumar")
+    requested_amount: float = Field(description="Requested loan amount in INR", gt=0, example=500000)
+    requested_tenure_months: int = Field(description="Requested tenure in months", gt=0, example=36)
+    monthly_income: float = Field(description="Gross monthly income in INR from bank statement", ge=0, example=75000)
+
+
 class LoanDetails(BaseModel):
     approved_amount: float
     approved_tenure_months: int
