@@ -77,7 +77,7 @@ class FinalDecision(TypedDict):
 
 class LoanTermOption(TypedDict):
     option_id: str          # e.g., "OPT_LOWER_AMT" or "OPT_LONGER_TERM"
-    description: str        # "Keep 36 months, reduce amount to $35k"
+    description: str        # "Keep 36 months, reduce amount to ₹30L"
     proposed_amount: float
     proposed_tenure_months: int
     proposed_interest_rate: float

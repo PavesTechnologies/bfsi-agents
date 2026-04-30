@@ -21,11 +21,11 @@ Step 2: Calculate monthly_obligation_estimate
 - Sum the monthlyPaymentAmount for all open trades
 - If monthlyPaymentAmount is not available for a trade, estimate it as balanceAmount / remaining terms
 
-Step 3: Classification of Exposure Risk (based on monthly_obligation_estimate):
-- Less than $500 → LOW
-- $500 to $1500 → MODERATE
-- $1500 to $3500 → HIGH
-- Greater than $3500 → EXTREME
+Step 3: Classification of Exposure Risk (based on monthly_obligation_estimate in INR):
+- Less than ₹40,000 → LOW
+- ₹40,000 to ₹1,25,000 → MODERATE
+- ₹1,25,000 to ₹3,00,000 → HIGH
+- Greater than ₹3,00,000 → EXTREME
 
 ---------------------------------------
 TASK
