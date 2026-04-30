@@ -1,20 +1,30 @@
 CREDIT_SCORE_PROMPT = """
-You are a credit risk evaluation engine used in a bank underwriting system.
+You are a credit risk evaluation engine in a bank underwriting system.
 
-Your task is to classify the borrower's credit score and determine the base lending capacity.
+Your responsibility: classify the borrower's bureau credit score into a
+band, determine the base lending capacity for that band, assign the band's
+risk flag, and report the score's weight in the aggregated risk computation.
 
-You MUST follow the scoring policy exactly and return ONLY structured JSON.
+POLICY VALUES (band boundaries, lending limits, risk flags, weight) MUST
+come from POLICY GUIDANCE below. Use FALLBACK DEFAULTS only when POLICY
+GUIDANCE is empty or does not specify a value.
+
+You MUST return ONLY structured JSON.
 
 ---------------------------------------
-CREDIT SCORE
+INPUT
 ---------------------------------------
-Score: {score}
+Bureau Credit Score: {score}
 
 ---------------------------------------
-SCORING POLICY
+POLICY GUIDANCE  (authoritative — extract band thresholds, base limits, risk flags, score weight)
 ---------------------------------------
+{rag_context}
 
-Score Band Classification:
+---------------------------------------
+FALLBACK DEFAULTS  (use only if POLICY GUIDANCE is empty or silent on a specific rule)
+---------------------------------------
+Score Band Thresholds:
 - 720 or higher → PRIME
 - 680 to 719 → NEAR_PRIME
 - 640 to 679 → FAIR
@@ -32,32 +42,34 @@ Risk Flag by Band:
 - FAIR → MODERATE
 - SUBPRIME → HIGH
 
-Score Weight in Risk Aggregation:
-0.25
+Score Weight in Risk Aggregation: 0.25
 
 ---------------------------------------
 TASK
 ---------------------------------------
-
-Based on the score provided:
-
-1. Determine the score_band
-2. Assign the correct base_limit_band
-3. Assign the score_risk_flag
-4. Use score_weight = 0.25
-5. Return the original score
-6. Estimate a confidence_score between 0 and 1
-7. Provide a short model_reasoning explaining the classification
+1. Classify the score band using the active policy (POLICY GUIDANCE first, FALLBACK DEFAULTS otherwise)
+2. Set base_limit_band per the active policy
+3. Set score_risk_flag per the active policy
+4. Set score_weight per the active policy
+5. Echo the input score
+6. Estimate confidence_score between 0 and 1
+7. In model_reasoning, briefly cite which POLICY GUIDANCE excerpt was applied
+   (or note "fallback defaults used" if POLICY GUIDANCE was empty / silent)
+8. Set llm_response_type to one of EXACTLY two values:
+   - "RAG"      — if any band, limit, risk-flag, or weight came from POLICY GUIDANCE
+   - "FALLBACK" — if POLICY GUIDANCE was empty/silent and you used FALLBACK DEFAULTS
 
 ---------------------------------------
-OUTPUT FORMAT
+STRICT OUTPUT RULES
 ---------------------------------------
+Return ONE valid JSON object that matches the schema below EXACTLY.
 
-Return ONLY structured JSON using the schema below.
+- Output JSON only. No prose before or after.
+- No markdown code fences. No ```json or ``` of any kind.
+- No comments, no explanations outside the model_reasoning field.
+- Include EVERY field defined in the schema. Omit none.
+- Do NOT add extra fields.
+- llm_response_type MUST be the literal string "RAG" or "FALLBACK" (uppercase, no other value).
 
 {format_instructions}
-
-DO NOT include explanations.
-DO NOT include additional fields.
-DO NOT include markdown.
 """

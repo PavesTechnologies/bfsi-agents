@@ -48,8 +48,8 @@ def execute_llm(
         except Exception as e:
             last_error = e
             logger.warning(
-                "llm_attempt_failed",
-                extra={"attempt": attempt, "error": str(e)},
+                "llm_attempt_failed (attempt=%d): %s: %s",
+                attempt, type(e).__name__, str(e)[:500],
             )
 
     if fallback_result is not None:

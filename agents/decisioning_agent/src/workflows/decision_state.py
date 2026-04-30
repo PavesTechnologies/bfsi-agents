@@ -130,3 +130,8 @@ class LoanApplicationState(TypedDict):
 
     parallel_tasks_completed: Annotated[list[str], list_append_reducer]
     node_execution_times: Annotated[dict[str, float], dict_merge_reducer]
+
+    # --- 7. RAG context (Indian variant only; defaults empty so the
+    #         existing Experian/CIBIL flow stays a no-op) ---
+    rag_pool: Optional[List[Dict[str, Any]]]
+    rag_context_per_node: Optional[Dict[str, str]]

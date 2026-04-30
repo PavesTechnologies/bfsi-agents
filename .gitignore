@@ -81,3 +81,4 @@ poetry.lock
 
 **/.ruff_cache/
 **/.claude/
+**/.env.*

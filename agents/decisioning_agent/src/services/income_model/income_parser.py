@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -8,3 +10,6 @@ class IncomeOutput(BaseModel):
     income_missing_flag: bool = Field(description="True if income data is missing or unverifiable")
     confidence_score: float = Field(description="Model confidence level between 0 and 1 for the classification")
     model_reasoning: str = Field(description="Explanation of the DTI calculation and risk assessment")
+    llm_response_type: Literal["RAG", "FALLBACK"] = Field(
+        description="RAG if POLICY GUIDANCE excerpts drove the values, FALLBACK if FALLBACK DEFAULTS were used"
+    )

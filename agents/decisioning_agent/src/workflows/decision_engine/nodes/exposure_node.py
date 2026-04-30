@@ -41,6 +41,7 @@ def exposure_node(state: LoanApplicationState) -> LoanApplicationState:
     # ==================================================
     inputs = {
         "all_trades": json.dumps(open_trades),
+        "rag_context": state.get("rag_context_per_node", {}).get("debt_exposure", ""),
         "format_instructions": exposure_output_parser.get_format_instructions(),
     }
 

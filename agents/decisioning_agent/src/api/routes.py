@@ -6,11 +6,16 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "kyc_agent", "src"))
 
 from fastapi import APIRouter, HTTPException, Depends
-from src.domain.underwriting_models import CIBILUnderwritingRequest, UnderwritingRequest
+from src.domain.underwriting_models import (
+    CIBILUnderwritingRequest,
+    IndianUnderwritingRequest,
+    UnderwritingRequest,
+)
 from src.utils.db_session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.services.underwriting_service import UnderwritingService
 from src.services.post_kyc_cibil_service import PostKYCCIBILService
+from src.services.indian_underwriting_service import IndianUnderwritingService
 from adapters.mock_adapters.mock_cibil_adapter import MockCIBILAdapter  # type: ignore
 
 
@@ -79,6 +84,50 @@ async def underwrite_cibil(
             application_id=request.application_id,
             requested_amount=request.requested_amount,
             requested_tenure_months=request.requested_tenure_months,
+            monthly_income=request.monthly_income,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/underwrite/indian")
+async def underwrite_indian(
+    request: IndianUnderwritingRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    RAG-augmented Indian credit decisioning pipeline.
+
+    **What's different from /underwrite/cibil:**
+    1. Accepts the Indian-shaped request body (`application_id` + `applicant_data`).
+    2. Inserts a `rag_retrieval` step between PII deletion and the parallel
+       analyzers — pulls top-50 chunks from Qdrant (`rbi_guidelines` +
+       `bank_policies`) using a query built from the borrower's CIBIL signals.
+    3. Per-analyzer cosine re-ranking surfaces the right slice of regulatory
+       and bank-policy text for each node, injected as `{rag_context}` into
+       the analyzer's prompt.
+    4. Same parser shapes, same response contract as /underwrite/cibil.
+
+    `loan_request` and `monthly_income` are optional — when omitted the
+    service falls back to retail defaults (₹5L / 36mo / ₹50k) so the
+    decision and counter-offer LLM nodes always have the inputs they need.
+    """
+    try:
+        service = IndianUnderwritingService(db)
+
+        loan_amount = request.loan_request.amount if request.loan_request else None
+        loan_tenure = (
+            request.loan_request.tenure_months if request.loan_request else None
+        )
+
+        return await service.execute(
+            application_id=request.application_id,
+            pan=request.applicant_data.pan_number,
+            full_name=request.applicant_data.full_name,
+            requested_amount=loan_amount,
+            requested_tenure_months=loan_tenure,
             monthly_income=request.monthly_income,
         )
     except HTTPException:

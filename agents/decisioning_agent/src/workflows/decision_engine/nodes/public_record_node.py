@@ -36,6 +36,7 @@ def public_record_node(state: LoanApplicationState) -> LoanApplicationState:
     # ==================================================
     inputs = {
         "public_records": json.dumps(public_records),
+        "rag_context": state.get("rag_context_per_node", {}).get("public_record", ""),
         "format_instructions": public_record_output_parser.get_format_instructions(),
     }
 

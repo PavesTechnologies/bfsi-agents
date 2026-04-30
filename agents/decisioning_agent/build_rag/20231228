@@ -1,0 +1,40 @@
+Collecting pdfminer.six
+  Downloading pdfminer_six-20260107-py3-none-any.whl.metadata (4.3 kB)
+Collecting charset-normalizer>=2.0.0 (from pdfminer.six)
+  Downloading charset_normalizer-3.4.7-cp311-cp311-win_amd64.whl.metadata (41 kB)
+Collecting cryptography>=36.0.0 (from pdfminer.six)
+  Downloading cryptography-47.0.0-cp311-abi3-win_amd64.whl.metadata (4.5 kB)
+Collecting cffi>=2.0.0 (from cryptography>=36.0.0->pdfminer.six)
+  Using cached cffi-2.0.0-cp311-cp311-win_amd64.whl.metadata (2.6 kB)
+Collecting pycparser (from cffi>=2.0.0->cryptography>=36.0.0->pdfminer.six)
+  Using cached pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+Downloading pdfminer_six-20260107-py3-none-any.whl (6.6 MB)
+   ---------------------------------------- 6.6/6.6 MB 5.4 MB/s  0:00:01
+Downloading charset_normalizer-3.4.7-cp311-cp311-win_amd64.whl (159 kB)
+Downloading cryptography-47.0.0-cp311-abi3-win_amd64.whl (3.8 MB)
+   ---------------------------------------- 3.8/3.8 MB 7.0 MB/s  0:00:00
+Using cached cffi-2.0.0-cp311-cp311-win_amd64.whl (182 kB)
+Using cached pycparser-3.0-py3-none-any.whl (48 kB)
+Installing collected packages: pycparser, charset-normalizer, cffi, cryptography, pdfminer.six
+  Attempting uninstall: pycparser
+    Found existing installation: pycparser 3.0
+    Uninstalling pycparser-3.0:
+      Successfully uninstalled pycparser-3.0
+  Attempting uninstall: charset-normalizer
+    Found existing installation: charset-normalizer 3.4.7
+    Uninstalling charset-normalizer-3.4.7:
+      Successfully uninstalled charset-normalizer-3.4.7
+  Attempting uninstall: cffi
+    Found existing installation: cffi 2.0.0
+    Uninstalling cffi-2.0.0:
+      Successfully uninstalled cffi-2.0.0
+  Attempting uninstall: cryptography
+    Found existing installation: cryptography 47.0.0
+    Uninstalling cryptography-47.0.0:
+      Successfully uninstalled cryptography-47.0.0
+  Attempting uninstall: pdfminer.six
+    Found existing installation: pdfminer.six 20251230
+    Uninstalling pdfminer.six-20251230:
+      Successfully uninstalled pdfminer.six-20251230
+
+Successfully installed cffi-2.0.0 charset-normalizer-3.4.7 cryptography-47.0.0 pdfminer.six-20260107 pycparser-3.0
