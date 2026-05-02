@@ -1,4 +1,6 @@
 import logging
+import random
+import time
 from typing import Any, Callable, Dict, Optional
 
 from langchain_core.prompts import PromptTemplate
@@ -9,6 +11,15 @@ from src.services.model_loader import get_llm
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# Base wait seconds per attempt: attempt 0 → 8s, 1 → 16s, 2 → 32s + jitter ±3s
+_BACKOFF_BASE = 8
+_BACKOFF_JITTER = 3
+
+
+def _is_rate_limit(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return "rate_limit" in msg or "429" in msg or "ratelimit" in msg
 
 
 def execute_llm(
@@ -24,9 +35,7 @@ def execute_llm(
     llm = get_llm(temperature=temperature)
 
     prompt = PromptTemplate.from_template(prompt_template)
-
     chain = prompt | llm
-
     if parser:
         chain = chain | parser
 
@@ -34,23 +43,31 @@ def execute_llm(
     attempts = settings.llm_max_retries if max_retries is None else max_retries
 
     for attempt in range(attempts + 1):
-
         try:
             result = chain.invoke(inputs)
 
             if result is None:
-                logger.warning("llm_attempt_returned_none", extra={"attempt": attempt})
+                logger.warning("llm_attempt_returned_none (attempt=%d)", attempt)
                 continue
 
-            logger.info("llm_attempt_succeeded", extra={"attempt": attempt})
+            logger.info("llm_attempt_succeeded (attempt=%d)", attempt)
             return result
 
         except Exception as e:
             last_error = e
-            logger.warning(
-                "llm_attempt_failed (attempt=%d): %s: %s",
-                attempt, type(e).__name__, str(e)[:500],
-            )
+
+            if _is_rate_limit(e) and attempt < attempts:
+                wait = (_BACKOFF_BASE * (2 ** attempt)) + random.uniform(0, _BACKOFF_JITTER)
+                logger.warning(
+                    "llm_rate_limit_backoff (attempt=%d): waiting %.1fs — %s",
+                    attempt, wait, str(e)[:200],
+                )
+                time.sleep(wait)
+            else:
+                logger.warning(
+                    "llm_attempt_failed (attempt=%d): %s: %s",
+                    attempt, type(e).__name__, str(e)[:300],
+                )
 
     if fallback_result is not None:
         logger.warning("llm_fallback_used")

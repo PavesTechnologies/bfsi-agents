@@ -36,7 +36,8 @@ def behavior_node(state: LoanApplicationState) -> LoanApplicationState:
     # ==================================================
     inputs = {
         "tradelines": json.dumps(tradelines),
-        "rag_context": state.get("rag_context_per_node", {}).get("payment_behavior", ""),
+        "rbi_context": state.get("rbi_common_context", ""),
+        "policy_context": state.get("rag_context_per_node", {}).get("payment_behavior", ""),
         "format_instructions": behavior_output_parser.get_format_instructions(),
     }
 

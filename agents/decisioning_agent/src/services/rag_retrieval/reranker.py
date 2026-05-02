@@ -21,13 +21,9 @@ from src.services.rag_retrieval.client import embed_query
 logger = logging.getLogger(__name__)
 
 
-_RAG_HEADER = (
-    "---------------------------------------\n"
-    "RBI / BANK POLICY GUIDANCE\n"
-    "(Authoritative excerpts from RBI master directions and internal bank policies. "
-    "Use these to align your decision with regulatory guidelines and cite section numbers when applicable.)\n"
-    "---------------------------------------"
-)
+# Max characters per chunk — large enough to fit all threshold definitions
+# (4 bands × ~80 chars + limits + weights ≈ 1200 chars, ~300 tokens).
+_CHUNK_MAX_CHARS = 1500
 
 
 def rerank_for_node(
@@ -83,20 +79,19 @@ def format_chunks(chunks: list[dict[str, Any]]) -> str:
 
 
 def _format_chunks(scored: list[tuple[float, dict[str, Any]]]) -> str:
-    lines: list[str] = [_RAG_HEADER, ""]
-    for idx, (score, chunk) in enumerate(scored, start=1):
-        source = chunk.get("source_collection", "")
-        breadcrumb = chunk.get("breadcrumb", "")
-        doc = chunk.get("source_document", "")
+    """
+    Emit only the essential policy text — no scores, no source paths, no
+    collection names. Each chunk's text_for_llm already starts with a
+    [Section: ...] breadcrumb so the LLM knows the context. Text is capped
+    at _CHUNK_MAX_CHARS to keep token count predictable.
+    """
+    parts: list[str] = []
+    for _score, chunk in scored:
         text = (chunk.get("text_for_llm") or "").strip()
+        if not text:
+            continue
+        if len(text) > _CHUNK_MAX_CHARS:
+            text = text[:_CHUNK_MAX_CHARS].rsplit(" ", 1)[0] + "..."
+        parts.append(text)
 
-        header_bits = [f"[{idx}] source={source}", f"score={score:.3f}"]
-        if doc:
-            header_bits.append(f"doc={doc}")
-        if breadcrumb:
-            header_bits.append(f"section={breadcrumb}")
-        lines.append(" | ".join(header_bits))
-        lines.append(text)
-        lines.append("")  # blank line between chunks
-
-    return "\n".join(lines).rstrip()
+    return "\n\n".join(parts)

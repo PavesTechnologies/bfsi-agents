@@ -5,9 +5,11 @@ Your responsibility: classify the borrower's bureau credit score into a
 band, determine the base lending capacity for that band, assign the band's
 risk flag, and report the score's weight in the aggregated risk computation.
 
-POLICY VALUES (band boundaries, lending limits, risk flags, weight) MUST
-come from POLICY GUIDANCE below. Use FALLBACK DEFAULTS only when POLICY
-GUIDANCE is empty or does not specify a value.
+ALL POLICY VALUES (band boundaries, lending limits, risk flags, weight) MUST
+come exclusively from the BANK POLICY PARAMETERS section below.
+If BANK POLICY PARAMETERS is empty or does not specify a required value,
+set confidence_score to 0.0, set llm_response_type to "FALLBACK", and explain
+exactly which parameters are missing in model_reasoning. Do NOT invent values.
 
 You MUST return ONLY structured JSON.
 
@@ -17,47 +19,30 @@ INPUT
 Bureau Credit Score: {score}
 
 ---------------------------------------
-POLICY GUIDANCE  (authoritative — extract band thresholds, base limits, risk flags, score weight)
+RBI REGULATORY CONTEXT  (common guidelines — applies to all nodes)
 ---------------------------------------
-{rag_context}
+{rbi_context}
 
 ---------------------------------------
-FALLBACK DEFAULTS  (use only if POLICY GUIDANCE is empty or silent on a specific rule)
+BANK POLICY PARAMETERS  (node-specific — credit score band thresholds, base limits, risk flags, score weight)
 ---------------------------------------
-Score Band Thresholds:
-- 720 or higher → PRIME
-- 680 to 719 → NEAR_PRIME
-- 640 to 679 → FAIR
-- below 640 → SUBPRIME
-
-Base Lending Limit by Band:
-- PRIME → 75000
-- NEAR_PRIME → 50000
-- FAIR → 35000
-- SUBPRIME → 20000
-
-Risk Flag by Band:
-- PRIME → LOW
-- NEAR_PRIME → MODERATE
-- FAIR → MODERATE
-- SUBPRIME → HIGH
-
-Score Weight in Risk Aggregation: 0.25
+{policy_context}
 
 ---------------------------------------
 TASK
 ---------------------------------------
-1. Classify the score band using the active policy (POLICY GUIDANCE first, FALLBACK DEFAULTS otherwise)
-2. Set base_limit_band per the active policy
-3. Set score_risk_flag per the active policy
-4. Set score_weight per the active policy
+1. Classify the score band using the values from BANK POLICY PARAMETERS
+2. Set base_limit_band per BANK POLICY PARAMETERS
+3. Set score_risk_flag per BANK POLICY PARAMETERS
+4. Set score_weight per BANK POLICY PARAMETERS
 5. Echo the input score
 6. Estimate confidence_score between 0 and 1
-7. In model_reasoning, briefly cite which POLICY GUIDANCE excerpt was applied
-   (or note "fallback defaults used" if POLICY GUIDANCE was empty / silent)
+   — use 0.0 if any required policy parameter is absent
+7. In model_reasoning, cite the specific BANK POLICY PARAMETERS excerpt applied;
+   if parameters are missing, list exactly which values are absent
 8. Set llm_response_type to one of EXACTLY two values:
-   - "RAG"      — if any band, limit, risk-flag, or weight came from POLICY GUIDANCE
-   - "FALLBACK" — if POLICY GUIDANCE was empty/silent and you used FALLBACK DEFAULTS
+   - "RAG"      — all required parameters came from BANK POLICY PARAMETERS
+   - "FALLBACK" — BANK POLICY PARAMETERS was empty or missing required values
 
 ---------------------------------------
 STRICT OUTPUT RULES

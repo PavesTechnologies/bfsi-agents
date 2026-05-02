@@ -36,7 +36,8 @@ def inquiry_node(state: LoanApplicationState) -> LoanApplicationState:
     # ==================================================
     inputs = {
         "inquiries": json.dumps(inquiries),
-        "rag_context": state.get("rag_context_per_node", {}).get("inquiry", ""),
+        "rbi_context": state.get("rbi_common_context", ""),
+        "policy_context": state.get("rag_context_per_node", {}).get("inquiry", ""),
         "format_instructions": inquiry_output_parser.get_format_instructions(),
     }
 

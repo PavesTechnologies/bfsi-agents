@@ -134,4 +134,5 @@ class LoanApplicationState(TypedDict):
     # --- 7. RAG context (Indian variant only; defaults empty so the
     #         existing Experian/CIBIL flow stays a no-op) ---
     rag_pool: Optional[List[Dict[str, Any]]]
-    rag_context_per_node: Optional[Dict[str, str]]
+    rbi_common_context: Optional[str]          # Common RBI guidelines shared by all 7 nodes
+    rag_context_per_node: Optional[Dict[str, str]]  # Bank-specific policy per node

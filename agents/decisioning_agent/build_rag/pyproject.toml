@@ -7,8 +7,8 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
-unstructured = {extras = ["pdf", "docx"], version = ">=0.16.0"}
-unstructured-inference = ">=0.8.0"
+pdfminer-six = ">=20220524"
+python-docx = ">=1.1.0"
 beautifulsoup4 = "^4.12.0"
 lxml = "^5.2.0"
 qdrant-client = "^1.10.0"

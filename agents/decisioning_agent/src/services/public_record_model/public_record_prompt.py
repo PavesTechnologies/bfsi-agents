@@ -6,9 +6,11 @@ suit-filed entries, wilful-defaulter flags, written-off accounts) and
 classify severity, assign an adjustment factor, and decide whether a hard
 decline must be triggered.
 
-POLICY VALUES (severity bands, adjustment factors, hard-decline thresholds)
-MUST come from POLICY GUIDANCE below. Use FALLBACK DEFAULTS only when
-POLICY GUIDANCE is empty or does not specify a value.
+ALL POLICY VALUES (severity bands, adjustment factors, hard-decline thresholds)
+MUST come exclusively from the BANK POLICY PARAMETERS section below.
+If BANK POLICY PARAMETERS is empty or does not specify a required value,
+set confidence_score to 0.0, set llm_response_type to "FALLBACK", and explain
+exactly which parameters are missing in model_reasoning. Do NOT invent values.
 
 You MUST return ONLY structured JSON.
 
@@ -18,44 +20,30 @@ INPUT
 Public Records: {public_records}
 
 ---------------------------------------
-POLICY GUIDANCE  (authoritative — extract severity classification, adjustment factors, hard-decline rules)
+RBI REGULATORY CONTEXT  (common guidelines — applies to all nodes)
 ---------------------------------------
-{rag_context}
+{rbi_context}
 
 ---------------------------------------
-FALLBACK DEFAULTS  (use only if POLICY GUIDANCE is empty or silent)
+BANK POLICY PARAMETERS  (node-specific — severity classification, adjustment factors, hard-decline rules)
 ---------------------------------------
-Severity Classification:
-- No public records at all → NONE
-- Non-bankruptcy records only (e.g., small judgments) → LOW
-- Bankruptcy filed more than 5 years ago → MODERATE
-- Bankruptcy filed 5 years ago or less, or multiple judgments → SEVERE
-
-Adjustment Factor by Severity:
-- NONE → 1.0
-- LOW → 0.9
-- MODERATE → 0.75
-- SEVERE → 0.5
-
-Hard Decline:
-- hard_decline_flag = True if severity is SEVERE OR there is a bankruptcy less than 2 years old
-- hard_decline_flag = False otherwise
+{policy_context}
 
 ---------------------------------------
 TASK
 ---------------------------------------
 1. Determine bankruptcy_present
 2. If bankruptcy exists, calculate years_since_bankruptcy from filing date to today
-3. Assign public_record_severity using the active policy
-4. Assign public_record_adjustment_factor using the active policy
-5. Decide hard_decline_flag using the active policy
+3. Assign public_record_severity using BANK POLICY PARAMETERS
+4. Assign public_record_adjustment_factor using BANK POLICY PARAMETERS
+5. Decide hard_decline_flag using BANK POLICY PARAMETERS hard-decline rules
 6. Estimate confidence_score between 0 and 1
-7. In model_reasoning, briefly cite which POLICY GUIDANCE excerpt was applied
-   (or note "fallback defaults used" if POLICY GUIDANCE was empty / silent)
+   — use 0.0 if any required policy parameter is absent
+7. In model_reasoning, cite the specific BANK POLICY PARAMETERS excerpt applied;
+   if parameters are missing, list exactly which values are absent
 8. Set llm_response_type to one of EXACTLY two values:
-   - "RAG"      — if any severity rule, adjustment factor, or hard-decline
-                  threshold came from POLICY GUIDANCE
-   - "FALLBACK" — if POLICY GUIDANCE was empty/silent and you used FALLBACK DEFAULTS
+   - "RAG"      — all required parameters came from BANK POLICY PARAMETERS
+   - "FALLBACK" — BANK POLICY PARAMETERS was empty or missing required values
 
 ---------------------------------------
 STRICT OUTPUT RULES

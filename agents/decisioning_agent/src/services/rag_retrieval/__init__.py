@@ -4,7 +4,12 @@ from src.services.rag_retrieval.query_builder import (
     build_profile_query,
 )
 from src.services.rag_retrieval.reranker import format_chunks, rerank_for_node
-from src.services.rag_retrieval.retriever import retrieve_for_node, retrieve_pool
+from src.services.rag_retrieval.retriever import (
+    retrieve_for_node,
+    retrieve_pool,
+    retrieve_rbi_common,
+    retrieve_bank_for_node,
+)
 
 __all__ = [
     "NODE_CONCERN_QUERIES",
@@ -13,4 +18,6 @@ __all__ = [
     "rerank_for_node",
     "retrieve_for_node",
     "retrieve_pool",
+    "retrieve_rbi_common",
+    "retrieve_bank_for_node",
 ]

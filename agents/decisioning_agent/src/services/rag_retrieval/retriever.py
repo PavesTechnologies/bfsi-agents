@@ -75,6 +75,32 @@ def _search_collection(
     return pool
 
 
+def retrieve_rbi_common(top_k: int = 8) -> list[dict[str, Any]]:
+    """
+    Retrieve broad RBI regulatory context shared across all analyzer nodes.
+    Queries only the rbi_guidelines collection with a general India retail
+    lending query so each node gets the same common regulatory backdrop.
+    """
+    query = (
+        "RBI guidelines individual personal loan India CIBIL credit score "
+        "income FOIR NPA IRACP public record inquiry debt exposure interest rate "
+        "fair lending practices audit explainability"
+    )
+    query_vector = embed_query(query)
+    return _search_collection(RBI_COLLECTION, query_vector, top_k)
+
+
+def retrieve_bank_for_node(concern_query: str, top_k: int = 5) -> list[dict[str, Any]]:
+    """
+    Per-node bank policy retrieval — queries only the bank_policies collection
+    with the node's concern query to fetch institution-specific thresholds.
+    """
+    if not concern_query.strip():
+        return []
+    query_vector = embed_query(concern_query)
+    return _search_collection(BANK_COLLECTION, query_vector, top_k)
+
+
 def retrieve_for_node(concern_query: str, top_k_per_collection: int = 5) -> list[dict[str, Any]]:
     """
     Direct per-node retrieval — encode the node's concern query and pull the

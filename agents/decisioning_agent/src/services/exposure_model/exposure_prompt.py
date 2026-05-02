@@ -5,9 +5,12 @@ Your responsibility: assess the borrower's total open-account debt
 exposure, estimate aggregate monthly debt obligations, and classify the
 resulting exposure risk tier.
 
-POLICY VALUES (monthly-obligation bands, exposure-risk classification,
-EMI estimation rules) MUST come from POLICY GUIDANCE below. Use FALLBACK
-DEFAULTS only when POLICY GUIDANCE is empty or does not specify a value.
+ALL POLICY VALUES (monthly-obligation bands, exposure-risk classification,
+EMI estimation rules) MUST come exclusively from the BANK POLICY PARAMETERS
+section below.
+If BANK POLICY PARAMETERS is empty or does not specify a required value,
+set confidence_score to 0.0, set llm_response_type to "FALLBACK", and explain
+exactly which parameters are missing in model_reasoning. Do NOT invent values.
 
 You MUST return ONLY structured JSON.
 
@@ -17,37 +20,30 @@ INPUT
 Open Tradelines: {all_trades}
 
 ---------------------------------------
-POLICY GUIDANCE  (authoritative — extract obligation bands and risk classification)
+RBI REGULATORY CONTEXT  (common guidelines — applies to all nodes)
 ---------------------------------------
-{rag_context}
+{rbi_context}
 
 ---------------------------------------
-FALLBACK DEFAULTS  (use only if POLICY GUIDANCE is empty or silent)
+BANK POLICY PARAMETERS  (node-specific — monthly obligation bands, exposure risk classification)
 ---------------------------------------
-Monthly Obligation Bands → Exposure Risk:
-- Less than 500   → LOW
-- 500 to 1500     → MODERATE
-- 1500 to 3500    → HIGH
-- Greater than 3500 → EXTREME
-
-EMI Estimation Rule:
-- If monthlyPaymentAmount is missing for an open trade, estimate it as
-  balanceAmount / remaining_terms (or balanceAmount / 36 if terms are unknown)
+{policy_context}
 
 ---------------------------------------
 TASK
 ---------------------------------------
 1. Compute total_existing_debt = sum of balanceAmount across open tradelines
 2. Compute monthly_obligation_estimate = sum of monthlyPaymentAmount across open
-   tradelines (using the EMI estimation rule when payment data is missing)
-3. Classify exposure_risk using the active policy
+   tradelines (applying the EMI estimation rule from BANK POLICY PARAMETERS when
+   payment data is missing)
+3. Classify exposure_risk using BANK POLICY PARAMETERS
 4. Estimate confidence_score between 0 and 1
-5. In model_reasoning, briefly cite which POLICY GUIDANCE excerpt was applied
-   (or note "fallback defaults used" if POLICY GUIDANCE was empty / silent)
+   — use 0.0 if any required policy parameter is absent
+5. In model_reasoning, cite the specific BANK POLICY PARAMETERS excerpt applied;
+   if parameters are missing, list exactly which values are absent
 6. Set llm_response_type to one of EXACTLY two values:
-   - "RAG"      — if any obligation band or exposure-risk classification
-                  came from POLICY GUIDANCE
-   - "FALLBACK" — if POLICY GUIDANCE was empty/silent and you used FALLBACK DEFAULTS
+   - "RAG"      — all required parameters came from BANK POLICY PARAMETERS
+   - "FALLBACK" — BANK POLICY PARAMETERS was empty or missing required values
 
 ---------------------------------------
 STRICT OUTPUT RULES
