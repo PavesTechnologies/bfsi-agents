@@ -6,6 +6,7 @@ from src.utils.finalize.finalize_output import (
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.utils.finalize.json_safe import to_json_safe
 
+
 class LoanFinalizationService:
 
     def __init__(self, db: AsyncSession, callback_client):

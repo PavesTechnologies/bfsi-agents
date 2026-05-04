@@ -23,7 +23,6 @@ def normalize_india_node(state: IndianKYCState) -> IndianKYCState:
         },
         "phone": raw.get("phone", "").strip(),
         "email": raw.get("email", "").strip(),
-        "upi_handle": raw.get("upi_handle"),
     }
 
     state["raw_request"] = result

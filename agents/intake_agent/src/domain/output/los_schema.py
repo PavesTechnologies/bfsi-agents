@@ -90,6 +90,16 @@ class ApplicantSchema(BaseModel):
     gender: Optional[str] = Field(
         default=None, description="Gender"
     )
+    # India-specific fields
+    aadhaar_number: Optional[str] = Field(
+        default=None, description="12-digit Aadhaar number"
+    )
+    pan_number: Optional[str] = Field(
+        default=None, description="PAN number (format: ABCDE1234F)"
+    )
+    address: Optional[Dict[str, Any]] = Field(
+        default=None, description="Primary address with line1, line2, city, state, pincode"
+    )
 
 
 # ============================================================================

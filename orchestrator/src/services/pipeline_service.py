@@ -2,14 +2,15 @@
 
 from copy import deepcopy
 import json
+import uuid
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 import httpx
 
 from shared.data_mappers import (
     map_decisioning_to_disbursement,
-    map_intake_to_kyc,
-    map_to_underwriting,
+    map_intake_to_india_kyc,
+    map_intake_to_cibil_underwriting,
 )
 from shared.pipeline_events import PipelineEvent, PipelineStage
 from src.config import AgentConfig
@@ -59,13 +60,6 @@ class PipelineService:
         raw_application: Dict[str, Any],
         progress_callback: Optional[ProgressCallback] = None,
     ) -> Dict[str, Any]:
-        """
-        Execute the pipeline until a terminal state or explicit user action is required.
-
-        This keeps the async progress/SSE flow from the rate-limiting branch while
-        preserving the approval and counter-offer pause points from the
-        accept-counter-offer branch.
-        """
         return await self.execute_until_decision(
             application_id=application_id,
             raw_application=raw_application,
@@ -78,25 +72,24 @@ class PipelineService:
         raw_application: Dict[str, Any],
         progress_callback: Optional[ProgressCallback] = None,
     ) -> Dict[str, Any]:
-        """Run KYC and underwriting, then pause for any required user action."""
+        """Run India KYC → CIBIL underwriting, then pause for any required user action."""
         print(f"Triggering pipeline for application_id: {application_id}")
         print(json.dumps(raw_application, indent=2))
 
         applicants = raw_application.get("applicants", [])
         applicant_data = deepcopy(applicants[0] if applicants else {})
-        raw_ssn = applicant_data.get("ssn_no", "")
-        applicant_data["ssn"] = raw_ssn.replace("-", "")
 
+        # ── KYC Stage ──────────────────────────────────────────────────────────
         await self._emit_progress(
             application_id=application_id,
             progress_callback=progress_callback,
             event=PipelineEvent.KYC_TRIGGERED,
             stage=PipelineStage.KYC,
             status="started",
-            message="KYC verification started",
+            message="India KYC verification started",
         )
 
-        kyc_payload = map_intake_to_kyc(
+        kyc_payload = map_intake_to_india_kyc(
             application_id=application_id,
             applicant=applicant_data,
             idempotency_key=f"kyc_{application_id}",
@@ -105,10 +98,11 @@ class PipelineService:
 
         try:
             kyc_response = await self.http_client.post(
-                f"{AgentConfig.KYC_AGENT_URL}/verify",
+                f"{AgentConfig.KYC_AGENT_URL}/india/kyc/execute",
                 json=kyc_payload,
+                headers={"X-Idempotency-Key": f"kyc_{application_id}"},
             )
-            self._raise_for_status_with_detail(kyc_response, "KYC verify")
+            self._raise_for_status_with_detail(kyc_response, "India KYC execute")
             kyc_data = kyc_response.json()
         except Exception as exc:
             await self._emit_progress(
@@ -117,7 +111,7 @@ class PipelineService:
                 event=PipelineEvent.KYC_FAILED,
                 stage=PipelineStage.KYC,
                 status="failed",
-                message="KYC verification failed",
+                message="India KYC verification failed",
                 details={"reason": str(exc)},
                 is_terminal=True,
             )
@@ -125,15 +119,21 @@ class PipelineService:
 
         print(json.dumps(kyc_data, indent=2))
 
-        if kyc_data.get("status") != "PASS":
+        kyc_status = kyc_data.get("kyc_status")
+        if kyc_status != "PASS":
             await self._emit_progress(
                 application_id=application_id,
                 progress_callback=progress_callback,
                 event=PipelineEvent.KYC_FAILED,
                 stage=PipelineStage.KYC,
                 status="failed",
-                message="KYC verification failed",
-                details={"kyc_status": kyc_data.get("status")},
+                message="India KYC verification did not pass",
+                details={
+                    "kyc_status": kyc_status,
+                    "hard_fail_rules": kyc_data.get("hard_fail_rules", []),
+                    "soft_flags": kyc_data.get("soft_flags", []),
+                    "decision_explanation": kyc_data.get("decision_explanation"),
+                },
                 is_terminal=True,
             )
             return {
@@ -148,16 +148,19 @@ class PipelineService:
             event=PipelineEvent.KYC_PASSED,
             stage=PipelineStage.KYC,
             status="completed",
-            message="KYC verification completed",
+            message="India KYC verification passed",
+            details={
+                "confidence_score": kyc_data.get("confidence_score"),
+                "ckyc_id": kyc_data.get("ckyc_id"),
+            },
         )
 
-        experian_mock = kyc_data.get("raw_experian_data", {})
-        underwriting_payload = map_to_underwriting(
+        # ── Underwriting Stage (CIBIL) ─────────────────────────────────────────
+        underwriting_payload = map_intake_to_cibil_underwriting(
             application_id=application_id,
-            raw_experian_data=experian_mock,
+            applicant=applicant_data,
             requested_amount=self._extract_requested_amount(raw_application),
             requested_tenure_months=self._extract_requested_tenure(raw_application),
-            incomes=applicant_data.get("incomes", []),
         )
         print(json.dumps(underwriting_payload, indent=2))
 
@@ -167,15 +170,15 @@ class PipelineService:
             event=PipelineEvent.UNDERWRITING_STARTED,
             stage=PipelineStage.DECISIONING,
             status="started",
-            message="Underwriting started",
+            message="CIBIL credit decisioning started",
         )
 
         try:
             uw_response = await self.http_client.post(
-                f"{AgentConfig.DECISIONING_AGENT_URL}/underwrite",
+                f"{AgentConfig.DECISIONING_AGENT_URL}/underwrite/cibil",
                 json=underwriting_payload,
             )
-            self._raise_for_status_with_detail(uw_response, "Decisioning underwrite")
+            self._raise_for_status_with_detail(uw_response, "CIBIL underwrite")
             uw_raw = uw_response.json()
             uw_data = self._normalize_underwriting_response(uw_raw)
             print("Underwriting data received:", json.dumps(uw_data, indent=2))
@@ -186,7 +189,7 @@ class PipelineService:
                 event="UNDERWRITING_FAILED",
                 stage=PipelineStage.DECISIONING,
                 status="failed",
-                message="Underwriting failed",
+                message="CIBIL credit decisioning failed",
                 details={"reason": str(exc)},
                 is_terminal=True,
             )
@@ -194,7 +197,7 @@ class PipelineService:
 
         decision = uw_data.get("decision")
         print(f"Underwriting decision: {decision}")
-        
+
         if decision == "DECLINE":
             await self._emit_progress(
                 application_id=application_id,
@@ -202,7 +205,7 @@ class PipelineService:
                 event=PipelineEvent.APPLICATION_DECLINED,
                 stage=PipelineStage.DECISIONING,
                 status="completed",
-                message="Underwriting completed: application declined",
+                message="Credit decisioning completed: application declined",
                 details={
                     "decision": decision,
                     "reason": uw_data.get("decline_reason") or uw_data.get("explanation"),
@@ -229,7 +232,7 @@ class PipelineService:
                 event=PipelineEvent.APPLICATION_APPROVED,
                 stage=PipelineStage.DECISIONING,
                 status="completed",
-                message="Underwriting completed: application approved",
+                message="Credit decisioning completed: application approved",
                 details={
                     "decision": decision,
                     "reason": uw_data.get("explanation") or uw_data.get("terms_summary"),
@@ -256,9 +259,7 @@ class PipelineService:
 
         if decision == "COUNTER_OFFER":
             print("Generating counter offer options..........................")
-            options = uw_data.get("counter_offer_data") # or generate_counter_offer_options(
-            #     uw_data
-            # )
+            options = uw_data.get("counter_offer_data")
             uw_data["counter_offer_options"] = options.get("generated_options")
             print("Before saving state")
             save_state(
@@ -276,7 +277,7 @@ class PipelineService:
                 event=PipelineEvent.COUNTER_OFFER_PENDING,
                 stage=PipelineStage.DECISIONING,
                 status="completed",
-                message="Underwriting completed: counter offer generated",
+                message="Credit decisioning completed: counter offer generated",
                 details={
                     "decision": decision,
                     "reason": uw_data.get("original_decision_explanation") or uw_data.get("explanation"),
@@ -511,10 +512,10 @@ class PipelineService:
             )
             if not normalized.get("terms_summary"):
                 normalized["terms_summary"] = (
-                    f"Loan of ${float(normalized['approved_amount']):,.2f} at "
+                    f"Loan of ₹{float(normalized['approved_amount']):,.2f} at "
                     f"{float(normalized['interest_rate']):.2f}% for "
                     f"{int(normalized['approved_tenure_months'])} months. "
-                    f"EMI: ${float(normalized['monthly_emi']):,.2f}/month."
+                    f"EMI: ₹{float(normalized['monthly_emi']):,.2f}/month."
                 )
 
         return normalized

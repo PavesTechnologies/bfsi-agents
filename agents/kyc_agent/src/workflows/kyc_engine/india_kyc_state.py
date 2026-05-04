@@ -65,8 +65,6 @@ class ContactIndiaState(TypedDict, total=False):
     phone_valid: bool
     is_voip: bool
     is_high_risk: bool
-    upi_valid: bool
-    upi_handle: str | None
     formatted_phone: str
     flags: dict[str, str]
 
@@ -109,7 +107,6 @@ class RawIndianKYCRequest(TypedDict, total=False):
     address: dict[str, str]   # line1, line2, city, state, pincode
     phone: str
     email: str
-    upi_handle: str | None
 
 
 class IndianKYCState(TypedDict, total=False):

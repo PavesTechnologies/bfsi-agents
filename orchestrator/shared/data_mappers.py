@@ -9,92 +9,104 @@ from typing import Dict, Any, List, Optional
 
 
 # ─────────────────────────────────────────────────────────────
-# 1. Intake → KYC Mapper
+# 1. Intake → India KYC Mapper
 # ─────────────────────────────────────────────────────────────
 
-def map_intake_to_kyc(
+def map_intake_to_india_kyc(
     application_id: str,
     applicant: Dict[str, Any],
     idempotency_key: str,
 ) -> Dict[str, Any]:
     """
-    Transform an Intake Agent applicant record into a KYC Agent trigger payload.
+    Transform an Intake Agent applicant record into the India KYC Agent
+    trigger payload for POST /india/kyc/execute.
 
     Args:
-        application_id: UUID from the Intake Agent's LoanIntakeResponse.
-        applicant: The primary applicant dict (from ApplicantSchema).
-        idempotency_key: Unique key for idempotent KYC invocation.
+        application_id: UUID string from the Intake Agent.
+        applicant: Primary applicant dict from raw_application["applicants"][0].
+        idempotency_key: Unique key passed as X-Idempotency-Key header (not in body).
 
     Returns:
-        A dict matching KYCTriggerRequest shape.
+        A dict matching KYCRequest shape expected by the India KYC endpoint.
     """
-    # Build full name
-    parts = [
+    name_parts = filter(None, [
         applicant.get("first_name", ""),
-        applicant.get("middle_name", ""),
+        applicant.get("middle_name"),
         applicant.get("last_name", ""),
-    ]
-    full_name = " ".join(p for p in parts if p).strip()
+    ])
+    full_name = " ".join(name_parts).strip()
 
-    # Find current address
     addresses = applicant.get("addresses", [])
-    current_address = next(
-        (a for a in addresses if a.get("address_type") == "current"),
+    primary_address = next(
+        (a for a in addresses if a.get("address_type") in ("current", "permanent")),
         addresses[0] if addresses else {},
     )
 
     return {
-        "applicant_id": application_id,
-        "full_name": full_name,
-        "dob": applicant.get("date_of_birth"),
-        "ssn": applicant.get("ssn", ""),
-        "address": {
-            "line1": current_address.get("address_line1", ""),
-            "line2": current_address.get("address_line2"),
-            "city": current_address.get("city", ""),
-            "state": current_address.get("state", ""),
-            "zip": current_address.get("zip_code", ""),
+        "application_id": application_id,
+        "applicant_data": {
+            "applicant_id": applicant.get("applicant_id", application_id),
+            "full_name": full_name,
+            "dob": str(applicant.get("date_of_birth", "")),
+            "aadhaar_number": applicant.get("aadhaar_no") or applicant.get("aadhaar_number", ""),
+            "pan_number": applicant.get("pan_number", ""),
+            "phone": applicant.get("phone_number", ""),
+            "email": applicant.get("email", ""),
+            "address": {
+                "line1": primary_address.get("address_line1", ""),
+                "line2": primary_address.get("address_line2", ""),
+                "city": primary_address.get("city", ""),
+                "state": primary_address.get("state", ""),
+                "pincode": primary_address.get("zip_code", ""),
+            },
         },
-        "phone": applicant.get("phone_number", ""),
-        "email": applicant.get("email", ""),
-        "idempotency_key": idempotency_key,
     }
 
 
 # ─────────────────────────────────────────────────────────────
-# 2. KYC + Intake → Decisioning Mapper
+# 2. Intake → CIBIL Underwriting Mapper (post-KYC)
 # ─────────────────────────────────────────────────────────────
 
-def map_to_underwriting(
+def map_intake_to_cibil_underwriting(
     application_id: str,
-    raw_experian_data: Dict[str, Any],
+    applicant: Dict[str, Any],
     requested_amount: float,
     requested_tenure_months: int,
-    incomes: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
-    Transform KYC-cleared applicant data + Experian credit report into
-    the Decisioning Agent's UnderwritingRequest shape.
+    Transform Intake Agent applicant data into the Decisioning Agent's
+    CIBILUnderwritingRequest payload for POST /underwrite/cibil.
+
+    KYC has already verified the applicant's identity at this point.
+    The PAN number is used by the decisioning agent to fetch the CIBIL
+    report — it is not passed from the KYC response but taken directly
+    from intake data.
 
     Args:
-        application_id: UUID from the Intake Agent.
-        raw_experian_data: Full Experian JSON credit report.
-        requested_amount: Loan amount from the intake application.
-        requested_tenure_months: Loan tenure from the intake application.
-        incomes: List of income records from the Intake Agent's IncomeSchema.
+        application_id: UUID string from the Intake Agent.
+        applicant: Primary applicant dict from raw_application["applicants"][0].
+        requested_amount: Loan amount in INR from raw_application.
+        requested_tenure_months: Loan tenure from raw_application.
 
     Returns:
-        A dict matching UnderwritingRequest shape.
+        A dict matching CIBILUnderwritingRequest shape.
     """
-    monthly_income = 0.0
-    if incomes:
-        monthly_income = sum(
-            inc.get("monthly_amount", 0.0) for inc in incomes
-        )
+    name_parts = filter(None, [
+        applicant.get("first_name", ""),
+        applicant.get("middle_name"),
+        applicant.get("last_name", ""),
+    ])
+    full_name = " ".join(name_parts).strip()
+
+    incomes = applicant.get("incomes", [])
+    monthly_income = sum(
+        float(inc.get("monthly_amount", 0.0)) for inc in incomes
+    )
 
     return {
         "application_id": application_id,
-        "raw_experian_data": raw_experian_data,
+        "pan": applicant.get("pan_number", ""),
+        "full_name": full_name,
         "requested_amount": requested_amount,
         "requested_tenure_months": requested_tenure_months,
         "monthly_income": monthly_income,

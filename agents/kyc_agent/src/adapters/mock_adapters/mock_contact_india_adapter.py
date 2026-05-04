@@ -1,15 +1,12 @@
 """
 Mock Contact Verification Adapter for India.
 
-Validates:
-  - Indian mobile number (+91, 10-digit, TRAI compliant)
-  - UPI handle format (name@bank per NPCI spec)
+Validates Indian mobile number (+91, 10-digit, TRAI compliant).
 
 Scenario triggers:
   Phone '9999999999' → VOIP / virtual carrier
   Phone '8888888888' → high-risk SIM
-  UPI 'fake@upi'     → handle not found in NPCI registry
-  Default            → valid phone + valid UPI
+  Default            → valid phone
 """
 
 import re
@@ -17,28 +14,16 @@ from typing import Any
 
 from src.workflows.kyc_engine.india_kyc_state import ContactIndiaState
 
-_UPI_REGEX = re.compile(r"^[\w.\-]+@[\w]+$")
 _VOIP_NUMBERS = {"9999999999"}
 _HIGH_RISK_NUMBERS = {"8888888888"}
 
 
 class MockContactIndiaAdapter:
-    """
-    Mock Indian phone + UPI verification adapter.
-
-    Scenario triggers:
-      Phone '9999999999' → VOIP
-      Phone '8888888888' → high-risk SIM
-      UPI 'fake@upi'     → invalid
-      Default            → valid
-    """
 
     def verify(self, raw_payload: dict[str, Any]) -> ContactIndiaState:
         phone: str = raw_payload.get("phone", "")
-        upi_handle: str | None = raw_payload.get("upi_handle")
         flags: dict[str, str] = {}
 
-        # Normalise to 10-digit
         clean_phone = re.sub(r"[\s\-\(\)]", "", phone)
         if clean_phone.startswith("+91"):
             clean_phone = clean_phone[3:]
@@ -60,21 +45,10 @@ class MockContactIndiaAdapter:
 
         formatted_phone = f"+91{clean_phone}" if phone_valid else phone
 
-        upi_valid = False
-        if upi_handle:
-            if upi_handle.lower() == "fake@upi":
-                flags["UPI_INVALID"] = "UPI handle not found in NPCI registry"
-            elif not _UPI_REGEX.match(upi_handle):
-                flags["UPI_FORMAT_INVALID"] = f"UPI handle {upi_handle!r} does not match required format name@bank"
-            else:
-                upi_valid = True
-
         return ContactIndiaState(
             phone_valid=phone_valid and not is_voip,
             is_voip=is_voip,
             is_high_risk=is_high_risk,
-            upi_valid=upi_valid,
-            upi_handle=upi_handle,
             formatted_phone=formatted_phone,
             flags=flags,
         )

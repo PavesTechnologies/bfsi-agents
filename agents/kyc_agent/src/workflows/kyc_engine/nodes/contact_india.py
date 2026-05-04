@@ -12,7 +12,6 @@ def contact_india_node(state: IndianKYCState) -> IndianKYCState:
     adapter = MockContactIndiaAdapter()
     contact_state = adapter.verify({
         "phone": req.get("phone", ""),
-        "upi_handle": req.get("upi_handle"),
     })
 
     return {"contact_india": contact_state}
