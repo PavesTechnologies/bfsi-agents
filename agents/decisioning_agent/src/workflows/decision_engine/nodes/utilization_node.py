@@ -41,6 +41,8 @@ def utilization_node(state: LoanApplicationState) -> LoanApplicationState:
     # ==================================================
     inputs = {
         "revolving_trades": json.dumps(revolving_trades),
+        "rbi_context": state.get("rbi_common_context", ""),
+        "policy_context": state.get("rag_context_per_node", {}).get("credit_utilization", ""),
         "format_instructions": utilization_output_parser.get_format_instructions(),
     }
 

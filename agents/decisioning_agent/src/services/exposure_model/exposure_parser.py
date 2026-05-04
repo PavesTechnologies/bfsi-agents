@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -7,3 +9,6 @@ class ExposureOutput(BaseModel):
     exposure_risk: str = Field(description="Classification: LOW, MODERATE, HIGH, EXTREME")
     confidence_score: float = Field(description="Model confidence level between 0 and 1 for the classification")
     model_reasoning: str = Field(description="Explanation for the exposure risk classification")
+    llm_response_type: Literal["RAG", "FALLBACK"] = Field(
+        description="RAG if POLICY GUIDANCE excerpts drove the values, FALLBACK if FALLBACK DEFAULTS were used"
+    )

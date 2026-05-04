@@ -1,4 +1,7 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
 
 class CreditScoreOutput(BaseModel):
     score: int = Field(description="Credit score extracted from bureau report")
@@ -9,7 +12,9 @@ class CreditScoreOutput(BaseModel):
     confidence_score: float = Field(
         description="Model confidence level between 0 and 1 for the classification"
     )
-
     model_reasoning: str = Field(
         description="Short explanation describing why the score belongs to this band"
+    )
+    llm_response_type: Literal["RAG", "FALLBACK"] = Field(
+        description="RAG if POLICY GUIDANCE excerpts drove the values, FALLBACK if FALLBACK DEFAULTS were used"
     )

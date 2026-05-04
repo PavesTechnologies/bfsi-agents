@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "build-rag"
+version = "0.1.0"
+description = "Document embedding pipeline: raw PDFs to Qdrant vector store with hybrid dense + sparse vectors and table-aware chunking"
+authors = ["Agentic Platform Team"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+pdfminer-six = ">=20220524"
+python-docx = ">=1.1.0"
+beautifulsoup4 = "^4.12.0"
+lxml = "^5.2.0"
+qdrant-client = "^1.10.0"
+sentence-transformers = "^3.0.0"
+groq = ">=0.13.0"
+tiktoken = "^0.7.0"
+numpy = "^1.26.0"
+python-dotenv = "^1.0.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+ruff = "^0.3.0"
+
+[tool.poetry.scripts]
+ingest = "ingest:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

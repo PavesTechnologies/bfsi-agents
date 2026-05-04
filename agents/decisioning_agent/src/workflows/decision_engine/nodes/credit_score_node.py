@@ -40,6 +40,8 @@ def credit_score_node(state: LoanApplicationState) -> LoanApplicationState:
     # ==================================================
     inputs = {
         "score": score,
+        "rbi_context": state.get("rbi_common_context", ""),
+        "policy_context": state.get("rag_context_per_node", {}).get("credit_score", ""),
         "format_instructions": credit_score_output_parser.get_format_instructions(),
     }
 

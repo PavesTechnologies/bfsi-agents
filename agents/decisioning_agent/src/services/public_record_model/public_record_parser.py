@@ -1,5 +1,6 @@
+from typing import Literal, Optional
+
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class PublicRecordOutput(BaseModel):
@@ -10,3 +11,6 @@ class PublicRecordOutput(BaseModel):
     hard_decline_flag: bool = Field(description="True if severity is SEVERE or bankruptcy is less than 2 years old")
     confidence_score: float = Field(description="Model confidence level between 0 and 1 for the classification")
     model_reasoning: str = Field(description="Explanation for the public record classification")
+    llm_response_type: Literal["RAG", "FALLBACK"] = Field(
+        description="RAG if POLICY GUIDANCE excerpts drove the values, FALLBACK if FALLBACK DEFAULTS were used"
+    )

@@ -77,7 +77,7 @@ class FinalDecision(TypedDict):
 
 class LoanTermOption(TypedDict):
     option_id: str          # e.g., "OPT_LOWER_AMT" or "OPT_LONGER_TERM"
-    description: str        # "Keep 36 months, reduce amount to $35k"
+    description: str        # "Keep 36 months, reduce amount to ₹30L"
     proposed_amount: float
     proposed_tenure_months: int
     proposed_interest_rate: float
@@ -130,3 +130,9 @@ class LoanApplicationState(TypedDict):
 
     parallel_tasks_completed: Annotated[list[str], list_append_reducer]
     node_execution_times: Annotated[dict[str, float], dict_merge_reducer]
+
+    # --- 7. RAG context (Indian variant only; defaults empty so the
+    #         existing Experian/CIBIL flow stays a no-op) ---
+    rag_pool: Optional[List[Dict[str, Any]]]
+    rbi_common_context: Optional[str]          # Common RBI guidelines shared by all 7 nodes
+    rag_context_per_node: Optional[Dict[str, str]]  # Bank-specific policy per node

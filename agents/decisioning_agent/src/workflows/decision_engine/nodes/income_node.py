@@ -53,6 +53,8 @@ def income_node(state: LoanApplicationState) -> LoanApplicationState:
     inputs = {
         "monthly_income": str(monthly_income) if monthly_income else "UNKNOWN",
         "monthly_obligations": str(total_monthly),
+        "rbi_context": state.get("rbi_common_context", ""),
+        "policy_context": state.get("rag_context_per_node", {}).get("income_analysis", ""),
         "format_instructions": income_output_parser.get_format_instructions(),
     }
 

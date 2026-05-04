@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -9,3 +11,6 @@ class UtilizationOutput(BaseModel):
     utilization_adjustment_factor: float = Field(description="Multiplier based on utilization risk tier")
     confidence_score: float = Field(description="Model confidence level between 0 and 1 for the classification")
     model_reasoning: str = Field(description="Explanation for the utilization classification")
+    llm_response_type: Literal["RAG", "FALLBACK"] = Field(
+        description="RAG if POLICY GUIDANCE excerpts drove the values, FALLBACK if FALLBACK DEFAULTS were used"
+    )

@@ -20,6 +20,7 @@ from src.utils.migration_database import Base, engine
 import src.models  # noqa: F401
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from src.workflows.decision_flow import connection_pool,DB_URI  # ✅ import singletons
+from src.workflows.indian_decision_flow import indian_connection_pool
 
 # test logging
 logger = logging.getLogger(__name__)
@@ -37,8 +38,14 @@ def create_app() -> FastAPI:
         await connection_pool.open()
         logger.info("✅ LangGraph connection pool opened")
 
+        # ✅ Step 3: Open the Indian (RAG-augmented) graph's pool
+        await indian_connection_pool.open()
+        logger.info("✅ Indian LangGraph connection pool opened")
+
         yield
 
+        await indian_connection_pool.close()
+        logger.info("🔒 Indian LangGraph connection pool closed")
         await connection_pool.close()
         logger.info("🔒 LangGraph connection pool closed")
 

@@ -19,6 +19,73 @@ class UnderwritingRequest(BaseModel):
     monthly_income: float = Field(description="Applicant's gross monthly income", ge=0)
 
 
+class CIBILUnderwritingRequest(BaseModel):
+    """Input payload for the post-KYC CIBIL decisioning pipeline (Indian bureau)."""
+    application_id: str = Field(description="Unique loan application ID", example="APP-IND-2026-001")
+    pan: str = Field(description="Verified PAN number from KYC agent (10 chars)", example="ABCDE0001F")
+    full_name: str = Field(description="Applicant full name", example="Ravi Kumar")
+    requested_amount: float = Field(description="Requested loan amount in INR", gt=0, example=500000)
+    requested_tenure_months: int = Field(description="Requested tenure in months", gt=0, example=36)
+    monthly_income: float = Field(description="Gross monthly income in INR from bank statement", ge=0, example=75000)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Indian (RAG-augmented) request schema
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class IndianApplicantAddress(BaseModel):
+    line1: str
+    line2: Optional[str] = None
+    city: str
+    state: str
+    pincode: str
+
+
+class IndianApplicantData(BaseModel):
+    full_name: str
+    dob: str = Field(description="YYYY-MM-DD")
+    aadhaar_number: str
+    pan_number: str
+    phone: str
+    email: str
+    address: IndianApplicantAddress
+
+
+class IndianLoanRequest(BaseModel):
+    """Optional loan-request block. If omitted the service falls back to defaults."""
+    amount: float = Field(gt=0, description="Loan amount in INR")
+    tenure_months: int = Field(gt=0, description="Tenure in months")
+
+
+class IndianUnderwritingRequest(BaseModel):
+    """
+    Request for the RAG-augmented Indian underwriting pipeline.
+
+    The pipeline pulls the CIBIL report from MockCIBILAdapter using
+    `applicant_data.pan_number`, fetches RBI / bank policy context from
+    Qdrant, and runs the same 7-analyzer graph the existing /underwrite/cibil
+    endpoint uses — with an extra `rag_retrieval` node injected before the
+    fan-out and `{rag_context}` woven into every analyzer prompt.
+
+    `loan_request` and `monthly_income` are optional. When omitted they
+    default to typical retail-loan values (₹5L / 36mo / ₹50k) so the
+    decision and counter-offer LLM nodes can still produce structured output
+    in their existing parser shapes.
+    """
+    application_id: str = Field(example="3fa85f64-5717-4562-b3fc-2c963f66afa6")
+    applicant_data: IndianApplicantData
+    loan_request: Optional[IndianLoanRequest] = Field(
+        default=None,
+        description="Optional. Defaults to amount=500000 INR, tenure_months=36.",
+    )
+    monthly_income: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Optional gross monthly income (INR). Defaults to 50000.",
+    )
+
+
 class LoanDetails(BaseModel):
     approved_amount: float
     approved_tenure_months: int
