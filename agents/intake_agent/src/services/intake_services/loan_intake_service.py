@@ -23,7 +23,7 @@ from src.domain.validation.typed_field_validators import (
     validate_address_line,
     validate_city,
     validate_state,
-    validate_zip,
+    validate_zip_code,
     validate_employment_type,
     validate_employer_name,
     validate_job_title,
@@ -171,7 +171,7 @@ class LoanIntakeService:
                             ("line1", validate_address_line(address.address_line1)),
                             ("city", validate_city(address.city)),
                             ("state", validate_state(address.state)),
-                            ("zip", validate_zip(address.zip_code)),
+                            ("zip", validate_zip_code(address.zip_code)),
                         ]
 
                         for field, result in address_validations:

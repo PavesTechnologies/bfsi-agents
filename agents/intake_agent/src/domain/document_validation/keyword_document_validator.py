@@ -1,10 +1,12 @@
 from typing import Tuple
 from src.domain.document_classification.rules import (
-    paystub_rules,
-    w2_rules,
-    dl_rules,
     passport_rules,
     itr_rules,
+    aadhaar_rules,
+    pan_rules,
+    voter_id_rules,
+    salary_slip_rules,
+    form16_rules,
 )
 from src.domain.document_classification.document_type import DocumentType
 
@@ -18,20 +20,16 @@ class KeywordDocumentValidator:
     CONFIDENCE_THRESHOLD = 0.85
 
     RULE_MAP = {
-        DocumentType.PAY_STUB: paystub_rules,
-        DocumentType.W2: w2_rules,
-        DocumentType.DRIVERS_LICENSE: dl_rules,
         DocumentType.PASSPORT: passport_rules,
-        DocumentType.ITR: itr_rules,  
+        DocumentType.ITR: itr_rules,
+        DocumentType.AADHAAR_CARD: aadhaar_rules,
+        DocumentType.PAN_CARD: pan_rules,
+        DocumentType.VOTER_ID: voter_id_rules,
+        DocumentType.SALARY_SLIP: salary_slip_rules,
+        DocumentType.FORM_16: form16_rules,
     }
 
-    NEGATIVE_KEYWORDS = {
-        DocumentType.W2: ["PAY PERIOD", "NET PAY"],
-        DocumentType.PAY_STUB: ["W-2", "WAGE AND TAX STATEMENT"],
-       
-
-
-    }
+    NEGATIVE_KEYWORDS: dict = {}
 
 
     @classmethod

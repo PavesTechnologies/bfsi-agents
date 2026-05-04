@@ -1,6 +1,20 @@
+from datetime import date
+
 from .validation_result import ValidationResult
 from .reason_codes import ValidationReasonCode
-from .constants import NAME_REGEX
+from .constants import (
+    NAME_REGEX,
+    EMAIL_REGEX,
+    PHONE_REGEX,
+    AADHAAR_REGEX,
+    AADHAAR_LAST4_REGEX,
+    PAN_REGEX,
+    PINCODE_REGEX,
+    IFSC_REGEX,
+    INDIAN_STATE_CODES,
+    VOTER_ID_REGEX,
+    EMPLOYMENT_TYPES,
+)
 
 
 def validate_first_name(value: str) -> ValidationResult:
@@ -19,7 +33,6 @@ def validate_last_name(value: str) -> ValidationResult:
             "Last name contains invalid characters"
         )
     return ValidationResult.success()
-from .constants import AADHAAR_REGEX, AADHAAR_LAST4_REGEX, PAN_REGEX
 
 
 def validate_aadhaar(value: str) -> ValidationResult:
@@ -62,7 +75,20 @@ def validate_pan(value: str) -> ValidationResult:
             "PAN must be a standard format like ABCDE1234F"
         )
     return ValidationResult.success()
-from datetime import date
+
+
+def validate_voter_id(value: str) -> ValidationResult:
+    if value is None:
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_VOTER_ID_FORMAT,
+            "Voter ID is required"
+        )
+    if not VOTER_ID_REGEX.match(value.upper()):
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_VOTER_ID_FORMAT,
+            "Voter ID must be 3 letters followed by 7 digits (e.g. ABC1234567)"
+        )
+    return ValidationResult.success()
 
 
 def validate_dob(value: date) -> ValidationResult:
@@ -76,19 +102,15 @@ def validate_dob(value: date) -> ValidationResult:
             ValidationReasonCode.INVALID_DOB_FORMAT,
             "DOB must be in the past"
         )
-
     age = date.today().year - value.year - (
         (date.today().month, date.today().day) < (value.month, value.day)
     )
-
     if age < 18:
         return ValidationResult.failure(
             ValidationReasonCode.AGE_BELOW_MINIMUM,
             "Applicant must be at least 18 years old"
         )
-
     return ValidationResult.success()
-from .constants import EMAIL_REGEX, PHONE_REGEX
 
 
 def validate_email(value: str) -> ValidationResult:
@@ -106,10 +128,9 @@ def validate_phone(value: str) -> ValidationResult:
     if not PHONE_REGEX.match(value):
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_PHONE_FORMAT,
-            "Phone must be E.164 US format (+1XXXXXXXXXX)"
+            "Phone must be E.164 India format (+91XXXXXXXXXX, starting with 6-9)"
         )
     return ValidationResult.success()
-from .constants import ZIP_REGEX, STATE_CODES
 
 
 def validate_address_line(value: str) -> ValidationResult:
@@ -131,22 +152,30 @@ def validate_city(value: str) -> ValidationResult:
 
 
 def validate_state(value: str) -> ValidationResult:
-    if value not in STATE_CODES:
+    if value.upper() not in INDIAN_STATE_CODES:
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_STATE_CODE,
-            "Invalid US state code"
+            "Invalid Indian state/UT code"
         )
     return ValidationResult.success()
 
 
-def validate_zip(value: str) -> ValidationResult:
-    if not ZIP_REGEX.match(value):
+def validate_pincode(value: str) -> ValidationResult:
+    if not PINCODE_REGEX.match(value):
         return ValidationResult.failure(
-            ValidationReasonCode.INVALID_ZIP_FORMAT,
-            "ZIP must be 5 or 9 digits"
+            ValidationReasonCode.INVALID_PINCODE_FORMAT,
+            "PIN code must be a 6-digit Indian postal code"
         )
     return ValidationResult.success()
-from .constants import EMPLOYMENT_TYPES
+
+
+def validate_ifsc(value: str) -> ValidationResult:
+    if not IFSC_REGEX.match(value):
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_IFSC_FORMAT,
+            "IFSC must be 11 characters: 4 letters + 0 + 6 alphanumeric"
+        )
+    return ValidationResult.success()
 
 
 def validate_employment_type(value: str) -> ValidationResult:
@@ -199,5 +228,13 @@ def validate_requested_term(value: int) -> ValidationResult:
         return ValidationResult.failure(
             ValidationReasonCode.INVALID_LOAN_TERM,
             "Requested term must be greater than 1 month"
+        )
+    return ValidationResult.success()
+
+def validate_zip_code(value: str) -> ValidationResult:
+    if not PINCODE_REGEX.match(value):
+        return ValidationResult.failure(
+            ValidationReasonCode.INVALID_ZIP_CODE,
+            "ZIP code must be a 6-digit Indian postal code"
         )
     return ValidationResult.success()

@@ -18,25 +18,68 @@ from src.utils.hash import stable_bytes_hash
 from src.repositories.intake_repo.document_upload_repo import LoanIntakeDAO
 from src.domain.image_processing.preprocessor import preprocess
 
-# Keep existing special validations
+# File-based special validators (MRZ / barcode — need temp file path)
 from src.domain.document_validation.ssn_card_doc_validation import ssn_card_validation
 from src.domain.document_validation.aws_passport_validation import PassportOCR
 from src.domain.document_validation.usa_driving_licence_validation import process_single_dl
 
-# OCR (AWS Textract ONLY)
-from src.domain.ocr.ocr_dispatcher import extract_ocr
+# Indian document OCR validators (accept pre-extracted text)
+from src.domain.document_validation.aadhaar_validation import validate_aadhaar_ocr
+from src.domain.document_validation.pan_validation import validate_pan_ocr
+from src.domain.document_validation.voter_id_validation import validate_voter_id_ocr
+from src.domain.document_validation.salary_slip_validation import validate_salary_slip_ocr
+from src.domain.document_validation.form16_validation import validate_form16_ocr
 
-# Keyword-based intent validation
-from src.domain.document_validation.keyword_document_validator import (
-    KeywordDocumentValidator,
-)
+# Indian document normalizers (OCR result → cross-validation schema)
+from src.domain.normalization.aadhaar import AadhaarNormalizer
+from src.domain.normalization.pan import PANNormalizer
+from src.domain.normalization.voter_id import VoterIDNormalizer
+
+# Keyword-based intent validation (fallback for remaining types)
+from src.domain.document_validation.keyword_document_validator import KeywordDocumentValidator
 from src.domain.document_classification.document_type import DocumentType
+
+# Single OCR classification entry-point — reused for all keyword-validated types
+from src.domain.document_classification.document_ocr_classifier import (
+    classify_document_from_bytes,
+    ClassificationResult,
+)
 
 from src.domain.normalization.drivers_license import DriversLicenseNormalizer
 from src.domain.normalization.passport import PassportNormalizer
 
 from src.services.cross_validation_service import CrossValidationService
 from src.repositories.intake_repo.loan_info_repo import LoanInfoDAO
+
+
+# Document types validated by the file-based MRZ / barcode pipeline.
+# Everything else goes through classify_document_from_bytes first.
+_SPECIAL_VALIDATED = {"passport", "ssn_card", "drivers_license"}
+
+# Maps document_type → OCR-text validator (returns {"valid": bool, "confidence": float, ...})
+_OCR_VALIDATORS = {
+    "aadhaar_card": validate_aadhaar_ocr,
+    "pan_card": validate_pan_ocr,
+    "voter_id": validate_voter_id_ocr,
+    "salary_slip": validate_salary_slip_ocr,
+    "form_16": validate_form16_ocr,
+}
+
+
+def _dispatch_ocr_validation(document_type: str, ocr_text: str) -> dict:
+    """Run the appropriate OCR-text validator for the given document type."""
+    validator = _OCR_VALIDATORS.get(document_type)
+    if validator:
+        return validator(ocr_text)
+    # Remaining types (itr, bank_statement, utility_bill, …) use keyword rules
+    try:
+        expected_type = DocumentType(document_type)
+        is_valid, conf = KeywordDocumentValidator.validate(
+            expected_type=expected_type, ocr_text=ocr_text
+        )
+        return {"valid": is_valid, "confidence": conf}
+    except ValueError:
+        return {"valid": True, "confidence": 0.0}
 
 
 BUCKET_NAME = "ajay-ocr-bucket-12345"
@@ -115,13 +158,47 @@ DOCUMENT_RULES = {
     },
     "aadhaar_card": {
         "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg"},
-        "max_size_mb": 200,
+        "max_size_mb": 10,
         "max_resolution": (4000, 4000),
     },
     "pan_card": {
         "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg"},
-        "max_size_mb": 200,
+        "max_size_mb": 5,
         "max_resolution": (4000, 4000),
+    },
+    "voter_id": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg"},
+        "max_size_mb": 5,
+        "max_resolution": (4000, 4000),
+    },
+    "driving_license_india": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg"},
+        "max_size_mb": 5,
+        "max_resolution": (4000, 4000),
+    },
+    "salary_slip": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg", "application/octet-stream"},
+        "max_size_mb": 5,
+    },
+    "form_16": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg", "application/octet-stream"},
+        "max_size_mb": 10,
+    },
+    "utility_bill": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg"},
+        "max_size_mb": 5,
+    },
+    "address_proof": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg"},
+        "max_size_mb": 5,
+    },
+    "gst_certificate": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg"},
+        "max_size_mb": 5,
+    },
+    "udyam_certificate": {
+        "mime_types": {"application/pdf", "image/jpeg", "image/png", "image/jpg"},
+        "max_size_mb": 5,
     },
 }
 
@@ -142,6 +219,7 @@ class DocumentService:
         application_id: str,
         document_type: str,
         file: UploadFile,
+        pre_classification: ClassificationResult | None = None,
     ):
         try:
             application_id_obj = UUID(application_id)
@@ -158,6 +236,47 @@ class DocumentService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Uploaded file is empty",
                 )
+
+            # -----------------------------------------------------------
+            # PRE-CLASSIFICATION (before idempotency guard so invalid
+            # documents never create an idempotency record).
+            # Callers that already ran OCR (e.g. ZipProcessor) pass
+            # pre_classification in to avoid a second Textract call.
+            # -----------------------------------------------------------
+            if document_type not in _SPECIAL_VALIDATED:
+                if pre_classification is None:
+                    pre_classification = classify_document_from_bytes(
+                        file_bytes, file.content_type
+                    )
+
+                # Mismatch guard: classifier is confident but disagrees with endpoint
+                if (
+                    pre_classification.doc_type != DocumentType.UNKNOWN
+                    and str(pre_classification.doc_type) != document_type
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "message": (
+                                f"Document type mismatch: uploaded to '{document_type}' "
+                                f"endpoint but OCR detected '{pre_classification.doc_type}'"
+                            ),
+                            "detected_type": str(pre_classification.doc_type),
+                            "ocr_confidence": pre_classification.confidence,
+                        },
+                    )
+
+                validation = _dispatch_ocr_validation(
+                    document_type, pre_classification.ocr_text
+                )
+                if not validation.get("valid"):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "message": f"{document_type} validation failed",
+                            "ocr_confidence": pre_classification.confidence,
+                        },
+                    )
 
             # -----------------------------
             # 🔐 DOCUMENT IDEMPOTENCY KEY
@@ -182,6 +301,7 @@ class DocumentService:
                         file=file,
                         file_bytes=file_bytes,
                         synthetic_request_id=synthetic_request_id,
+                        pre_classification=pre_classification,
                     )
                 except HTTPException as e:
                     await IdempotencyRepository(self.db).delete(synthetic_request_id)
@@ -233,9 +353,10 @@ class DocumentService:
         file: UploadFile,
         file_bytes: bytes,
         synthetic_request_id: uuid.UUID,
+        pre_classification: ClassificationResult | None = None,
     ):
         temp_path = None
-        confidence=0
+        confidence = pre_classification.confidence if pre_classification else 0
 
         
         try:
@@ -378,85 +499,58 @@ class DocumentService:
             ),
         )
            
+            # OCR validation already completed in upload_document before reaching here.
+            # confidence is set from pre_classification at method entry.
+
             # -----------------------------
-            # Aadhaar validation
+            # Indian document cross-validation
+            # Uses OCR-extracted fields (name, DOB, numbers) normalised and
+            # compared against the applicant record. Name matching is
+            # order-insensitive so first/last reversal on the card is handled.
+            # Fields that could not be extracted (None) are silently skipped.
             # -----------------------------
-            if document_type == "aadhaar_card":
-                from src.domain.document_validation.aws_text_extraction import AWSOCR
-                aws_ocr = AWSOCR()
-                validation_result = aws_ocr.validate_aadhaar(temp_path, application_id)
-                confidence = validation_result.get("confidence", 0)
-                
-                if not validation_result.get("valid"):
-                    if os.path.exists(temp_path):
-                        os.remove(temp_path)
+            cross_validator = CrossValidationService(
+                applicant_dao=self.applicant_dao,
+                address_dao=self.address_dao,
+            )
+
+            if document_type == "aadhaar_card" and pre_classification:
+                ocr_result = validate_aadhaar_ocr(pre_classification.ocr_text)
+                normalized = AadhaarNormalizer().normalize(ocr_result)
+                cross_result = await cross_validator.validate_aadhaar(application_id, normalized)
+                if not cross_result.valid:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail={
-                            "message": "Aadhaar validation failed",
-                            "reason": validation_result.get("reason", "Unknown"),
-                            "confidence_score": confidence
-                        }
+                            "message": "Aadhaar details do not match application data",
+                            "mismatches": [m.__dict__ for m in cross_result.mismatches],
+                        },
                     )
 
-            # -----------------------------
-            # PAN validation
-            # -----------------------------
-            if document_type == "pan_card":
-                from src.domain.document_validation.aws_text_extraction import AWSOCR
-                aws_ocr = AWSOCR()
-                validation_result = aws_ocr.validate_pan(temp_path, application_id)
-                confidence = validation_result.get("confidence", 0)
-                
-                if not validation_result.get("valid"):
-                    if os.path.exists(temp_path):
-                        os.remove(temp_path)
+            elif document_type == "pan_card" and pre_classification:
+                ocr_result = validate_pan_ocr(pre_classification.ocr_text)
+                normalized = PANNormalizer().normalize(ocr_result)
+                cross_result = await cross_validator.validate_pan(application_id, normalized)
+                if not cross_result.valid:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail={
-                            "message": "PAN validation failed",
-                            "reason": validation_result.get("reason", "Unknown"),
-                            "confidence_score": confidence
-                        }
+                            "message": "PAN details do not match application data",
+                            "mismatches": [m.__dict__ for m in cross_result.mismatches],
+                        },
                     )
 
-            # -----------------------------
-            # OCR + KEYWORD INTENT VALIDATION
-            # -----------------------------
-            if document_type not in ["passport", "ssn_card", "drivers_license", "aadhaar_card", "pan_card"]:
-                ocr_result = extract_ocr(
-                    file_bytes=file_bytes,
-                    mime_type=file.content_type,
-                )
-                # print(f"OCR Result for {document_type}: {ocr_result}")
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-                    
-                
-                expected_type = DocumentType(document_type)
-                print(f"Performing keyword validation for expected type: {expected_type}")
-                print(f"OCR extracted text (truncated): {ocr_result.full_text[:200]}...")
-                is_valid, confidence = KeywordDocumentValidator.validate(
-                    expected_type=expected_type,
-                    ocr_text=ocr_result.full_text,
-                )
-                print(f"Keyword validation result: is_valid={is_valid}, confidence={confidence}")
-
-                if is_valid:
-                    
-                    # Upload to S3 only if it passes the keyword validation
-                    upload_to_s3(temp_path, application_id, document_type)
-                
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-                    
-                if not is_valid:
+            elif document_type == "voter_id" and pre_classification:
+                ocr_result = validate_voter_id_ocr(pre_classification.ocr_text)
+                normalized = VoterIDNormalizer().normalize(ocr_result)
+                cross_result = await cross_validator.validate_voter_id(application_id, normalized)
+                if not cross_result.valid:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=(
-                            f"Uploaded document does not match expected type "
-                            f"'{document_type}'. Please upload a valid {document_type}."
-                        ),
+                        detail={
+                            "message": "Voter ID details do not match application data",
+                            "mismatches": [m.__dict__ for m in cross_result.mismatches],
+                        },
                     )
 
             # -----------------------------
