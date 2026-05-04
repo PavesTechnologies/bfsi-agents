@@ -18,7 +18,7 @@ from src.domain.validation.typed_field_validators import (
     validate_address_line,
     validate_city,
     validate_state,
-    validate_zip,
+    validate_zip_code,
     validate_employment_type,
     validate_employer_name,
     validate_job_title,
@@ -150,7 +150,7 @@ def validate_applicant_blocking(applicant) -> BlockingValidationSummary:
         
         # ZIP Code
         zip_code = getattr(address, "zip_code", None)
-        result = validate_zip(zip_code)
+        result = validate_zip_code(zip_code)
         if not result.passed:
             errors.append(ValidationError(
                 field=f"address[{idx}].zip_code",

@@ -142,10 +142,14 @@ class Applicant(Base):
     email: Mapped[Optional[str]] = mapped_column(Text)
     aadhaar_encrypted: Mapped[Optional[str]] = mapped_column(Text)  # AES-256 encrypted
     aadhaar_last4: Mapped[Optional[str]] = mapped_column(CHAR(4))
+    aadhaar_vid: Mapped[Optional[str]] = mapped_column(String(16))  # Virtual ID for masked sharing
     pan_number: Mapped[Optional[str]] = mapped_column(String(10))  # ABCDE1234F
     pan_last4: Mapped[Optional[str]] = mapped_column(CHAR(4))
-    father_name: Mapped[Optional[str]] = mapped_column(String(100))  # Common in Indian docs
+    pan_verified: Mapped[Optional[bool]] = mapped_column(Boolean, server_default=text('false'))
+    father_name: Mapped[Optional[str]] = mapped_column(String(100))
     mother_name: Mapped[Optional[str]] = mapped_column(String(100))
+    ckyc_number: Mapped[Optional[str]] = mapped_column(String(14))  # Central KYC registry ID
+    preferred_language: Mapped[Optional[str]] = mapped_column(String(10), server_default=text("'en'"))
     citizenship_status: Mapped[Optional[str]] = mapped_column(String(30))
     phone_number: Mapped[str] = mapped_column(Text,nullable=False)
     gender: Mapped[Gender] = mapped_column(Enum(Gender, name="gender_enum"),nullable=False,)
@@ -311,20 +315,20 @@ class PgsqlDocument(Base):
     __table_args__ = (
         CheckConstraint(
             "document_type::text = ANY (ARRAY["
-            "'ssn_card', "
-            "'passport', "
-            "'drivers_license', "
-            "'state_id', "
-            "'itr', "
-            "'w2', "
             "'aadhaar_card', "
             "'pan_card', "
-            "'pay_stub', "
+            "'voter_id', "
+            "'driving_license_india', "
+            "'passport', "
             "'bank_statement', "
-            "'tax_return', "
+            "'itr', "
+            "'form_16', "
+            "'salary_slip', "
             "'utility_bill', "
-            "'lease_agreement', "
-            "'photo'"
+            "'photo', "
+            "'address_proof', "
+            "'gst_certificate', "
+            "'udyam_certificate'"
             "]::text[])",
             name="pgsqldocument_document_type_check",
         ),

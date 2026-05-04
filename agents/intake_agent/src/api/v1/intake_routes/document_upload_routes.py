@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.utils.intake_database.db_session import get_db
 from src.services.intake_services.document_upload_service import DocumentService
+from src.services.intake_services.zip_processor import ZipProcessor
 
 router = APIRouter(
     prefix="/documents",
@@ -241,3 +242,129 @@ async def upload_pan(
         file=file,
         document_type="pan_card",
     )
+
+
+# -------------------------------
+# Voter ID (EPIC)
+# -------------------------------
+@router.post("/upload/voter-id")
+async def upload_voter_id(
+    application_id: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _upload_with_document_type(
+        db=db,
+        application_id=application_id,
+        file=file,
+        document_type="voter_id",
+    )
+
+
+# -------------------------------
+# Driving License (India)
+# -------------------------------
+@router.post("/upload/driving-license")
+async def upload_driving_license_india(
+    application_id: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _upload_with_document_type(
+        db=db,
+        application_id=application_id,
+        file=file,
+        document_type="driving_license_india",
+    )
+
+
+# -------------------------------
+# Bank Statement
+# -------------------------------
+@router.post("/upload/bank-statement")
+async def upload_bank_statement(
+    application_id: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _upload_with_document_type(
+        db=db,
+        application_id=application_id,
+        file=file,
+        document_type="bank_statement",
+    )
+
+
+# -------------------------------
+# Salary Slip
+# -------------------------------
+@router.post("/upload/salary-slip")
+async def upload_salary_slip(
+    application_id: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _upload_with_document_type(
+        db=db,
+        application_id=application_id,
+        file=file,
+        document_type="salary_slip",
+    )
+
+
+# -------------------------------
+# Form 16 / TDS Certificate
+# -------------------------------
+@router.post("/upload/form-16")
+async def upload_form_16(
+    application_id: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _upload_with_document_type(
+        db=db,
+        application_id=application_id,
+        file=file,
+        document_type="form_16",
+    )
+
+
+# -------------------------------
+# Utility Bill (address proof)
+# -------------------------------
+@router.post("/upload/utility-bill")
+async def upload_utility_bill(
+    application_id: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _upload_with_document_type(
+        db=db,
+        application_id=application_id,
+        file=file,
+        document_type="utility_bill",
+    )
+
+
+# ---------------------------------------------------
+# ZIP batch upload — classify & store multiple docs
+# ---------------------------------------------------
+@router.post("/upload/batch-zip/{application_id}")
+async def upload_documents_zip(
+    application_id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Accept a ZIP archive (≤50 MB, ≤20 files).
+    Each file is classified by filename hint and validated individually.
+    Supported filename hints: aadhaar, pan, voter, salary, form16, itr,
+    bank/statement, utility/bill, photo, passport, dl/licence, gst, udyam.
+    """
+    if not (file.filename or "").lower().endswith(".zip"):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Only .zip files are accepted")
+
+    zip_bytes = await file.read()
+    processor = ZipProcessor(db)
+    return await processor.process_zip(application_id, zip_bytes)

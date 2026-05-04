@@ -1,0 +1,18 @@
+1 $ AADHAAR GOVERNMENT OF INDIA SAMARTH SHARMA Male 20-06-1986 1234 5678 9012 MY AADHAAR
+
+--- OCR VALIDATION ---
+doc_type: aadhaar_card
+valid: True
+confidence: 0.8
+aadhaar_number: 123456789012
+checksum_valid: False
+dob: 20-06-1986
+gender: MALE
+name: None
+
+--- NORMALIZED ---
+document_type: aadhaar_card
+aadhaar_last4: 9012
+full_name: None
+date_of_birth: 1986-06-20
+gender: MALE
