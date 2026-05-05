@@ -162,6 +162,10 @@ class PostKYCCIBILService:
             if decision == "COUNTER_OFFER":
                 counter_offer_data = final_state.get("counter_offer_data", {})
                 response_payload["counter_offer_data"] = counter_offer_data
+            else:
+                # max_approved_amount is meaningful only in the COUNTER_OFFER
+                # branch — strip it elsewhere so the response isn't misread.
+                response_payload.pop("max_approved_amount", None)
 
             # ── Step 6: Persist decision with full audit trail ────────────
             await self.underwriting_repo.save_decision(

@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from langchain_core.output_parsers import PydanticOutputParser
 
+from src.core.config import get_settings
 from src.core.telemetry import track_node
 from src.workflows.decision_state import LoanApplicationState
 from src.utils.audit_decorator import audit_node
@@ -14,6 +15,8 @@ from src.utils.audit_decorator import audit_node
 from src.services.llm_executor import execute_llm
 from src.services.income_model.income_parser import IncomeOutput
 from src.services.income_model.income_prompt import INCOME_PROMPT
+
+_SETTINGS = get_settings()
 
 
 @track_node("income_engine")
@@ -73,6 +76,25 @@ def income_node(state: LoanApplicationState) -> LoanApplicationState:
     # 4️⃣ Build Node Output
     # ==================================================
     income_data = result.model_dump()
+
+    # ==================================================
+    # 5️⃣ Deterministic override — affordability_flag
+    # ==================================================
+    # The LLM frequently miscompares floats here ("DTI 0.467 > 0.50" etc.),
+    # which then misleads the decision node's Step 1c hard-decline check.
+    # Compute the flag in Python from DTI so it's always correct.
+    threshold = _SETTINGS.llm_affordability_dti_threshold
+    if income_data.get("income_missing_flag"):
+        income_data["affordability_flag"] = False
+    else:
+        try:
+            dti_val = float(income_data.get("estimated_dti"))
+            income_data["affordability_flag"] = dti_val <= threshold
+        except (TypeError, ValueError):
+            # Fall back to whatever the LLM said if DTI isn't numeric.
+            pass
+
+    income_data["affordability_threshold_applied"] = threshold
 
     income_data["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 

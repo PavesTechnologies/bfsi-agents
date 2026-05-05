@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     DATABASE_URL_SYNC: str = Field(..., alias="DATABASE_URL_SYNC")
     llm_model: str = Field("llama-3.1-8b-instant", alias="LLM_MODEL")
     llm_max_retries: int = Field(2, alias="LLM_MAX_RETRIES")
+    llm_affordability_dti_threshold: float = Field(
+        0.50, alias="LLM_AFFORDABILITY_DTI_THRESHOLD",
+    )
+    llm_origination_fee_pct: float = Field(
+        0.025, alias="LLM_ORIGINATION_FEE_PCT",
+    )
     DATABASE_GENERIC: str = Field(..., alias="DATABASE_GENERIC")
 
     model_config = {

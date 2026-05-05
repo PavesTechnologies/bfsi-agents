@@ -166,6 +166,11 @@ class IndianUnderwritingService:
             if decision == "COUNTER_OFFER":
                 counter_offer_data = final_state.get("counter_offer_data", {})
                 response_payload["counter_offer_data"] = counter_offer_data
+            else:
+                # max_approved_amount is only meaningful as a "you qualify for up to X"
+                # signal in the COUNTER_OFFER branch. Strip it from APPROVE / DECLINE
+                # responses so callers don't misread it as the granted amount.
+                response_payload.pop("max_approved_amount", None)
 
             # Surface what RAG actually retrieved + which chunks each
             # analyzer consumed. Indian endpoint only.
