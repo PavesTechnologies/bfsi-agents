@@ -10,8 +10,10 @@ import httpx
 from shared.data_mappers import (
     map_decisioning_to_disbursement,
     map_intake_to_india_kyc,
-    map_intake_to_cibil_underwriting,
+    map_intake_to_indian_underwriting,
 )
+
+HARDCODED_MONTHLY_INCOME = 75000.0
 from shared.pipeline_events import PipelineEvent, PipelineStage
 from src.config import AgentConfig
 from src.store.pipeline_state_store import clear_state, get_state, save_state
@@ -98,7 +100,7 @@ class PipelineService:
 
         try:
             kyc_response = await self.http_client.post(
-                f"{AgentConfig.KYC_AGENT_URL}/india/kyc/execute",
+                f"{AgentConfig.KYC_AGENT_URL}/kyc/india/kyc/execute",
                 json=kyc_payload,
                 headers={"X-Idempotency-Key": f"kyc_{application_id}"},
             )
@@ -155,12 +157,13 @@ class PipelineService:
             },
         )
 
-        # ── Underwriting Stage (CIBIL) ─────────────────────────────────────────
-        underwriting_payload = map_intake_to_cibil_underwriting(
+        # ── Underwriting Stage (Indian RAG) ────────────────────────────────────
+        underwriting_payload = map_intake_to_indian_underwriting(
             application_id=application_id,
             applicant=applicant_data,
             requested_amount=self._extract_requested_amount(raw_application),
             requested_tenure_months=self._extract_requested_tenure(raw_application),
+            monthly_income=HARDCODED_MONTHLY_INCOME,
         )
         print(json.dumps(underwriting_payload, indent=2))
 
@@ -170,15 +173,15 @@ class PipelineService:
             event=PipelineEvent.UNDERWRITING_STARTED,
             stage=PipelineStage.DECISIONING,
             status="started",
-            message="CIBIL credit decisioning started",
+            message="Indian credit decisioning started",
         )
 
         try:
             uw_response = await self.http_client.post(
-                f"{AgentConfig.DECISIONING_AGENT_URL}/underwrite/cibil",
+                f"{AgentConfig.DECISIONING_AGENT_URL}/underwrite/indian",
                 json=underwriting_payload,
             )
-            self._raise_for_status_with_detail(uw_response, "CIBIL underwrite")
+            self._raise_for_status_with_detail(uw_response, "Indian underwrite")
             uw_raw = uw_response.json()
             uw_data = self._normalize_underwriting_response(uw_raw)
             print("Underwriting data received:", json.dumps(uw_data, indent=2))
@@ -189,7 +192,7 @@ class PipelineService:
                 event="UNDERWRITING_FAILED",
                 stage=PipelineStage.DECISIONING,
                 status="failed",
-                message="CIBIL credit decisioning failed",
+                message="Indian credit decisioning failed",
                 details={"reason": str(exc)},
                 is_terminal=True,
             )

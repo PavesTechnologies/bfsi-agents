@@ -54,16 +54,16 @@ async def trigger_orchestrator(
             detail="application_id must be a valid UUID",
         )
 
-    checker = DocumentReadinessChecker(db)
-    result = await checker.check(application_uuid)
-    if not result.ready:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={
-                "message": "Application is not ready to be processed. Please upload all required documents.",
-                **result.to_detail(),
-            },
-        )
+    # checker = DocumentReadinessChecker(db)
+    # result = await checker.check(application_uuid)
+    # if not result.ready:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    #         detail={
+    #             "message": "Application is not ready to be processed. Please upload all required documents.",
+    #             **result.to_detail(),
+    #         },
+    #     )
 
     # --- Forward to orchestrator ---
     settings = get_settings()

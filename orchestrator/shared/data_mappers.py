@@ -114,6 +114,74 @@ def map_intake_to_cibil_underwriting(
 
 
 # ─────────────────────────────────────────────────────────────
+# 2b. Intake → Indian (RAG) Underwriting Mapper (post-KYC)
+# ─────────────────────────────────────────────────────────────
+
+def map_intake_to_indian_underwriting(
+    application_id: str,
+    applicant: Dict[str, Any],
+    requested_amount: float,
+    requested_tenure_months: int,
+    monthly_income: float,
+) -> Dict[str, Any]:
+    """
+    Transform Intake Agent applicant data into the Decisioning Agent's
+    IndianUnderwritingRequest payload for POST /underwrite/indian.
+
+    Unlike the CIBIL endpoint, this endpoint expects the full applicant
+    profile (name + DOB + Aadhaar + PAN + contact + address) plus an
+    optional loan_request and monthly_income. The pipeline currently
+    hardcodes monthly_income upstream.
+
+    Args:
+        application_id: UUID string from the Intake Agent.
+        applicant: Primary applicant dict from raw_application["applicants"][0].
+        requested_amount: Loan amount in INR from raw_application.
+        requested_tenure_months: Loan tenure from raw_application.
+        monthly_income: Gross monthly income in INR (currently hardcoded by the pipeline).
+
+    Returns:
+        A dict matching IndianUnderwritingRequest shape.
+    """
+    name_parts = filter(None, [
+        applicant.get("first_name", ""),
+        applicant.get("middle_name"),
+        applicant.get("last_name", ""),
+    ])
+    full_name = " ".join(name_parts).strip()
+
+    addresses = applicant.get("addresses", [])
+    primary_address = next(
+        (a for a in addresses if a.get("address_type") in ("current", "permanent")),
+        addresses[0] if addresses else {},
+    )
+
+    return {
+        "application_id": application_id,
+        "applicant_data": {
+            "full_name": full_name,
+            "dob": str(applicant.get("date_of_birth", "")),
+            "aadhaar_number": applicant.get("aadhaar_no") or applicant.get("aadhaar_number", ""),
+            "pan_number": applicant.get("pan_number", ""),
+            "phone": applicant.get("phone_number", ""),
+            "email": applicant.get("email", ""),
+            "address": {
+                "line1": primary_address.get("address_line1", ""),
+                "line2": primary_address.get("address_line2", ""),
+                "city": primary_address.get("city", ""),
+                "state": primary_address.get("state", ""),
+                "pincode": primary_address.get("zip_code", ""),
+            },
+        },
+        "loan_request": {
+            "amount": requested_amount,
+            "tenure_months": requested_tenure_months,
+        },
+        "monthly_income": monthly_income,
+    }
+
+
+# ─────────────────────────────────────────────────────────────
 # 3. Decisioning → Disbursement Mapper
 # ─────────────────────────────────────────────────────────────
 
