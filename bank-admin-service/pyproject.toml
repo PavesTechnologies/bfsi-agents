@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "bank-admin-service"
+version = "0.1.0"
+description = "Bank Administration Service - Application tracking, rules management, RAG document management"
+authors = ["Agentic Platform Team"]
+
+[[tool.poetry.packages]]
+include = "src"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+alembic = "^1.18.3"
+asyncpg = "^0.31.0"
+fastapi = "^0.110.0"
+pydantic = {extras = ["email"], version = "^2.6.0"}
+pydantic-settings = "^2.13.1"
+sqlalchemy = "^2.0.46"
+uvicorn = "^0.29.0"
+python-dotenv = "^1.0.1"
+psycopg = {extras = ["binary"], version = "^3.3.3"}
+psycopg2-binary = "^2.9.11"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+bcrypt = "^4.1.0"
+python-multipart = "^0.0.9"
+qdrant-client = "^1.10.0"
+sentence-transformers = "^3.0.0"
+pypdf = "^4.0.0"
+boto3 = "^1.34.0"
+httpx = "^0.27.0"
+aiofiles = "^23.2.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+ruff = "^0.3.0"
+
+[tool.poetry.scripts]
+dev = "src.cli:dev"
+prod = "src.cli:prod"
+migrate = "src.cli:migrate"
+migration = "src.cli:migration"
+create-db = "src.cli:create_db"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

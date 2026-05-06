@@ -60,8 +60,42 @@ services:
 
     restart: unless-stopped
 
+  bank-admin-service:
+    build:
+      context: ./bank-admin-service
+      dockerfile: Dockerfile
+    image: bank-admin-service:test
+    container_name: bank-admin-service-container
+
+    ports:
+      - "8005:8005"
+
+    env_file:
+      - bank-admin-service/.env
+
+    volumes:
+      - rag_uploads:/tmp/bfsi_rag_uploads
+
+    restart: unless-stopped
+
+  bank-admin-ui:
+    build:
+      context: ./bank-admin-ui
+      dockerfile: Dockerfile
+    image: bank-admin-ui:test
+    container_name: bank-admin-ui-container
+
+    ports:
+      - "5174:80"
+
+    depends_on:
+      - bank-admin-service
+
+    restart: unless-stopped
+
 # 🔥 DEFINE VOLUMES HERE (IMPORTANT)
 volumes:
   kyc_data:
   dec_data:
   intake_data:
+  rag_uploads:
