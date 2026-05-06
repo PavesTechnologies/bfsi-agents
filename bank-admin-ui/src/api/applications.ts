@@ -49,7 +49,7 @@ export interface DailyVolume {
 
 export const applicationsApi = {
   list: (params: { page?: number; page_size?: number; decision?: string; risk_tier?: string; date_from?: string; date_to?: string }) =>
-    apiClient.get<ApplicationListResponse>('/applications', { params }).then((r) => r.data),
+    apiClient.get<ApplicationListResponse>('/applications/', { params }).then((r) => r.data),
 
   get: (id: string) =>
     apiClient.get<ApplicationDetail>(`/applications/${id}`).then((r) => r.data),

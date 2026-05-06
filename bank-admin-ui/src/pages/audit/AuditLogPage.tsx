@@ -30,7 +30,7 @@ const ACTION_COLORS: Record<string, string> = {
 export default function AuditLogPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['audit-logs'],
-    queryFn: () => apiClient.get<AuditLog[]>('/audit', { params: { limit: 100 } }).then(r => r.data),
+    queryFn: () => apiClient.get<AuditLog[]>('/audit/', { params: { limit: 100 } }).then(r => r.data),
   })
 
   return (

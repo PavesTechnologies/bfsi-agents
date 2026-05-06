@@ -52,7 +52,7 @@ export interface PendingApproval {
 }
 
 export const rulesApi = {
-  list: () => apiClient.get<{ items: Rule[]; total: number }>('/rules').then((r) => r.data),
+  list: () => apiClient.get<{ items: Rule[]; total: number }>('/rules/').then((r) => r.data),
 
   get: (id: string) => apiClient.get<Rule>(`/rules/${id}`).then((r) => r.data),
 

@@ -3,6 +3,7 @@ import datetime
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import joinedload
 from fastapi import HTTPException
 
 from src.models.bank_rule import BankRule, BankRuleHistory, RuleCategory
@@ -17,7 +18,7 @@ class RuleService:
 
     async def list_rules(self) -> RuleListResponse:
         result = await self.db.execute(
-            select(BankRule).order_by(BankRule.category_id, BankRule.rule_key)
+            select(BankRule).options(joinedload(BankRule.category)).order_by(BankRule.category_id, BankRule.rule_key)
         )
         rules = result.scalars().all()
         return RuleListResponse(items=[RuleOut.model_validate(r) for r in rules], total=len(rules))

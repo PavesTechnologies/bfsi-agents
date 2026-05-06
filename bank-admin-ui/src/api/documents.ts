@@ -26,7 +26,7 @@ export interface IngestionJob {
 
 export const documentsApi = {
   list: (collection?: string) =>
-    apiClient.get<{ items: RagDocument[]; total: number }>('/documents', { params: collection ? { collection } : {} }).then((r) => r.data),
+    apiClient.get<{ items: RagDocument[]; total: number }>('/documents/', { params: collection ? { collection } : {} }).then((r) => r.data),
 
   get: (id: string) => apiClient.get<RagDocument>(`/documents/${id}`).then((r) => r.data),
 
@@ -35,7 +35,7 @@ export const documentsApi = {
     form.append('file', file)
     form.append('collection_name', collection_name)
     form.append('document_name', document_name)
-    return apiClient.post<IngestionJob>('/documents', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data)
+    return apiClient.post<IngestionJob>('/documents/', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data)
   },
 
   replace: (documentId: string, file: File, document_name: string) => {
