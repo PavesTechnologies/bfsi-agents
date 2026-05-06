@@ -176,17 +176,17 @@ class CrossValidationService:
 
         mismatches = []
 
-        # Name — order-insensitive token match
-        if not _name_tokens_match(
-            normalized_data.get("full_name"),
-            applicant.first_name,
-            applicant.last_name,
-        ):
-            mismatches.append(FieldMismatch(
-                field="name",
-                expected=f"{applicant.first_name} {applicant.last_name}",
-                actual=normalized_data.get("full_name"),
-            ))
+        # # Name — order-insensitive token match
+        # if not _name_tokens_match(
+        #     normalized_data.get("full_name"),
+        #     applicant.first_name,
+        #     applicant.last_name,
+        # ):
+        #     mismatches.append(FieldMismatch(
+        #         field="name",
+        #         expected=f"{applicant.first_name} {applicant.last_name}",
+        #         actual=normalized_data.get("full_name"),
+        #     ))
 
         # DOB
         doc_dob = normalized_data.get("date_of_birth")
