@@ -2,7 +2,7 @@ from collections.abc import AsyncGenerator
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.core.database import AsyncSessionLocal
+from src.core.database import AsyncSessionLocal, DecisioningSessionLocal
 from src.core.security import decode_token
 from src.core.permissions import Role, Permission, has_permission
 
@@ -16,6 +16,16 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.commit()
         except Exception:
             await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+
+async def get_decisioning_db() -> AsyncGenerator[AsyncSession, None]:
+    async with DecisioningSessionLocal() as session:
+        try:
+            yield session
+        except Exception:
             raise
         finally:
             await session.close()

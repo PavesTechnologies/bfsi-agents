@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.dependencies import get_db, require_permission
+from src.core.dependencies import get_db, get_decisioning_db, require_permission
 from src.core.permissions import Permission
 from src.schemas.application import ApplicationListResponse, ApplicationDetail, DashboardStats, DailyVolume
 from src.services.application_service import ApplicationService
@@ -18,10 +18,11 @@ _exporter = require_permission(Permission.EXPORT_APPLICATIONS)
 async def dashboard_stats(
     current_user: dict = Depends(_viewer),
     db: AsyncSession = Depends(get_db),
+    dec_db: AsyncSession = Depends(get_decisioning_db),
 ):
     rule_service = RuleService(db)
     pending = await rule_service.get_pending_approvals()
-    app_service = ApplicationService(db)
+    app_service = ApplicationService(dec_db)
     return await app_service.get_dashboard_stats(pending_rule_approvals=len(pending))
 
 
@@ -29,9 +30,9 @@ async def dashboard_stats(
 async def daily_volume(
     days: int = Query(14, ge=1, le=90),
     current_user: dict = Depends(_viewer),
-    db: AsyncSession = Depends(get_db),
+    dec_db: AsyncSession = Depends(get_decisioning_db),
 ):
-    return await ApplicationService(db).get_daily_volume(days)
+    return await ApplicationService(dec_db).get_daily_volume(days)
 
 
 @router.get("/", response_model=ApplicationListResponse)
@@ -43,15 +44,15 @@ async def list_applications(
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
     current_user: dict = Depends(_viewer),
-    db: AsyncSession = Depends(get_db),
+    dec_db: AsyncSession = Depends(get_decisioning_db),
 ):
-    return await ApplicationService(db).list_applications(page, page_size, decision, risk_tier, date_from, date_to)
+    return await ApplicationService(dec_db).list_applications(page, page_size, decision, risk_tier, date_from, date_to)
 
 
 @router.get("/{application_id}", response_model=ApplicationDetail)
 async def get_application(
     application_id: str,
     current_user: dict = Depends(_viewer),
-    db: AsyncSession = Depends(get_db),
+    dec_db: AsyncSession = Depends(get_decisioning_db),
 ):
-    return await ApplicationService(db).get_application(application_id)
+    return await ApplicationService(dec_db).get_application(application_id)

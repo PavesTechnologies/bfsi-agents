@@ -17,3 +17,19 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False,
     autoflush=False,
 )
+
+# Read-only connection to the decisioning_agent DB for application tracking
+decisioning_engine = create_async_engine(
+    settings.DECISIONING_DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10,
+    echo=False,
+)
+
+DecisioningSessionLocal = async_sessionmaker(
+    bind=decisioning_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+)

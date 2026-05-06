@@ -112,7 +112,7 @@ class ApplicationService:
                     COUNT(*) FILTER (WHERE decision = 'COUNTER_OFFER') AS counter_offer,
                     COUNT(*) AS total
                 FROM underwriting_decisions
-                WHERE created_at >= NOW() - INTERVAL ':days days'
+                WHERE created_at >= NOW() - (:days * INTERVAL '1 day')
                 GROUP BY DATE(created_at AT TIME ZONE 'UTC')
                 ORDER BY date ASC
             """),

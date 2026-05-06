@@ -35,6 +35,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = Field(..., alias="DATABASE_URL")
     DATABASE_URL_SYNC: str = Field(..., alias="DATABASE_URL_SYNC")
+    DECISIONING_DATABASE_URL: str = Field(..., alias="DECISIONING_DATABASE_URL")
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
@@ -48,6 +49,11 @@ class Settings(BaseSettings):
     def ensure_sync_driver(cls, v: str) -> str:
         """Auto-correct asyncpg URLs in the sync slot (used by Alembic)."""
         return _make_sync(v)
+
+    @field_validator("DECISIONING_DATABASE_URL", mode="before")
+    @classmethod
+    def ensure_decisioning_async_driver(cls, v: str) -> str:
+        return _make_async(v)
 
     JWT_SECRET_KEY: str = Field(..., alias="JWT_SECRET_KEY")
     JWT_ALGORITHM: str = Field("HS256", alias="JWT_ALGORITHM")
