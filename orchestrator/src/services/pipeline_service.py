@@ -180,12 +180,15 @@ class PipelineService:
             uw_response = await self.http_client.post(
                 f"{AgentConfig.DECISIONING_AGENT_URL}/underwrite/indian",
                 json=underwriting_payload,
+                timeout=AgentConfig.UNDERWRITING_TIMEOUT_SECONDS,
             )
             self._raise_for_status_with_detail(uw_response, "Indian underwrite")
             uw_raw = uw_response.json()
             uw_data = self._normalize_underwriting_response(uw_raw)
             print("Underwriting data received:", json.dumps(uw_data, indent=2))
         except Exception as exc:
+            reason = str(exc) or repr(exc) or exc.__class__.__name__
+            print(f"Indian underwrite call failed: {reason}")
             await self._emit_progress(
                 application_id=application_id,
                 progress_callback=progress_callback,
@@ -193,7 +196,7 @@ class PipelineService:
                 stage=PipelineStage.DECISIONING,
                 status="failed",
                 message="Indian credit decisioning failed",
-                details={"reason": str(exc)},
+                details={"reason": reason, "error_type": exc.__class__.__name__},
                 is_terminal=True,
             )
             raise

@@ -17,3 +17,5 @@ class AgentConfig:
 
     # Pipeline Settings
     REQUEST_TIMEOUT_SECONDS: int = int(os.getenv("AGENT_TIMEOUT", "120"))
+    # Underwriting needs more time: RAG retrieval + 7 parallel LLMs + decision/counter-offer LLM
+    UNDERWRITING_TIMEOUT_SECONDS: int = int(os.getenv("UNDERWRITING_TIMEOUT", "300"))
