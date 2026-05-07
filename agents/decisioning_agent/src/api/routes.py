@@ -2,10 +2,12 @@
 API Routes for the Decisioning Agent
 """
 
-import sys, os
+import asyncio
+import os
+import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "kyc_agent", "src"))
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
 from src.domain.underwriting_models import (
     CIBILUnderwritingRequest,
     IndianUnderwritingRequest,
@@ -17,6 +19,11 @@ from src.services.underwriting_service import UnderwritingService
 from src.services.post_kyc_cibil_service import PostKYCCIBILService
 from src.services.indian_underwriting_service import IndianUnderwritingService
 from adapters.mock_adapters.mock_cibil_adapter import MockCIBILAdapter  # type: ignore
+
+# Root of the decisioning_agent package (two levels up from src/api/)
+_AGENT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_INGEST_SCRIPT = os.path.join(_AGENT_ROOT, "decisioning_agent", "build_rag", "ingest.py")
+_DOCS_DIR = os.path.join(_AGENT_ROOT, "decisioning_agent", "docs")
 
 
 router = APIRouter(tags=["Underwriting"])
@@ -129,6 +136,7 @@ async def underwrite_indian(
             requested_amount=loan_amount,
             requested_tenure_months=loan_tenure,
             monthly_income=request.monthly_income,
+            active_analyzers=request.active_analyzers,
         )
     except HTTPException:
         raise
@@ -167,3 +175,31 @@ async def preview_cibil_report(
         return report.model_dump()
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+
+def _run_ingest_subprocess() -> None:
+    """Run the build_rag ingestion pipeline synchronously (called from a thread)."""
+    import subprocess
+    subprocess.run(
+        [
+            sys.executable,
+            _INGEST_SCRIPT,
+            "--rbi-dir", _DOCS_DIR,
+            "--bank-dir", _DOCS_DIR,
+        ],
+        cwd=os.path.dirname(_INGEST_SCRIPT),
+        check=True,
+    )
+
+
+@router.post("/internal/refresh-rag", status_code=202)
+async def refresh_rag(background_tasks: BackgroundTasks):
+    """
+    Re-ingest all documents in the docs/ folder into Qdrant.
+    Called by bank-admin-service after a file upload or delete.
+    Returns 202 immediately; ingestion runs in the background.
+    """
+    background_tasks.add_task(
+        asyncio.get_event_loop().run_in_executor, None, _run_ingest_subprocess
+    )
+    return {"status": "ingestion_started", "docs_dir": _DOCS_DIR}

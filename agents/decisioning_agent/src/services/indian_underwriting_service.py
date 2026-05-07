@@ -116,6 +116,7 @@ class IndianUnderwritingService:
         requested_amount: float | None,
         requested_tenure_months: int | None,
         monthly_income: float | None,
+        active_analyzers: list[str] | None = None,
     ) -> dict[str, Any]:
         # Fall back to defaults when the optional blocks are absent.
         amount = requested_amount if requested_amount is not None else DEFAULT_LOAN_AMOUNT_INR
@@ -146,6 +147,7 @@ class IndianUnderwritingService:
             "raw_experian_data": decisioning_dict,
             "user_request": {"amount": amount, "tenure": tenure},
             "bank_statement_summary": {"monthly_income": income},
+            "active_analyzers": active_analyzers,
         }
 
         # ── 5. Invoke RAG-augmented graph ────────────────────────────────

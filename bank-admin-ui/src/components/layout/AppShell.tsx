@@ -10,6 +10,7 @@ const TITLES: Record<string, string> = {
   '/documents': 'RAG Documents',
   '/users': 'User Management',
   '/audit': 'Audit Log',
+  '/pipeline': 'Loan Pipeline',
 }
 
 export default function AppShell() {

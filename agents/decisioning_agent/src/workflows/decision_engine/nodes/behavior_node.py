@@ -19,6 +19,9 @@ from src.services.behavior_model.behavior_prompt import BEHAVIOR_PROMPT
 @track_node("behavior_engine")
 @audit_node(agent_name="decisioning_agent")
 def behavior_node(state: LoanApplicationState) -> LoanApplicationState:
+    active = state.get("active_analyzers")
+    if active is not None and "behavior" not in active:
+        return {}
 
     behavior_output_parser = PydanticOutputParser(
         pydantic_object=BehaviorOutput

@@ -6,6 +6,7 @@ from src.core.dependencies import get_db, require_permission
 from src.core.permissions import Permission
 from src.schemas.document import DocumentOut, DocumentListResponse, IngestionJobOut
 from src.services.rag_ingestion_service import RagIngestionService
+from src.services.rag_file_service import RagFileService
 from src.services.audit_service import AuditService
 from src.workers.rag_worker import run_ingestion
 
@@ -96,3 +97,57 @@ async def delete_document(
 ):
     await RagIngestionService(db).delete_document(document_id)
     await AuditService(db).log("DOCUMENT_DELETED", user_id=current_user["user_id"], resource_type="rag_document", resource_id=document_id)
+
+
+# ── Physical source files (disk) ─────────────────────────────────────────────
+
+@router.get("/source-files", response_model=list[dict])
+async def list_source_files(current_user: dict = Depends(_viewer)):
+    return RagFileService().list_files()
+
+
+@router.post("/source-files", status_code=201)
+async def upload_source_file(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(_uploader),
+    db: AsyncSession = Depends(get_db),
+):
+    info = await RagFileService().save_file(file)
+    await AuditService(db).log(
+        "SOURCE_FILE_UPLOADED",
+        user_id=current_user["user_id"],
+        resource_type="source_file",
+        resource_id=info["filename"],
+        after=info,
+    )
+    return info
+
+
+@router.delete("/source-files/{filename}", status_code=204)
+async def delete_source_file(
+    filename: str,
+    current_user: dict = Depends(_deleter),
+    db: AsyncSession = Depends(get_db),
+):
+    RagFileService().delete_file(filename)
+    await AuditService(db).log(
+        "SOURCE_FILE_DELETED",
+        user_id=current_user["user_id"],
+        resource_type="source_file",
+        resource_id=filename,
+    )
+
+
+@router.post("/source-files/trigger-ingestion")
+async def trigger_ingestion(
+    current_user: dict = Depends(_uploader),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await RagFileService().trigger_reingestion()
+    await AuditService(db).log(
+        "RAG_REINGESTION_TRIGGERED",
+        user_id=current_user["user_id"],
+        resource_type="rag_ingestion",
+        resource_id="refresh",
+    )
+    return result

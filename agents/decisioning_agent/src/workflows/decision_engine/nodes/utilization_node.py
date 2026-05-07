@@ -19,6 +19,9 @@ from src.services.utilization_model.utilization_prompt import UTILIZATION_PROMPT
 @track_node("utilization_engine")
 @audit_node(agent_name="decisioning_agent")
 def utilization_node(state: LoanApplicationState) -> LoanApplicationState:
+    active = state.get("active_analyzers")
+    if active is not None and "utilization" not in active:
+        return {}
 
     utilization_output_parser = PydanticOutputParser(
         pydantic_object=UtilizationOutput

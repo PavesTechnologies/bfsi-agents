@@ -19,6 +19,9 @@ from src.services.exposure_model.exposure_prompt import EXPOSURE_PROMPT
 @track_node("exposure_engine")
 @audit_node(agent_name="decisioning_agent")
 def exposure_node(state: LoanApplicationState) -> LoanApplicationState:
+    active = state.get("active_analyzers")
+    if active is not None and "exposure" not in active:
+        return {}
 
     exposure_output_parser = PydanticOutputParser(
         pydantic_object=ExposureOutput

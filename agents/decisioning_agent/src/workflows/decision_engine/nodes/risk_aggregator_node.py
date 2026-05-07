@@ -79,70 +79,82 @@ def risk_aggregator_node(state: LoanApplicationState) -> LoanApplicationState:
     income   = state.get("income_data") or {}
 
     # ==================================================
-    # 2️⃣ Compute Sub-Scores (0-100 each)
+    # 2️⃣ Determine effective weights (redistribute for inactive analyzers)
+    # ==================================================
+    active = state.get("active_analyzers")
+    if active is not None:
+        active_w = {k: v for k, v in WEIGHTS.items() if k in active}
+        total_w = sum(active_w.values()) or 1.0
+        effective_weights = {k: v / total_w for k, v in active_w.items()}
+    else:
+        effective_weights = WEIGHTS
+
+    # ==================================================
+    # 3️⃣ Compute Sub-Scores (0-100 each) for active analyzers only
     # ==================================================
     sub_scores = {}
 
-    # Credit Score: map 300-850 range to 0-100
-    raw_score = credit.get("score", 0) or 0
-    sub_scores["credit_score"] = max(0, min(100, (raw_score - 300) / 5.5))
+    if "credit_score" in effective_weights:
+        raw_score = credit.get("score", 0) or 0
+        sub_scores["credit_score"] = max(0, min(100, (raw_score - 300) / 5.5))
 
-    # Public Record: use severity flag
-    sub_scores["public_record"] = _normalize_risk_flag(
-        public.get("public_record_severity", "NONE")
-    )
+    if "public_record" in effective_weights:
+        sub_scores["public_record"] = _normalize_risk_flag(
+            public.get("public_record_severity", "NONE")
+        )
 
-    # Utilization: use risk flag
-    sub_scores["utilization"] = _normalize_risk_flag(
-        util.get("utilization_risk", "GOOD")
-    )
+    if "utilization" in effective_weights:
+        sub_scores["utilization"] = _normalize_risk_flag(
+            util.get("utilization_risk", "GOOD")
+        )
 
-    # Exposure: use risk flag
-    sub_scores["exposure"] = _normalize_risk_flag(
-        exposure.get("exposure_risk", "LOW")
-    )
+    if "exposure" in effective_weights:
+        sub_scores["exposure"] = _normalize_risk_flag(
+            exposure.get("exposure_risk", "LOW")
+        )
 
-    # Behavior: use behavior_score directly (already 0-100)
-    sub_scores["behavior"] = behavior.get("behavior_score", 50) or 50
+    if "behavior" in effective_weights:
+        sub_scores["behavior"] = behavior.get("behavior_score", 50) or 50
 
-    # Inquiry: use risk flag
-    sub_scores["inquiry"] = _normalize_risk_flag(
-        inquiry.get("velocity_risk", "LOW")
-    )
+    if "inquiry" in effective_weights:
+        sub_scores["inquiry"] = _normalize_risk_flag(
+            inquiry.get("velocity_risk", "LOW")
+        )
 
-    # Income: use risk flag
-    sub_scores["income"] = _normalize_risk_flag(
-        income.get("income_risk", "MODERATE")
-    )
+    if "income" in effective_weights:
+        sub_scores["income"] = _normalize_risk_flag(
+            income.get("income_risk", "MODERATE")
+        )
 
     # ==================================================
-    # 3️⃣ Weighted Aggregation
+    # 4️⃣ Weighted Aggregation
     # ==================================================
     aggregated_risk_score = sum(
-        sub_scores[key] * WEIGHTS[key] for key in WEIGHTS
+        sub_scores[key] * effective_weights[key] for key in effective_weights
     )
 
     # Round to 2 decimal places
     aggregated_risk_score = round(aggregated_risk_score, 2)
 
     # ==================================================
-    # 4️⃣ Check Hard-Decline Override
+    # 5️⃣ Check Hard-Decline Override
     # ==================================================
     hard_decline = public.get("hard_decline_flag", False)
     if hard_decline:
         aggregated_risk_score = 0.0
 
     # ==================================================
-    # 5️⃣ Determine Risk Tier
+    # 6️⃣ Determine Risk Tier
     # ==================================================
     aggregated_risk_tier = _score_to_tier(aggregated_risk_score)
 
     # ==================================================
-    # 6️⃣ Build Reasoning Trace
+    # 7️⃣ Build Reasoning Trace
     # ==================================================
     reasoning_trace = {
         "sub_scores": sub_scores,
-        "weights": WEIGHTS,
+        "weights": effective_weights,
+        "active_analyzers": active,
         "hard_decline_override": hard_decline,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }

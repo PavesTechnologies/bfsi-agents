@@ -19,6 +19,9 @@ from src.services.public_record_model.public_record_prompt import PUBLIC_RECORD_
 @track_node("public_record_engine")
 @audit_node(agent_name="decisioning_agent")
 def public_record_node(state: LoanApplicationState) -> LoanApplicationState:
+    active = state.get("active_analyzers")
+    if active is not None and "public_record" not in active:
+        return {}
 
     public_record_output_parser = PydanticOutputParser(
         pydantic_object=PublicRecordOutput

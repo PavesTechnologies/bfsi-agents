@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Upload, RefreshCw, Trash2, FileText } from 'lucide-react'
 import { documentsApi, type RagDocument } from '@/api/documents'
+import { apiClient } from '@/api/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +14,104 @@ import { formatDate } from '@/lib/utils'
 import { toast } from '@/components/ui/toaster'
 
 const COLLECTIONS = ['rbi_guidelines', 'bank_policies']
+
+// Source file helpers — physical files on decisioning agent disk
+interface SourceFile { filename: string; size_bytes: number; modified_at: number }
+
+const sourceFilesApi = {
+  list: () => apiClient.get<SourceFile[]>('/documents/source-files').then((r) => r.data),
+  upload: (file: File) => {
+    const form = new FormData(); form.append('file', file)
+    return apiClient.post<SourceFile>('/documents/source-files', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data)
+  },
+  delete: (filename: string) => apiClient.delete(`/documents/source-files/${encodeURIComponent(filename)}`),
+  triggerIngestion: () => apiClient.post('/documents/source-files/trigger-ingestion').then((r) => r.data),
+}
+
+function SourceFilesTab() {
+  const queryClient = useQueryClient()
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const { data: files = [], isLoading } = useQuery({
+    queryKey: ['source-files'],
+    queryFn: sourceFilesApi.list,
+  })
+
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => sourceFilesApi.upload(file),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['source-files'] }); toast({ title: 'File uploaded' }) },
+    onError: (e: any) => toast({ title: 'Upload failed', description: e.response?.data?.detail, variant: 'destructive' }),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (filename: string) => sourceFilesApi.delete(filename),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['source-files'] }); toast({ title: 'File deleted' }) },
+    onError: (e: any) => toast({ title: 'Delete failed', description: e.response?.data?.detail, variant: 'destructive' }),
+  })
+
+  const ingestMutation = useMutation({
+    mutationFn: sourceFilesApi.triggerIngestion,
+    onSuccess: () => toast({ title: 'Re-ingestion started', description: 'Qdrant will be updated in the background.' }),
+    onError: (e: any) => toast({ title: 'Ingestion failed', description: e.response?.data?.detail, variant: 'destructive' }),
+  })
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <RoleGuard permission="upload_documents">
+          <Button size="sm" onClick={() => fileRef.current?.click()} className="gap-2" disabled={uploadMutation.isPending}>
+            <Upload className="h-4 w-4" /> {uploadMutation.isPending ? 'Uploading…' : 'Upload PDF'}
+          </Button>
+          <input ref={fileRef} type="file" accept=".pdf,.docx" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadMutation.mutate(f); e.target.value = '' }} />
+        </RoleGuard>
+        <RoleGuard permission="upload_documents">
+          <Button size="sm" variant="outline" onClick={() => ingestMutation.mutate()} className="gap-2" disabled={ingestMutation.isPending}>
+            <RefreshCw className={`h-4 w-4 ${ingestMutation.isPending ? 'animate-spin' : ''}`} />
+            {ingestMutation.isPending ? 'Starting…' : 'Re-ingest All'}
+          </Button>
+        </RoleGuard>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-40 text-muted-foreground">Loading…</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">File</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">Size</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Modified</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {files.map((f) => (
+                  <tr key={f.filename} className="border-b last:border-0">
+                    <td className="px-4 py-3 font-mono text-xs">{f.filename}</td>
+                    <td className="px-4 py-3 text-right text-xs">{(f.size_bytes / 1024).toFixed(0)} KB</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(f.modified_at * 1000).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-right">
+                      <RoleGuard permission="delete_documents">
+                        <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(f.filename)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </RoleGuard>
+                    </td>
+                  </tr>
+                ))}
+                {files.length === 0 && (
+                  <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">No source files found</td></tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
 function UploadModal({ replaceDoc, onClose }: { replaceDoc?: RagDocument; onClose: () => void }) {
   const queryClient = useQueryClient()
@@ -106,15 +205,20 @@ function UploadModal({ replaceDoc, onClose }: { replaceDoc?: RagDocument; onClos
   )
 }
 
+const ALL_TABS = [...COLLECTIONS, 'source_files'] as const
+
 export default function DocumentsPage() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<string>('rbi_guidelines')
   const [uploading, setUploading] = useState(false)
   const [replacing, setReplacing] = useState<RagDocument | null>(null)
 
+  const isSourceFiles = activeTab === 'source_files'
+
   const { data, isLoading } = useQuery({
     queryKey: ['documents', activeTab],
     queryFn: () => documentsApi.list(activeTab),
+    enabled: !isSourceFiles,
   })
 
   const deleteMutation = useMutation({
@@ -123,82 +227,93 @@ export default function DocumentsPage() {
     onError: (e: any) => toast({ title: 'Delete failed', description: e.response?.data?.detail, variant: 'destructive' }),
   })
 
+  const TAB_LABELS: Record<string, string> = {
+    rbi_guidelines: 'RBI Guidelines',
+    bank_policies: 'Bank Policies',
+    source_files: 'Source Files',
+  }
+
   return (
     <div className="space-y-4">
       {/* Tabs */}
       <div className="flex gap-2 border-b">
-        {COLLECTIONS.map((col) => (
+        {ALL_TABS.map((col) => (
           <button
             key={col}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === col ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-gray-900'}`}
             onClick={() => setActiveTab(col)}
           >
-            {col.replace('_', ' ')}
+            {TAB_LABELS[col] ?? col.replace(/_/g, ' ')}
           </button>
         ))}
-        <div className="ml-auto pb-2">
-          <RoleGuard permission="upload_documents">
-            <Button size="sm" onClick={() => setUploading(true)} className="gap-2">
-              <Upload className="h-4 w-4" /> Upload Document
-            </Button>
-          </RoleGuard>
-        </div>
+        {!isSourceFiles && (
+          <div className="ml-auto pb-2">
+            <RoleGuard permission="upload_documents">
+              <Button size="sm" onClick={() => setUploading(true)} className="gap-2">
+                <Upload className="h-4 w-4" /> Upload Document
+              </Button>
+            </RoleGuard>
+          </div>
+        )}
       </div>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-40 text-muted-foreground">Loading…</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Document</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Chunks</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Size</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Uploaded</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data?.items.filter(d => d.status !== 'DELETED').map((doc) => (
-                  <tr key={doc.id} className="border-b last:border-0">
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{doc.document_name}</p>
-                      <p className="text-xs text-muted-foreground">{doc.original_filename}</p>
-                    </td>
-                    <td className="px-4 py-3"><DocStatusBadge status={doc.status} /></td>
-                    <td className="px-4 py-3 text-right">{doc.chunk_count ?? '—'}</td>
-                    <td className="px-4 py-3 text-right text-xs">{doc.file_size_bytes ? `${(doc.file_size_bytes / 1024).toFixed(0)} KB` : '—'}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(doc.created_at)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        {doc.status === 'ACTIVE' && (
-                          <RoleGuard permission="replace_documents">
-                            <Button variant="ghost" size="icon" title="Replace" onClick={() => setReplacing(doc)}>
-                              <RefreshCw className="h-3.5 w-3.5" />
+      {isSourceFiles ? (
+        <SourceFilesTab />
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-40 text-muted-foreground">Loading…</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">Document</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-500">Chunks</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-500">Size</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">Uploaded</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.items.filter(d => d.status !== 'DELETED').map((doc) => (
+                    <tr key={doc.id} className="border-b last:border-0">
+                      <td className="px-4 py-3">
+                        <p className="font-medium">{doc.document_name}</p>
+                        <p className="text-xs text-muted-foreground">{doc.original_filename}</p>
+                      </td>
+                      <td className="px-4 py-3"><DocStatusBadge status={doc.status} /></td>
+                      <td className="px-4 py-3 text-right">{doc.chunk_count ?? '—'}</td>
+                      <td className="px-4 py-3 text-right text-xs">{doc.file_size_bytes ? `${(doc.file_size_bytes / 1024).toFixed(0)} KB` : '—'}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(doc.created_at)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          {doc.status === 'ACTIVE' && (
+                            <RoleGuard permission="replace_documents">
+                              <Button variant="ghost" size="icon" title="Replace" onClick={() => setReplacing(doc)}>
+                                <RefreshCw className="h-3.5 w-3.5" />
+                              </Button>
+                            </RoleGuard>
+                          )}
+                          <RoleGuard permission="delete_documents">
+                            <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(doc.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </RoleGuard>
-                        )}
-                        <RoleGuard permission="delete_documents">
-                          <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(doc.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </RoleGuard>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {(data?.items.filter(d => d.status !== 'DELETED').length ?? 0) === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">No documents in this collection</td></tr>
-                )}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {(data?.items.filter(d => d.status !== 'DELETED').length ?? 0) === 0 && (
+                    <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">No documents in this collection</td></tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={uploading || !!replacing} onOpenChange={(open) => { if (!open) { setUploading(false); setReplacing(null) } }}>
         {(uploading || replacing) && (

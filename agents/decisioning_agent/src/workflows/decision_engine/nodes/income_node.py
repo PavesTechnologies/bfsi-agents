@@ -22,6 +22,9 @@ _SETTINGS = get_settings()
 @track_node("income_engine")
 @audit_node(agent_name="decisioning_agent")
 def income_node(state: LoanApplicationState) -> LoanApplicationState:
+    active = state.get("active_analyzers")
+    if active is not None and "income" not in active:
+        return {}
 
     income_output_parser = PydanticOutputParser(
         pydantic_object=IncomeOutput

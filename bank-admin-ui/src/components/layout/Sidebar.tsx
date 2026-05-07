@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, FileText, Scale, BookOpen, Users, ScrollText, ClipboardCheck } from 'lucide-react'
+import { LayoutDashboard, FileText, Scale, BookOpen, Users, ScrollText, ClipboardCheck, GitPullRequestArrow } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
@@ -7,6 +7,7 @@ import { UserRoleBadge } from '../common/StatusBadge'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: null },
+  { to: '/pipeline', label: 'Loan Pipeline', icon: GitPullRequestArrow, permission: 'view_applications' as const },
   { to: '/applications', label: 'Applications', icon: FileText, permission: 'view_applications' as const },
   { to: '/rules', label: 'Decision Rules', icon: Scale, permission: 'view_rules' as const },
   { to: '/documents', label: 'RAG Documents', icon: BookOpen, permission: 'view_documents' as const },

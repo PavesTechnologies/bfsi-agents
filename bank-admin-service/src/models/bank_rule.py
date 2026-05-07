@@ -1,7 +1,7 @@
 import uuid
 import datetime
 from typing import Optional
-from sqlalchemy import String, Boolean, Integer, DateTime, Text, ForeignKey, text, Uuid
+from sqlalchemy import String, Boolean, Integer, DateTime, Text, ForeignKey, text, Uuid, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.models.base import Base
@@ -58,3 +58,17 @@ class BankRuleHistory(Base):
     reviewed_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     rule: Mapped[BankRule] = relationship("BankRule", back_populates="history", foreign_keys=[rule_id])
+
+
+class UserRuleOverride(Base):
+    """Per-user rule value set by SUPER_ADMIN. Takes precedence over the global BankRule value."""
+    __tablename__ = "user_rule_overrides"
+    __table_args__ = (UniqueConstraint("user_id", "rule_id", name="uq_user_rule_override"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("bank_users.id", ondelete="CASCADE"), nullable=False, index=True)
+    rule_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("bank_rules.id", ondelete="CASCADE"), nullable=False)
+    override_value: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    override_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("bank_users.id"), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"))

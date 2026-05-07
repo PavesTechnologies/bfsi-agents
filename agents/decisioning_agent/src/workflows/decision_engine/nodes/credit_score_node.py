@@ -19,6 +19,9 @@ from src.services.credit_score_model.credit_score_prompt import CREDIT_SCORE_PRO
 @track_node("credit_score_engine")
 @audit_node(agent_name="decisioning_agent")
 def credit_score_node(state: LoanApplicationState) -> LoanApplicationState:
+    active = state.get("active_analyzers")
+    if active is not None and "credit_score" not in active:
+        return {}
 
     credit_score_output_parser = PydanticOutputParser(
     pydantic_object=CreditScoreOutput

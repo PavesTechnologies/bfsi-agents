@@ -84,6 +84,14 @@ class IndianUnderwritingRequest(BaseModel):
         ge=0,
         description="Optional gross monthly income (INR). Defaults to 50000.",
     )
+    active_analyzers: Optional[List[str]] = Field(
+        default=None,
+        description=(
+            "Subset of analyzers to run. None means run all. "
+            "Valid keys: credit_score, public_record, utilization, "
+            "exposure, behavior, inquiry, income."
+        ),
+    )
 
 
 class LoanDetails(BaseModel):

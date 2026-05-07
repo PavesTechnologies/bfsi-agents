@@ -71,6 +71,8 @@ class Settings(BaseSettings):
 
     ALLOWED_ORIGINS: str = Field("http://localhost:5174,http://localhost:5173", alias="ALLOWED_ORIGINS")
     DECISIONING_AGENT_URL: str = Field("http://localhost:8002", alias="DECISIONING_AGENT_URL")
+    ORCHESTRATOR_URL: str = Field("http://localhost:8004", alias="ORCHESTRATOR_URL")
+    DECISIONING_DOCS_PATH: str = Field("../agents/decisioning_agent/docs", alias="DECISIONING_DOCS_PATH")
 
     @property
     def allowed_origins_list(self) -> List[str]:

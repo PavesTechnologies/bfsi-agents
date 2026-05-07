@@ -30,9 +30,13 @@ class Permission(str, Enum):
 
     # Users
     MANAGE_USERS = "manage_users"
+    MANAGE_USER_RULES = "manage_user_rules"
 
     # Audit
     VIEW_AUDIT_LOGS = "view_audit_logs"
+
+    # Loan pipeline (HITL)
+    APPROVE_LOAN = "approve_loan"
 
 
 ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
@@ -43,11 +47,13 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
         Permission.EDIT_LOW_RISK_RULES,
         Permission.VIEW_DOCUMENTS,
         Permission.UPLOAD_DOCUMENTS,
+        Permission.APPROVE_LOAN,
     },
     Role.UNDERWRITER: {
         Permission.VIEW_APPLICATIONS,
         Permission.VIEW_RULES,
         Permission.VIEW_DOCUMENTS,
+        Permission.APPROVE_LOAN,
     },
     Role.COMPLIANCE_OFFICER: {
         Permission.VIEW_APPLICATIONS,

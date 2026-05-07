@@ -11,6 +11,7 @@ from src.models.base import Base
 import src.models.bank_user  # noqa: F401
 import src.models.bank_rule  # noqa: F401
 import src.models.rag_document  # noqa: F401
+import src.models.loan_application  # noqa: F401
 
 config = context.config
 settings = get_settings()

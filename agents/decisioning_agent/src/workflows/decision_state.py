@@ -136,3 +136,8 @@ class LoanApplicationState(TypedDict):
     rag_pool: Optional[List[Dict[str, Any]]]
     rbi_common_context: Optional[str]          # Common RBI guidelines shared by all 7 nodes
     rag_context_per_node: Optional[Dict[str, str]]  # Bank-specific policy per node
+
+    # --- 8. HITL analyzer selection ---
+    # When set, only analyzers whose key appears in this list run their LLM.
+    # None means "run all" (default). Keys match WEIGHTS keys in risk_aggregator_node.
+    active_analyzers: Optional[List[str]]

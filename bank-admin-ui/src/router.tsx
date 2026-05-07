@@ -10,6 +10,8 @@ import PendingApprovalsPage from './pages/rules/PendingApprovalsPage'
 import DocumentsPage from './pages/documents/DocumentsPage'
 import UsersPage from './pages/users/UsersPage'
 import AuditLogPage from './pages/audit/AuditLogPage'
+import LoanPipelinePage from './pages/pipeline/LoanPipelinePage'
+import ApplicationReviewPage from './pages/pipeline/ApplicationReviewPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.accessToken)
@@ -37,6 +39,8 @@ export function AppRouter() {
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="audit" element={<AuditLogPage />} />
+        <Route path="pipeline" element={<LoanPipelinePage />} />
+        <Route path="pipeline/:id" element={<ApplicationReviewPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

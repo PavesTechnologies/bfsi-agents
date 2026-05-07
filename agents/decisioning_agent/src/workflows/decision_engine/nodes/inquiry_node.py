@@ -19,6 +19,9 @@ from src.services.inquiry_model.inquiry_prompt import INQUIRY_PROMPT
 @track_node("inquiry_engine")
 @audit_node(agent_name="decisioning_agent")
 def inquiry_node(state: LoanApplicationState) -> LoanApplicationState:
+    active = state.get("active_analyzers")
+    if active is not None and "inquiry" not in active:
+        return {}
 
     inquiry_output_parser = PydanticOutputParser(
         pydantic_object=InquiryOutput
