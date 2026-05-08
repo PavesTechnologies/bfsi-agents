@@ -504,8 +504,10 @@ class PipelineService:
             )
             raise
 
-        # Build decisioning result patch for bank-admin
-        co_raw = uw_raw.get("counter_offer") or {}
+        # Build decisioning result patch for bank-admin.
+        # The Indian agent emits `counter_offer_data` (not `counter_offer`); fall
+        # back to either key so this stays robust if the agent shape changes.
+        co_raw = uw_raw.get("counter_offer_data") or uw_raw.get("counter_offer") or {}
         counter_offer_options = None
         if co_raw:
             counter_offer_options = [
@@ -524,7 +526,7 @@ class PipelineService:
 
         try:
             patch_resp = await self.http_client.patch(
-                f"{AgentConfig.BANK_ADMIN_URL}/api/v1/pipeline/applications/{application_id}/decisioning-result",
+                f"{AgentConfig.BANK_ADMIN_URL}/api/v1/pipeline/applications/by-external/{application_id}/decisioning-result",
                 json={
                     "llm_decision": uw_data.get("decision"),
                     "llm_risk_tier": uw_raw.get("risk_tier"),
@@ -538,6 +540,16 @@ class PipelineService:
             )
             self._raise_for_status_with_detail(patch_resp, "Bank-admin patch decisioning-result")
         except Exception as exc:
+            await self._emit_progress(
+                application_id=application_id,
+                progress_callback=progress_callback,
+                event="UNDERWRITING_FAILED",
+                stage=PipelineStage.DECISIONING,
+                status="failed",
+                message="Failed to save decisioning result to bank-admin",
+                details={"reason": str(exc)},
+                is_terminal=True,
+            )
             raise RuntimeError(f"Failed to save decisioning result to bank-admin: {exc}") from exc
 
         save_state(

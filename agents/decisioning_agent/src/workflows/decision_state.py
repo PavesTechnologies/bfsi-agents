@@ -135,7 +135,14 @@ class LoanApplicationState(TypedDict):
     #         existing Experian/CIBIL flow stays a no-op) ---
     rag_pool: Optional[List[Dict[str, Any]]]
     rbi_common_context: Optional[str]          # Common RBI guidelines shared by all 7 nodes
-    rag_context_per_node: Optional[Dict[str, str]]  # Bank-specific policy per node
+    # Formatted-as-text bank rules per workflow node key. Now sourced from
+    # the bank-admin DB (was bank_policies RAG). Same {policy_context} slot
+    # in analyzer prompts.
+    rag_context_per_node: Optional[Dict[str, str]]
+    # Structured rules per workflow node key (raw values — used by
+    # deterministic logic in income / aggregator / decision nodes that can't
+    # parse prose).
+    rules_per_node: Optional[Dict[str, Dict[str, Any]]]
 
     # --- 8. HITL analyzer selection ---
     # When set, only analyzers whose key appears in this list run their LLM.

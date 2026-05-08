@@ -1,6 +1,6 @@
 import uuid
 import datetime
-from typing import Optional
+from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -66,8 +66,13 @@ class LoanApplicationService:
         page: int = 1,
         page_size: int = 20,
         status_filter: Optional[str] = None,
+        statuses_filter: Optional[List[str]] = None,
     ) -> LoanApplicationListResponse:
-        where = [LoanApplication.pipeline_status == status_filter] if status_filter else []
+        where = []
+        if statuses_filter:
+            where.append(LoanApplication.pipeline_status.in_(statuses_filter))
+        elif status_filter:
+            where.append(LoanApplication.pipeline_status == status_filter)
 
         total = (
             await self.db.execute(
@@ -115,7 +120,18 @@ class LoanApplicationService:
     async def save_decisioning_result(
         self, app_id: str, payload: DecisioningResultPatch
     ) -> LoanApplication:
-        app = await self.get_by_id(app_id)
+        return await self._apply_decisioning_result(await self.get_by_id(app_id), payload)
+
+    async def save_decisioning_result_by_external(
+        self, external_id: str, payload: DecisioningResultPatch
+    ) -> LoanApplication:
+        return await self._apply_decisioning_result(
+            await self.get_by_external_id(external_id), payload
+        )
+
+    async def _apply_decisioning_result(
+        self, app: LoanApplication, payload: DecisioningResultPatch
+    ) -> LoanApplication:
         now = self._now()
         app.pipeline_status = PipelineStatus.AWAITING_BANK_APPROVAL
         app.llm_decision = payload.llm_decision

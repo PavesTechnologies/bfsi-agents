@@ -60,7 +60,14 @@ class LoanApplicationSummary(BaseModel):
     kyc_status: Optional[str] = None
     llm_decision: Optional[str] = None
     llm_risk_tier: Optional[str] = None
+    llm_risk_score: Optional[float] = None
+    llm_approved_amount: Optional[float] = None
+    llm_interest_rate: Optional[float] = None
+    llm_tenure_months: Optional[int] = None
     bank_final_decision: Optional[str] = None
+    bank_approved_amount: Optional[float] = None
+    bank_interest_rate: Optional[float] = None
+    bank_tenure_months: Optional[int] = None
     bank_decided_at: Optional[datetime.datetime] = None
     created_at: datetime.datetime
     updated_at: datetime.datetime
@@ -79,16 +86,9 @@ class LoanApplicationDetail(LoanApplicationSummary):
     analyzers_selected_at: Optional[datetime.datetime] = None
 
     decisioning_result_snapshot: Optional[dict] = None
-    llm_risk_score: Optional[float] = None
-    llm_approved_amount: Optional[float] = None
-    llm_interest_rate: Optional[float] = None
-    llm_tenure_months: Optional[int] = None
     llm_counter_offer_options: Optional[List[Any]] = None
     decisioning_completed_at: Optional[datetime.datetime] = None
 
-    bank_approved_amount: Optional[float] = None
-    bank_interest_rate: Optional[float] = None
-    bank_tenure_months: Optional[int] = None
     bank_override_reason: Optional[str] = None
 
     applicant_accepted: Optional[bool] = None

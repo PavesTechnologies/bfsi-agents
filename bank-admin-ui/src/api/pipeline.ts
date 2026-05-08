@@ -10,7 +10,14 @@ export interface LoanApplicationSummary {
   kyc_status: string | null
   llm_decision: string | null
   llm_risk_tier: string | null
+  llm_risk_score: number | null
+  llm_approved_amount: number | null
+  llm_interest_rate: number | null
+  llm_tenure_months: number | null
   bank_final_decision: string | null
+  bank_approved_amount: number | null
+  bank_interest_rate: number | null
+  bank_tenure_months: number | null
   bank_decided_at: string | null
   created_at: string
   updated_at: string
@@ -23,15 +30,8 @@ export interface LoanApplicationDetail extends LoanApplicationSummary {
   active_analyzers: string[] | null
   analyzers_selected_at: string | null
   decisioning_result_snapshot: Record<string, any> | null
-  llm_risk_score: number | null
-  llm_approved_amount: number | null
-  llm_interest_rate: number | null
-  llm_tenure_months: number | null
   llm_counter_offer_options: any[] | null
   decisioning_completed_at: string | null
-  bank_approved_amount: number | null
-  bank_interest_rate: number | null
-  bank_tenure_months: number | null
   bank_override_reason: string | null
   applicant_accepted: boolean | null
   signed_at: string | null
@@ -41,11 +41,15 @@ export interface LoanApplicationDetail extends LoanApplicationSummary {
 }
 
 export const pipelineApi = {
-  list: (params?: { page?: number; page_size?: number; status?: string }) =>
+  list: (params?: { page?: number; page_size?: number; status?: string; statuses?: string[] }) =>
     apiClient
       .get<{ items: LoanApplicationSummary[]; total: number; page: number; page_size: number }>(
         '/pipeline/applications',
-        { params },
+        {
+          params,
+          // Repeat ?statuses=A&statuses=B (FastAPI accepts repeated query params natively).
+          paramsSerializer: { indexes: null },
+        },
       )
       .then((r) => r.data),
 

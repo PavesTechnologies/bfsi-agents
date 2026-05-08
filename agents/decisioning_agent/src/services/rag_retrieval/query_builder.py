@@ -1,67 +1,16 @@
 """
 Build retrieval queries from a CIBIL credit profile.
 
-Two query layers:
+PROFILE QUERY — one query string summarizing the borrower's credit signals
+(score band, defaults, utilization, DPD, NTC, wilful-defaulter flag). Used
+for the initial pool retrieval against Qdrant.
 
-1. PROFILE QUERY — one query string summarizing the borrower's credit signals
-   (score band, defaults, utilization, DPD, NTC, wilful-defaulter flag).
-   Used for the initial pool retrieval against Qdrant.
-
-2. NODE CONCERN QUERIES — short, fixed phrases describing what each analyzer
-   node cares about. Used to re-rank the pool per node.
+(Per-node concern queries used to live here for bank_policies retrieval.
+That collection is no longer queried — bank rules now come from the bank-admin
+DB via `rules_loader_node`. RBI retrieval uses `retrieve_rbi_common`.)
 """
 
 from typing import Any
-
-
-# Per-node concern queries — phrased to retrieve the SPECIFIC config values
-# (thresholds, classification rules, lending limits, weights, factors) that
-# each analyzer node needs. These are *config retrieval* queries, not
-# borrower-context queries — the borrower data goes in via the prompt's
-# INPUT block, the config rules come from these RAG hits.
-NODE_CONCERN_QUERIES: dict[str, str] = {
-    "credit_score": (
-        "Credit score band classification thresholds for personal loan: "
-        "PRIME NEAR_PRIME FAIR SUBPRIME score ranges. "
-        "Base lending limit by score band in INR. "
-        "Risk flag LOW MODERATE HIGH mapping by band. "
-        "Score weight in aggregated risk computation."
-    ),
-    "public_record": (
-        "Public record severity classification rules: NONE LOW MODERATE SEVERE. "
-        "Adjustment factor by severity level. "
-        "Hard decline rules for bankruptcy, suit filed, wilful defaulter, written-off accounts. "
-        "Years since bankruptcy threshold for severity downgrade."
-    ),
-    "credit_utilization": (
-        "Revolving credit utilization ratio risk classification thresholds: "
-        "EXCELLENT GOOD HIGH CRITICAL utilization percentage bands. "
-        "Adjustment factor multiplier by utilization risk tier."
-    ),
-    "debt_exposure": (
-        "Monthly debt obligation thresholds for exposure risk classification: "
-        "LOW MODERATE HIGH EXTREME monthly payment amount bands in INR. "
-        "Total outstanding debt ceiling. "
-        "Monthly EMI estimation rules for tradelines without payment data."
-    ),
-    "payment_behavior": (
-        "Delinquency count and DPD bucket thresholds for behavior risk classification: "
-        "EXCELLENT FAIR POOR UNACCEPTABLE behavior score values. "
-        "Charge-off identification rules. SMA-0 SMA-1 SMA-2 NPA classification. "
-        "30-DPD 60-DPD 90-DPD bucket counting."
-    ),
-    "inquiry": (
-        "Credit inquiry count thresholds in last 12 months for velocity risk: "
-        "LOW MODERATE HIGH inquiry-count bands. "
-        "Inquiry penalty factor multiplier by velocity risk tier."
-    ),
-    "income_analysis": (
-        "Debt to income DTI ratio thresholds for income risk classification: "
-        "LOW MODERATE HIGH UNACCEPTABLE DTI percentage bands. "
-        "Affordability cap, FOIR fixed-obligation-to-income ratio. "
-        "Missing income handling rules and defaults."
-    ),
-}
 
 
 def _extract_utilization_pct(summaries: list) -> float | None:

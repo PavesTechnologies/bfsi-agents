@@ -10,28 +10,29 @@ authoritative values, so the response cannot drift.
 
 import json
 from datetime import datetime
+from typing import Any
 
 from langchain_core.output_parsers import PydanticOutputParser
 
-from src.core.config import get_settings
 from src.core.telemetry import track_node
 from src.services.decision_model.decision_parser import DecisionOutput
 from src.services.decision_model.decision_prompt import DECISION_PROMPT
 from src.services.llm_executor import execute_llm
+from src.services.rules_db import MissingRuleError
 from src.utils.audit_decorator import audit_node
 from src.workflows.decision_state import LoanApplicationState
 
-_SETTINGS = get_settings()
 
-# Tier → annual interest rate. Hardcoded here intentionally — these are the
-# rate-card knobs the bank tunes. Move to config or RAG later if needed.
-_TIER_INTEREST_RATES: dict[str, float] = {
-    "A": 9.5,
-    "B": 12.0,
-    "C": 15.5,
-    "D": 20.0,
-    "F": 0.0,
-}
+def _decision_rules(state: LoanApplicationState) -> dict[str, Any]:
+    rules = (state.get("rules_per_node") or {}).get("decision")
+    if not rules:
+        raise MissingRuleError(rule_key="<decision-bucket>", category="decision")
+    return rules
+
+
+def _interest_rate_for_tier(tier: str, rates: dict[str, float]) -> float:
+    # JSON deserializes keys as strings — ensure tier lookup matches.
+    return float(rates.get(str(tier), 0.0))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -77,10 +78,6 @@ def _step1_hard_decline_triggers(state: LoanApplicationState) -> list[str]:
     return triggers
 
 
-def _interest_rate_for_tier(tier: str) -> float:
-    return _TIER_INTEREST_RATES.get(tier, 0.0)
-
-
 def _compute_decision(
     state: LoanApplicationState,
     requested_amount: float,
@@ -92,9 +89,12 @@ def _compute_decision(
       decision, approved_amount, approved_tenure, interest_rate,
       disbursement_amount, max_approved_amount, step1_triggers, routing_rule.
     """
+    decision_rules = _decision_rules(state)
+    tier_interest_rates: dict[str, float] = decision_rules["tier_interest_rates"]
+    fee_pct = float(decision_rules["origination_fee_pct"])
+
     triggers = _step1_hard_decline_triggers(state)
     tier = state.get("aggregated_risk_tier") or "F"
-    fee_pct = _SETTINGS.llm_origination_fee_pct
 
     if triggers:
         return {
@@ -108,7 +108,7 @@ def _compute_decision(
             "routing_rule": "DECLINE — Step 1 hard-decline trigger(s) fired",
         }
 
-    interest_rate = _interest_rate_for_tier(tier)
+    interest_rate = _interest_rate_for_tier(tier, tier_interest_rates)
 
     if requested_amount <= max_approved_amount:
         return {

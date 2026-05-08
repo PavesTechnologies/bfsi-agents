@@ -5,7 +5,7 @@ Bank-employee endpoints for reviewing applications and finalising credit decisio
 Internal (no-auth) endpoints receive callbacks from the orchestrator to update state.
 """
 import asyncio
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,12 +45,24 @@ async def create_application(
     return {"id": str(app.id), "pipeline_status": app.pipeline_status}
 
 
-@router.patch("/applications/{app_id}/decisioning-result")
+@router.patch("/applications/by-external/{external_id}/decisioning-result")
+async def patch_decisioning_result_by_external(
+    external_id: str,
+    payload: DecisioningResultPatch,
+    db: AsyncSession = Depends(get_db),
+):
+    app = await LoanApplicationService(db).save_decisioning_result_by_external(external_id, payload)
+    return {"id": str(app.id), "pipeline_status": app.pipeline_status}
+
+
+@router.patch("/applications/{app_id}/decisioning-result", deprecated=True)
 async def patch_decisioning_result(
     app_id: str,
     payload: DecisioningResultPatch,
     db: AsyncSession = Depends(get_db),
 ):
+    """Legacy by-internal-id route. Kept for callers that already learned the
+    internal UUID; new callers should use the /by-external variant above."""
     app = await LoanApplicationService(db).save_decisioning_result(app_id, payload)
     return {"id": str(app.id), "pipeline_status": app.pipeline_status}
 
@@ -94,10 +106,11 @@ async def list_applications(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     status: Optional[str] = Query(None),
+    statuses: Optional[List[str]] = Query(None, description="Repeat to pass multiple statuses, e.g. ?statuses=AWAITING_SIGNATURE&statuses=DISBURSED"),
     current_user: dict = Depends(_viewer),
     db: AsyncSession = Depends(get_db),
 ):
-    return await LoanApplicationService(db).list(page, page_size, status)
+    return await LoanApplicationService(db).list(page, page_size, status, statuses)
 
 
 @router.get("/applications/{app_id}", response_model=LoanApplicationDetail)

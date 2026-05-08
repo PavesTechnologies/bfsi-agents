@@ -174,6 +174,11 @@ class IndianUnderwritingService:
                 # responses so callers don't misread it as the granted amount.
                 response_payload.pop("max_approved_amount", None)
 
+            # Surface aggregator outputs at the response top-level so the
+            # orchestrator can patch llm_risk_tier / llm_risk_score on bank-admin.
+            response_payload["risk_tier"] = final_state.get("aggregated_risk_tier")
+            response_payload["risk_score"] = final_state.get("aggregated_risk_score")
+
             # Surface what RAG actually retrieved + which chunks each
             # analyzer consumed. Indian endpoint only.
             response_payload["rag_response"] = _build_rag_response(final_state)

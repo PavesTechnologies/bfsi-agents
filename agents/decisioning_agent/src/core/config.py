@@ -18,13 +18,11 @@ class Settings(BaseSettings):
     DATABASE_URL_SYNC: str = Field(..., alias="DATABASE_URL_SYNC")
     llm_model: str = Field("llama-3.1-8b-instant", alias="LLM_MODEL")
     llm_max_retries: int = Field(2, alias="LLM_MAX_RETRIES")
-    llm_affordability_dti_threshold: float = Field(
-        0.50, alias="LLM_AFFORDABILITY_DTI_THRESHOLD",
-    )
-    llm_origination_fee_pct: float = Field(
-        0.025, alias="LLM_ORIGINATION_FEE_PCT",
-    )
     DATABASE_GENERIC: str = Field(..., alias="DATABASE_GENERIC")
+    # Read-only async URL for the bank-admin DB. The decisioning_agent reads
+    # bank_rules / rule_categories from here; affordability thresholds, tier
+    # interest rates, and risk weights all live in that DB now.
+    BANK_ADMIN_DATABASE_URL: str = Field(..., alias="BANK_ADMIN_DATABASE_URL")
 
     model_config = {
         "case_sensitive": True,

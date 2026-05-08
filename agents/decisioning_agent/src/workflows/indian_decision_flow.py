@@ -1,11 +1,16 @@
 """
 Indian variant of the underwriting graph.
 
-Shape is identical to decision_flow.build_underwriting_graph(), with one
-extra node — `rag_retrieval` — inserted between `pi_deletion` and the
-parallel fan-out. That node fetches RBI / bank policy chunks once,
-re-ranks them per analyzer concern, and stashes the result in state so
-each analyzer can read its slice without doing its own retrieval.
+Shape is identical to decision_flow.build_underwriting_graph(), with two
+extra serial nodes between `pi_deletion` and the parallel fan-out:
+  * `rag_retrieval` — fetches RBI guidelines (regulatory backdrop, shared by
+                      all analyzers).
+  * `rules_loader`  — reads bank_rules from the bank-admin DB and stages
+                      structured + formatted rule context per analyzer node.
+
+Bank-policy thresholds are NOT loaded from RAG anymore — banks tune them via
+bank-admin-service's HITL approval workflow and the next application picks
+up the new values immediately.
 """
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -25,6 +30,7 @@ from src.workflows.decision_engine.nodes.pi_deletion_node import pi_deletion_nod
 from src.workflows.decision_engine.nodes.public_record_node import public_record_node
 from src.workflows.decision_engine.nodes.rag_retrieval_node import rag_retrieval_node
 from src.workflows.decision_engine.nodes.risk_aggregator_node import risk_aggregator_node
+from src.workflows.decision_engine.nodes.rules_loader_node import rules_loader_node
 from src.workflows.decision_engine.nodes.utilization_node import utilization_node
 from src.workflows.decision_state import LoanApplicationState
 
@@ -45,6 +51,7 @@ def build_indian_underwriting_graph():
     # --- Nodes -----------------------------------------------------
     graph.add_node("pi_deletion", pi_deletion_node)
     graph.add_node("rag_retrieval", rag_retrieval_node)
+    graph.add_node("rules_loader", rules_loader_node)
 
     graph.add_node("credit_score", credit_score_node)
     graph.add_node("public_record", public_record_node)
@@ -62,17 +69,18 @@ def build_indian_underwriting_graph():
     # --- Entry -----------------------------------------------------
     graph.set_entry_point("pi_deletion")
 
-    # --- pi_deletion -> rag_retrieval (single-threaded) ------------
+    # --- pi_deletion -> rag_retrieval -> rules_loader (serial) -----
     graph.add_edge("pi_deletion", "rag_retrieval")
+    graph.add_edge("rag_retrieval", "rules_loader")
 
-    # --- rag_retrieval -> 7 parallel analyzers ---------------------
-    graph.add_edge("rag_retrieval", "credit_score")
-    graph.add_edge("rag_retrieval", "public_record")
-    graph.add_edge("rag_retrieval", "credit_utilization")
-    graph.add_edge("rag_retrieval", "debt_exposure")
-    graph.add_edge("rag_retrieval", "payment_behavior")
-    graph.add_edge("rag_retrieval", "inquiry")
-    graph.add_edge("rag_retrieval", "income_analysis")
+    # --- rules_loader -> 7 parallel analyzers ----------------------
+    graph.add_edge("rules_loader", "credit_score")
+    graph.add_edge("rules_loader", "public_record")
+    graph.add_edge("rules_loader", "credit_utilization")
+    graph.add_edge("rules_loader", "debt_exposure")
+    graph.add_edge("rules_loader", "payment_behavior")
+    graph.add_edge("rules_loader", "inquiry")
+    graph.add_edge("rules_loader", "income_analysis")
 
     # --- 7 analyzers -> aggregate ---------------------------------
     graph.add_edge("credit_score", "aggregate")

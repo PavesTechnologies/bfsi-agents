@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Play, CheckCircle, XCircle } from 'lucide-react'
+import { ArrowLeft, Play, CheckCircle, XCircle, Zap } from 'lucide-react'
 import { pipelineApi } from '@/api/pipeline'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -92,14 +92,13 @@ export default function ApplicationReviewPage() {
   })
 
   const submitDecisionMutation = useMutation({
-    mutationFn: () =>
-      pipelineApi.submitDecision(id!, {
-        final_decision: decision,
-        approved_amount: decision === 'APPROVE' ? Number(approvedAmount) : undefined,
-        interest_rate: decision === 'APPROVE' ? Number(interestRate) : undefined,
-        tenure_months: decision === 'APPROVE' ? Number(tenureMonths) : undefined,
-        override_reason: overrideReason || undefined,
-      }),
+    mutationFn: (payload: {
+      final_decision: string
+      approved_amount?: number
+      interest_rate?: number
+      tenure_months?: number
+      override_reason?: string
+    }) => pipelineApi.submitDecision(id!, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pipeline-app', id] })
       queryClient.invalidateQueries({ queryKey: ['pipeline-apps'] })
@@ -108,11 +107,38 @@ export default function ApplicationReviewPage() {
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.detail, variant: 'destructive' }),
   })
 
+  const submitFromForm = () =>
+    submitDecisionMutation.mutate({
+      final_decision: decision,
+      approved_amount: decision === 'APPROVE' ? Number(approvedAmount) : undefined,
+      interest_rate: decision === 'APPROVE' ? Number(interestRate) : undefined,
+      tenure_months: decision === 'APPROVE' ? Number(tenureMonths) : undefined,
+      override_reason: overrideReason || undefined,
+    })
+
+  const autoApproveWithLlmValues = () =>
+    submitDecisionMutation.mutate({
+      final_decision: 'APPROVE',
+      approved_amount: app?.llm_approved_amount ?? undefined,
+      interest_rate: app?.llm_interest_rate ?? undefined,
+      tenure_months: app?.llm_tenure_months ?? undefined,
+    })
+
   if (isLoading) return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading…</div>
   if (!app) return <div className="text-center py-12 text-muted-foreground">Application not found</div>
 
   const canRunDecisioning = app.pipeline_status === 'AWAITING_BANK_REVIEW'
   const canSubmitDecision = app.pipeline_status === 'AWAITING_BANK_APPROVAL'
+
+  // Detect admin overrides on the bank-decision form. When any field differs
+  // from the LLM's suggestion, require an override reason before submitting.
+  const amountEdited = !!approvedAmount && app.llm_approved_amount != null && Number(approvedAmount) !== app.llm_approved_amount
+  const rateEdited   = !!interestRate   && app.llm_interest_rate != null   && Number(interestRate)   !== app.llm_interest_rate
+  const tenureEdited = !!tenureMonths   && app.llm_tenure_months != null   && Number(tenureMonths)   !== app.llm_tenure_months
+  const anyEdited = amountEdited || rateEdited || tenureEdited
+  const editedPill = (
+    <span className="ml-2 text-[10px] uppercase font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">edited</span>
+  )
 
   return (
     <div className="space-y-6">
@@ -209,9 +235,74 @@ export default function ApplicationReviewPage() {
             } />
             <InfoRow label="Risk Tier" value={app.llm_risk_tier ? `Tier ${app.llm_risk_tier}` : null} />
             <InfoRow label="Risk Score" value={app.llm_risk_score?.toFixed(1)} />
-            <InfoRow label="Suggested Amount" value={formatCurrency(app.llm_approved_amount)} />
-            <InfoRow label="Suggested Rate" value={app.llm_interest_rate ? `${app.llm_interest_rate}%` : null} />
-            <InfoRow label="Suggested Tenure" value={app.llm_tenure_months ? `${app.llm_tenure_months} months` : null} />
+
+            {/* APPROVE: show what would be granted. */}
+            {app.llm_decision === 'APPROVE' && (
+              <>
+                <InfoRow label="Suggested Amount" value={formatCurrency(app.llm_approved_amount)} />
+                <InfoRow label="Suggested Rate" value={app.llm_interest_rate ? `${app.llm_interest_rate}%` : null} />
+                <InfoRow label="Suggested Tenure" value={app.llm_tenure_months ? `${app.llm_tenure_months} months` : null} />
+              </>
+            )}
+
+            {/* COUNTER_OFFER: requested amount exceeded the cap; surface the cap and pricing. */}
+            {app.llm_decision === 'COUNTER_OFFER' && (
+              <>
+                <InfoRow
+                  label="Max Qualified Amount"
+                  value={
+                    <span className="text-amber-700 font-semibold">
+                      {formatCurrency(app.decisioning_result_snapshot?.max_approved_amount)}
+                    </span>
+                  }
+                />
+                <InfoRow label="Tier Rate" value={app.llm_interest_rate ? `${app.llm_interest_rate}%` : null} />
+                {app.decisioning_result_snapshot?.counter_offer_data?.max_affordable_emi != null && (
+                  <InfoRow
+                    label="Max Affordable EMI"
+                    value={formatCurrency(app.decisioning_result_snapshot.counter_offer_data.max_affordable_emi)}
+                  />
+                )}
+                {app.decisioning_result_snapshot?.counter_offer_data?.original_request_dti != null && (
+                  <InfoRow
+                    label="Original Request DTI"
+                    value={`${(app.decisioning_result_snapshot.counter_offer_data.original_request_dti * 100).toFixed(2)}%`}
+                  />
+                )}
+              </>
+            )}
+
+            {/* DECLINE: the only meaningful number is the rate (which is 0 for F). */}
+            {app.llm_decision === 'DECLINE' && (
+              <InfoRow label="Suggested Rate" value={app.llm_interest_rate ? `${app.llm_interest_rate}%` : '—'} />
+            )}
+
+            {app.decisioning_result_snapshot?.explanation && (
+              <div className="mt-4 pt-3 border-t">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Explanation</p>
+                <p className="text-sm leading-relaxed whitespace-pre-line">
+                  {app.decisioning_result_snapshot.explanation}
+                </p>
+              </div>
+            )}
+            {Array.isArray(app.decisioning_result_snapshot?.reasoning_steps) && app.decisioning_result_snapshot!.reasoning_steps.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Reasoning</p>
+                <ol className="text-sm list-decimal list-inside space-y-1">
+                  {app.decisioning_result_snapshot!.reasoning_steps.map((step: string, i: number) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+            {app.llm_decision === 'COUNTER_OFFER' && app.decisioning_result_snapshot?.counter_offer_data?.counter_offer_logic && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Counter-Offer Logic</p>
+                <p className="text-sm leading-relaxed">
+                  {app.decisioning_result_snapshot.counter_offer_data.counter_offer_logic}
+                </p>
+              </div>
+            )}
             {app.llm_counter_offer_options && app.llm_counter_offer_options.length > 0 && (
               <div className="mt-3">
                 <p className="text-xs font-medium text-muted-foreground mb-2">Counter Offer Options</p>
@@ -220,11 +311,30 @@ export default function ApplicationReviewPage() {
                     <div key={i} className="text-xs bg-gray-50 rounded p-2 border">
                       <p className="font-medium">{opt.option_id}: {opt.description}</p>
                       <p className="text-muted-foreground">
-                        {formatCurrency(opt.proposed_amount)} · {opt.proposed_tenure_months}m · {opt.proposed_interest_rate}%
+                        {formatCurrency(opt.proposed_amount)} · {opt.proposed_tenure_months}m · {opt.proposed_interest_rate}% · EMI {formatCurrency(opt.monthly_payment_emi)} · disburse {formatCurrency(opt.disbursement_amount)}
                       </p>
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Auto-Approve — one click APPROVE with the LLM's exact recommendation. */}
+            {canSubmitDecision && app.llm_decision === 'APPROVE' && (
+              <div className="mt-4 pt-3 border-t">
+                <Button
+                  onClick={autoApproveWithLlmValues}
+                  disabled={submitDecisionMutation.isPending || app.llm_approved_amount == null}
+                  className="gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  <Zap className="h-4 w-4" />
+                  {submitDecisionMutation.isPending ? 'Approving…' : 'Auto-Approve with LLM values'}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  One-click approval using the LLM's exact recommendation
+                  ({formatCurrency(app.llm_approved_amount)} · {app.llm_interest_rate}% · {app.llm_tenure_months}m).
+                  No override reason required.
+                </p>
               </div>
             )}
           </CardContent>
@@ -251,29 +361,41 @@ export default function ApplicationReviewPage() {
               {decision === 'APPROVE' && (
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-1">
-                    <Label>Approved Amount (₹)</Label>
+                    <Label>Approved Amount (₹){amountEdited && editedPill}</Label>
                     <Input type="number" value={approvedAmount} onChange={(e) => setApprovedAmount(e.target.value)} placeholder="e.g. 500000" />
                   </div>
                   <div className="space-y-1">
-                    <Label>Interest Rate (%)</Label>
+                    <Label>Interest Rate (%){rateEdited && editedPill}</Label>
                     <Input type="number" step="0.01" value={interestRate} onChange={(e) => setInterestRate(e.target.value)} placeholder="e.g. 10.5" />
                   </div>
                   <div className="space-y-1">
-                    <Label>Tenure (months)</Label>
+                    <Label>Tenure (months){tenureEdited && editedPill}</Label>
                     <Input type="number" value={tenureMonths} onChange={(e) => setTenureMonths(e.target.value)} placeholder="e.g. 36" />
                   </div>
                 </div>
               )}
 
+              {anyEdited && decision === 'APPROVE' && (
+                <p className="text-xs text-amber-700">
+                  You're overriding the LLM's recommendation. Please provide a reason below.
+                </p>
+              )}
+
               <div className="space-y-1">
-                <Label>Override Reason (optional)</Label>
+                <Label>
+                  Override Reason {anyEdited && decision === 'APPROVE' ? <span className="text-red-600">*</span> : '(optional)'}
+                </Label>
                 <Input value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} placeholder="Reason for overriding LLM recommendation…" />
               </div>
 
               <div className="flex gap-3">
                 <Button
-                  onClick={() => submitDecisionMutation.mutate()}
-                  disabled={submitDecisionMutation.isPending || (decision === 'APPROVE' && (!approvedAmount || !interestRate || !tenureMonths))}
+                  onClick={submitFromForm}
+                  disabled={
+                    submitDecisionMutation.isPending
+                    || (decision === 'APPROVE' && (!approvedAmount || !interestRate || !tenureMonths))
+                    || (decision === 'APPROVE' && anyEdited && !overrideReason.trim())
+                  }
                   className={`gap-2 ${decision === 'APPROVE' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
                 >
                   {decision === 'APPROVE' ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}

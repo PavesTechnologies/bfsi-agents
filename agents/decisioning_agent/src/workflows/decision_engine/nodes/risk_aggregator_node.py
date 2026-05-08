@@ -2,70 +2,53 @@
 Underwriting Risk Aggregation Engine
 Policy-Driven, Auditable Decision Core
 
-Deterministic aggregation of all parallel risk signals into
-a single risk score and tier. No LLM needed here.
+Deterministic aggregation of all parallel risk signals into a single risk
+score and tier. No LLM needed here. Tier thresholds, per-analyzer weights,
+and risk-flag-to-score mappings are read from `rules_per_node['decision']`
+(loaded by `rules_loader_node` from the bank-admin DB).
 """
 
 from datetime import datetime
+from typing import Any
 
 from src.core.telemetry import track_node
+from src.services.rules_db import MissingRuleError
 from src.workflows.decision_state import LoanApplicationState
 from src.utils.audit_decorator import audit_node
 
 
-# -------------------------------------------------------
-# Risk Tier Mapping
-# -------------------------------------------------------
-TIER_MAPPING = [
-    (80, "A"),   # 80-100 → Tier A (Prime)
-    (65, "B"),   # 65-79  → Tier B (Near-Prime)
-    (50, "C"),   # 50-64  → Tier C (Fair)
-    (35, "D"),   # 35-49  → Tier D (Subprime)
-    (0,  "F"),   # 0-34   → Tier F (Decline)
-]
+_DEFAULT_RISK_FLAG_FALLBACK = 50  # only used when LLM emits an unmapped flag
 
 
-def _score_to_tier(score: float) -> str:
-    for threshold, tier in TIER_MAPPING:
-        if score >= threshold:
-            return tier
-    return "F"
+def _decision_rules(state: LoanApplicationState) -> dict[str, Any]:
+    rules = (state.get("rules_per_node") or {}).get("decision")
+    if not rules:
+        raise MissingRuleError(rule_key="<decision-bucket>", category="decision")
+    return rules
 
 
-# -------------------------------------------------------
-# Weight Configuration
-# -------------------------------------------------------
-WEIGHTS = {
-    "credit_score":  0.25,
-    "public_record": 0.15,
-    "utilization":   0.15,
-    "exposure":      0.10,
-    "behavior":      0.15,
-    "inquiry":       0.05,
-    "income":        0.15,
-}
+def _score_to_tier(score: float, tier_thresholds: list[dict[str, Any]]) -> str:
+    """`tier_thresholds` is a list of {"tier": "A", "min": 80} sorted high→low.
+    Defensive: re-sort by `min` desc so DB row order can't change semantics."""
+    ordered = sorted(tier_thresholds, key=lambda r: float(r["min"]), reverse=True)
+    for row in ordered:
+        if score >= float(row["min"]):
+            return str(row["tier"])
+    return str(ordered[-1]["tier"]) if ordered else "F"
 
 
-def _normalize_risk_flag(flag: str) -> float:
-    """Convert a text risk flag to a 0-100 sub-score."""
-    mapping = {
-        # Credit Score / General flags
-        "LOW": 90, "MODERATE": 60, "HIGH": 30,
-        # Utilization flags
-        "EXCELLENT": 95, "GOOD": 75, "CRITICAL": 10,
-        # Exposure flags
-        "EXTREME": 5,
-        # Behavior flags
-        "FAIR": 65, "POOR": 30, "UNACCEPTABLE": 5,
-        # Severity flags (public record)
-        "NONE": 100, "SEVERE": 10,
-    }
-    return mapping.get(flag.upper(), 50)
+def _normalize_risk_flag(flag: str, mapping: dict[str, int]) -> float:
+    """Convert a text risk flag to a 0-100 sub-score using the DB-loaded map."""
+    return float(mapping.get(flag.upper(), _DEFAULT_RISK_FLAG_FALLBACK))
 
 
 @track_node("underwriting_risk_aggregator")
 @audit_node(agent_name="decisioning_agent")
 def risk_aggregator_node(state: LoanApplicationState) -> LoanApplicationState:
+    decision_rules = _decision_rules(state)
+    weights: dict[str, float] = decision_rules["risk_weights"]
+    tier_thresholds: list[dict[str, Any]] = decision_rules["tier_thresholds"]
+    risk_flag_score_map: dict[str, int] = decision_rules["risk_flag_score_map"]
 
     # ==================================================
     # 1️⃣ Extract Signals
@@ -83,11 +66,11 @@ def risk_aggregator_node(state: LoanApplicationState) -> LoanApplicationState:
     # ==================================================
     active = state.get("active_analyzers")
     if active is not None:
-        active_w = {k: v for k, v in WEIGHTS.items() if k in active}
+        active_w = {k: v for k, v in weights.items() if k in active}
         total_w = sum(active_w.values()) or 1.0
         effective_weights = {k: v / total_w for k, v in active_w.items()}
     else:
-        effective_weights = WEIGHTS
+        effective_weights = weights
 
     # ==================================================
     # 3️⃣ Compute Sub-Scores (0-100 each) for active analyzers only
@@ -100,17 +83,17 @@ def risk_aggregator_node(state: LoanApplicationState) -> LoanApplicationState:
 
     if "public_record" in effective_weights:
         sub_scores["public_record"] = _normalize_risk_flag(
-            public.get("public_record_severity", "NONE")
+            public.get("public_record_severity", "NONE"), risk_flag_score_map
         )
 
     if "utilization" in effective_weights:
         sub_scores["utilization"] = _normalize_risk_flag(
-            util.get("utilization_risk", "GOOD")
+            util.get("utilization_risk", "GOOD"), risk_flag_score_map
         )
 
     if "exposure" in effective_weights:
         sub_scores["exposure"] = _normalize_risk_flag(
-            exposure.get("exposure_risk", "LOW")
+            exposure.get("exposure_risk", "LOW"), risk_flag_score_map
         )
 
     if "behavior" in effective_weights:
@@ -118,12 +101,12 @@ def risk_aggregator_node(state: LoanApplicationState) -> LoanApplicationState:
 
     if "inquiry" in effective_weights:
         sub_scores["inquiry"] = _normalize_risk_flag(
-            inquiry.get("velocity_risk", "LOW")
+            inquiry.get("velocity_risk", "LOW"), risk_flag_score_map
         )
 
     if "income" in effective_weights:
         sub_scores["income"] = _normalize_risk_flag(
-            income.get("income_risk", "MODERATE")
+            income.get("income_risk", "MODERATE"), risk_flag_score_map
         )
 
     # ==================================================
@@ -146,7 +129,7 @@ def risk_aggregator_node(state: LoanApplicationState) -> LoanApplicationState:
     # ==================================================
     # 6️⃣ Determine Risk Tier
     # ==================================================
-    aggregated_risk_tier = _score_to_tier(aggregated_risk_score)
+    aggregated_risk_tier = _score_to_tier(aggregated_risk_score, tier_thresholds)
 
     # ==================================================
     # 7️⃣ Build Reasoning Trace
