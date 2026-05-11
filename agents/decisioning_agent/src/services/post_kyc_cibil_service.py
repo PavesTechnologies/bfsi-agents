@@ -54,7 +54,7 @@ from adapters.mock_adapters.mock_cibil_adapter import (  # type: ignore
     CIBILResponse,
 )
 
-from src.workflows.decision_flow import build_underwriting_graph
+from src.workflows.decision_flow import underwriting_graph_session
 from src.repositories.langgraph_failed_th_repository import (
     DecisioningFailedThreadRepository,
 )
@@ -74,7 +74,8 @@ class PostKYCCIBILService:
         self.db = db
         self.failed_thread_repo = DecisioningFailedThreadRepository(db)
         self.underwriting_repo = UnderwritingRepository(db)
-        self.graph = build_underwriting_graph()
+        # Graph is built per-request via `underwriting_graph_session()` so the
+        # checkpoint pool isn't kept open between calls.
         self.cibil_adapter = MockCIBILAdapter()
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -147,7 +148,8 @@ class PostKYCCIBILService:
         # ── Step 5: Invoke LangGraph (7 parallel LLM nodes) ──────────────
         try:
             start_time = time.time()
-            final_state = await self.graph.ainvoke(initial_state, config=config)
+            async with underwriting_graph_session() as workflow:
+                final_state = await workflow.ainvoke(initial_state, config=config)
             execution_time_ms = int((time.time() - start_time) * 1000)
 
             response_payload: dict[str, Any] = final_state.get("final_decision") or {}

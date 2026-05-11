@@ -11,7 +11,15 @@ extra serial nodes between `pi_deletion` and the parallel fan-out:
 Bank-policy thresholds are NOT loaded from RAG anymore — banks tune them via
 bank-admin-service's HITL approval workflow and the next application picks
 up the new values immediately.
+
+Checkpoint lifecycle: the AsyncConnectionPool is opened per-request via
+`indian_workflow_session()` and closed when the graph finishes. We do NOT
+keep a long-lived pool; idle Postgres connections get terminated by the
+server after ~5 min and used to cause stale-connection failures on the next
+request.
 """
+
+from contextlib import asynccontextmanager
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, StateGraph
@@ -37,15 +45,12 @@ from src.workflows.decision_state import LoanApplicationState
 settings = get_settings()
 DB_URI = settings.DATABASE_GENERIC
 
-# Module-level pool / checkpointer — opened by the service on first use,
-# matching the pattern in decision_flow.py.
-indian_connection_pool = AsyncConnectionPool(
-    conninfo=DB_URI, min_size=1, max_size=2, open=False,
-)
-indian_checkpointer = AsyncPostgresSaver(indian_connection_pool)
 
+def _build_indian_graph_builder() -> StateGraph:
+    """Return the uncompiled StateGraph for the Indian underwriting flow.
+    Cheap — no DB. The checkpointer is attached per-request inside
+    `indian_workflow_session()`."""
 
-def build_indian_underwriting_graph():
     graph = StateGraph(LoanApplicationState)
 
     # --- Nodes -----------------------------------------------------
@@ -110,7 +115,23 @@ def build_indian_underwriting_graph():
     graph.add_edge("counter_offer", "final_response")
     graph.add_edge("final_response", END)
 
-    workflow = graph.compile(checkpointer=indian_checkpointer)
-    workflow.pool = indian_connection_pool
-    workflow.checkpointer = indian_checkpointer
-    return workflow
+    return graph
+
+
+@asynccontextmanager
+async def indian_workflow_session():
+    """Per-request lifecycle for the Indian/RAG-augmented underwriting graph.
+
+    Opens an `AsyncConnectionPool` + `AsyncPostgresSaver` checkpointer for the
+    duration of one graph invocation, compiles the graph against it, yields
+    the runnable workflow, then closes the pool on exit.
+
+    Usage:
+        async with indian_workflow_session() as workflow:
+            final_state = await workflow.ainvoke(initial_state, config=config)
+    """
+    async with AsyncConnectionPool(conninfo=DB_URI, min_size=1, max_size=2) as pool:
+        await pool.wait()
+        checkpointer = AsyncPostgresSaver(pool)
+        workflow = _build_indian_graph_builder().compile(checkpointer=checkpointer)
+        yield workflow

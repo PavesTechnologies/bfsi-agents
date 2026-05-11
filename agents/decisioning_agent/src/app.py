@@ -1,53 +1,44 @@
 """
-AUTO-GENERATED FILE.
-
 FastAPI application factory.
 
 Responsibilities:
 - create FastAPI app
 - register routers
-- configure middleware (later)
+- run one-time LangGraph checkpoint migrations at startup
 
-Do NOT put business logic here.
+LangGraph checkpoint pools are no longer opened here — each underwrite call
+opens its own short-lived pool via `*_workflow_session()` context managers
+in src/workflows/. That avoids stale-idle-connection failures when the
+service sits quiet for >5 min.
 """
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-import logging
-from src.api.routes import router
-from src.utils.migration_database import Base, engine
-import src.models  # noqa: F401
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from src.workflows.decision_flow import connection_pool,DB_URI  # ✅ import singletons
-from src.workflows.indian_decision_flow import indian_connection_pool
 
-# test logging
+import src.models  # noqa: F401  — registers SQLAlchemy models
+from src.api.routes import router
+from src.workflows.decision_flow import DB_URI
+
 logger = logging.getLogger(__name__)
+
 
 def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        # ✅ Step 1: Run migrations on a dedicated autocommit connection
-        # CREATE INDEX CONCURRENTLY requires autocommit=True (no transaction block)
+        # One-time migration on a throw-away pool. AsyncPostgresSaver.setup()
+        # creates the checkpoint / checkpoint_writes / etc. tables if missing.
+        # CREATE INDEX CONCURRENTLY requires autocommit, hence the dedicated
+        # `from_conn_string` connection rather than reusing a request pool.
         async with AsyncPostgresSaver.from_conn_string(DB_URI) as tmp_checkpointer:
             await tmp_checkpointer.setup()
         logger.info("✅ LangGraph checkpointer migrations applied")
 
-        # ✅ Step 2: Open the shared pool used by the actual graph
-        await connection_pool.open()
-        logger.info("✅ LangGraph connection pool opened")
-
-        # ✅ Step 3: Open the Indian (RAG-augmented) graph's pool
-        await indian_connection_pool.open()
-        logger.info("✅ Indian LangGraph connection pool opened")
-
         yield
 
-        await indian_connection_pool.close()
-        logger.info("🔒 Indian LangGraph connection pool closed")
-        await connection_pool.close()
-        logger.info("🔒 LangGraph connection pool closed")
+        logger.info("👋 decisioning_agent shutting down")
 
     app = FastAPI(
         title="decisioning_agent",

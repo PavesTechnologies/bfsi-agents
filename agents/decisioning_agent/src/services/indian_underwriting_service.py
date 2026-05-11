@@ -35,7 +35,7 @@ from src.repositories.langgraph_failed_th_repository import (
 )
 from src.repositories.underwriting_repository import UnderwritingRepository
 from src.services.post_kyc_cibil_service import PostKYCCIBILService
-from src.workflows.indian_decision_flow import build_indian_underwriting_graph
+from src.workflows.indian_decision_flow import indian_workflow_session
 
 
 # Sensible retail-loan defaults — used when the request omits loan_request
@@ -98,7 +98,8 @@ class IndianUnderwritingService:
         self.db = db
         self.failed_thread_repo = DecisioningFailedThreadRepository(db)
         self.underwriting_repo = UnderwritingRepository(db)
-        self.graph = build_indian_underwriting_graph()
+        # Graph is built per-request via `indian_workflow_session()` so the
+        # checkpoint pool isn't kept open between calls.
         self.cibil_adapter = MockCIBILAdapter()
 
         # Reuse the CIBIL→Experian mapper from PostKYCCIBILService rather
@@ -153,7 +154,8 @@ class IndianUnderwritingService:
         # ── 5. Invoke RAG-augmented graph ────────────────────────────────
         try:
             start = time.time()
-            final_state = await self.graph.ainvoke(initial_state, config=config)
+            async with indian_workflow_session() as workflow:
+                final_state = await workflow.ainvoke(initial_state, config=config)
             execution_time_ms = int((time.time() - start) * 1000)
 
             response_payload: dict[str, Any] = final_state.get("final_decision") or {}

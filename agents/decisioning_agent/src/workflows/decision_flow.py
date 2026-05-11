@@ -7,15 +7,24 @@ Architecture:
 - Deterministic Aggregation
 - LLM Decision
 - Conditional Routing (Approve / Reject / Counter Offer)
+
+Checkpoint lifecycle: the AsyncConnectionPool is opened per-request via
+`underwriting_graph_session()` and closed when the graph finishes. We do NOT
+keep a long-lived pool; idle Postgres connections get terminated by the
+server after ~5 min and used to cause stale-connection failures on the next
+request.
 """
 
+import json
+from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, StateGraph
+from psycopg_pool import AsyncConnectionPool
 
 from src.workflows.decision_state import LoanApplicationState
 
-import json
-from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from psycopg_pool import AsyncConnectionPool 
 # -----------------------
 # Risk Evaluation Nodes
 # -----------------------
@@ -39,18 +48,15 @@ from src.workflows.decision_engine.nodes.counter_offer_node import counter_offer
 from src.workflows.decision_engine.nodes.final_response_node import final_response_node
 from src.core.config import get_settings
 
-settings = get_settings()
-from dotenv import load_dotenv
 load_dotenv()
-# from IPython.display import Image, display # type: ignore
+settings = get_settings()
 DB_URI = settings.DATABASE_GENERIC
-# ✅ Create pool and checkpointer as module-level singletons (not yet open)
-connection_pool = AsyncConnectionPool(conninfo=DB_URI,min_size=1 ,max_size=2, open=False)
-checkpointer = AsyncPostgresSaver(connection_pool)
 
 
-def build_underwriting_graph():
-    
+def _build_underwriting_graph_builder() -> StateGraph:
+    """Return the uncompiled StateGraph. Cheap — no DB. The checkpointer is
+    attached per-request inside `underwriting_graph_session()`."""
+
     graph = StateGraph(LoanApplicationState)
 
     # -----------------------
@@ -135,47 +141,45 @@ def build_underwriting_graph():
     # Final node → END
     graph.add_edge("final_response", END)
 
-    workflow = graph.compile(checkpointer=checkpointer)
-    
-    # 2. Attach the pool and checkpointer to the workflow object 
-    # so we can open them from the Service or FastAPI startup
-    workflow.pool = connection_pool
-    workflow.checkpointer = checkpointer
-    
-    # workflow = graph.compile()
-    
-    return workflow   
+    return graph
+
+
+@asynccontextmanager
+async def underwriting_graph_session():
+    """Per-request lifecycle for the Experian/CIBIL underwriting graph.
+
+    Opens an `AsyncConnectionPool` + `AsyncPostgresSaver` checkpointer for the
+    duration of one graph invocation, compiles the graph against it, yields
+    the runnable workflow, then closes the pool on exit. Each request gets a
+    fresh pool, so we never serve a borrowed-then-stale connection.
+
+    Usage:
+        async with underwriting_graph_session() as workflow:
+            final_state = await workflow.ainvoke(initial_state, config=config)
+    """
+    async with AsyncConnectionPool(conninfo=DB_URI, min_size=1, max_size=2) as pool:
+        await pool.wait()
+        checkpointer = AsyncPostgresSaver(pool)
+        workflow = _build_underwriting_graph_builder().compile(checkpointer=checkpointer)
+        yield workflow
 
 
 if __name__ == "__main__":
-    workflow = build_underwriting_graph()
+    import asyncio
 
-    # -------------------------
-    # 1️⃣ Read Experian JSON file
-    # -------------------------
-    with open(r"src\workflows\exp-prequal-fico9.json", "r", encoding="utf-8") as f:
-        experian_payload = json.load(f)
-    
-    # -------------------------
-    # 2️⃣ Build Initial State
-    # -------------------------
-    data = {
-        "application_id": "APP_001",
-        "raw_experian_data": experian_payload,
-        "user_request": {
-            "amount": 100000,
-            "tenure": 20
-        },
-        "bank_statement_summary": {
-            "monthly_income": 10000
+    async def _smoke() -> None:
+        with open(r"src\workflows\exp-prequal-fico9.json", "r", encoding="utf-8") as f:
+            experian_payload = json.load(f)
+
+        data = {
+            "application_id": "APP_001",
+            "raw_experian_data": experian_payload,
+            "user_request": {"amount": 100000, "tenure": 20},
+            "bank_statement_summary": {"monthly_income": 10000},
         }
-    }
+        async with underwriting_graph_session() as workflow:
+            result = await workflow.ainvoke(data)
+        print("Final Decision:")
+        print(result)
 
-    # print(experian_payload)
-    result = workflow.invoke(data)
-
-    # # with open("underwriting_graph.png", "wb") as f:
-    # #     f.write(workflow.get_graph().draw_mermaid_png())
-        
-    print("Final Decision:")
-    print(result)
+    asyncio.run(_smoke())

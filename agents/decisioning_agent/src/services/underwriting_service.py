@@ -15,7 +15,7 @@ from src.repositories.langgraph_failed_th_repository import (
     DecisioningFailedThreadRepository,
 )
 from src.repositories.underwriting_repository import UnderwritingRepository
-from src.workflows.decision_flow import build_underwriting_graph
+from src.workflows.decision_flow import underwriting_graph_session
 from fastapi import HTTPException
 
 class UnderwritingService:
@@ -23,7 +23,8 @@ class UnderwritingService:
         self.db = db
         self.failed_thread_repo = DecisioningFailedThreadRepository(db)
         self.underwriting_repo = UnderwritingRepository(db)
-        self.graph = build_underwriting_graph()
+        # Graph is built per-request via `underwriting_graph_session()` so the
+        # checkpoint pool isn't kept open between calls.
 
     async def execute_underwriting(self, request: UnderwritingRequest) -> dict:
         """
@@ -61,8 +62,9 @@ class UnderwritingService:
                     },
                 }
 
-            final_state = await self.graph.ainvoke(initial_state, config=config)
-            
+            async with underwriting_graph_session() as workflow:
+                final_state = await workflow.ainvoke(initial_state, config=config)
+
             execution_time_ms = int((time.time() - start_time) * 1000)
             
             response_payload = final_state.get("final_decision", {})
