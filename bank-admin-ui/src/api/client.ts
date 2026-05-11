@@ -1,7 +1,13 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
-const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
+// VITE_API_URL is the host root (e.g. "http://localhost:8005"). The "/api/v1"
+// versioning prefix is appended here so .env stays the host-only knob.
+// If VITE_API_URL is unset we fall back to a relative "/api/v1", which goes
+// through the Vite dev-server proxy defined in vite.config.ts.
+const API_VERSION_PATH = '/api/v1'
+const apiHost = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
+const BASE_URL = apiHost ? `${apiHost}${API_VERSION_PATH}` : API_VERSION_PATH
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,

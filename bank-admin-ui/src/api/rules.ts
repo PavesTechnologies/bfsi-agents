@@ -38,17 +38,38 @@ export interface RuleHistory {
   reviewed_at: string | null
 }
 
+export type RuleActionType = 'CREATE' | 'UPDATE' | 'DELETE'
+
 export interface PendingApproval {
   id: string
   rule_id: string
   rule_key: string
   rule_display_name: string
+  category_name?: string | null
+  risk_level?: string | null
+  action_type?: RuleActionType
+  /** @deprecated read action_type === 'CREATE' instead */
+  is_create?: boolean
   old_value: Record<string, unknown> | null
   new_value: Record<string, unknown>
   changed_by: string
   changed_by_name: string | null
   change_reason: string | null
   created_at: string
+}
+
+export interface RuleCreatePayload {
+  category_id: number
+  rule_key: string
+  display_name: string
+  description?: string
+  current_value: Record<string, unknown>
+  default_value?: Record<string, unknown>
+  data_type: string
+  validation_schema?: Record<string, unknown> | null
+  risk_level: string
+  requires_approval: boolean
+  change_reason: string
 }
 
 export const rulesApi = {
@@ -70,4 +91,14 @@ export const rulesApi = {
     apiClient.post<RuleHistory>(`/rules/pending-approvals/${historyId}/reject`, { comment }).then((r) => r.data),
 
   reset: (id: string) => apiClient.post<Rule>(`/rules/${id}/reset`).then((r) => r.data),
+
+  categories: () => apiClient.get<RuleCategory[]>('/rules/categories').then((r) => r.data),
+
+  create: (payload: RuleCreatePayload) =>
+    apiClient.post<RuleHistory>('/rules/', payload).then((r) => r.data),
+
+  proposeDelete: (id: string, change_reason: string) =>
+    apiClient
+      .post<RuleHistory>(`/rules/${id}/propose-delete`, { change_reason })
+      .then((r) => r.data),
 }
