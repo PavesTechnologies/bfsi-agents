@@ -1,7 +1,12 @@
 import uuid
 import datetime
 from typing import Any, Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+
+# Anchors of the deterministic decision math. The UI locks these checkboxes;
+# this validator enforces the same rule server-side for direct API callers.
+_MANDATORY_ANALYZERS: frozenset[str] = frozenset({"credit_score", "public_record", "income"})
 
 
 class LoanApplicationCreate(BaseModel):
@@ -16,6 +21,20 @@ class LoanApplicationCreate(BaseModel):
 
 class AnalyzerSelectionRequest(BaseModel):
     active_analyzers: Optional[List[str]] = None
+
+    @field_validator("active_analyzers")
+    @classmethod
+    def _enforce_mandatory(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        # `None` means "run all analyzers" — that's fine. A concrete list must
+        # always include credit_score, public_record, and income.
+        if v is None:
+            return v
+        missing = _MANDATORY_ANALYZERS - set(v)
+        if missing:
+            raise ValueError(
+                f"Mandatory analyzers cannot be deselected: {sorted(missing)}"
+            )
+        return v
 
 
 class BankDecisionRequest(BaseModel):

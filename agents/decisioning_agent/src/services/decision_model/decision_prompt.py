@@ -33,6 +33,9 @@ Risk Score (0-100):       {aggregated_risk_score}
 Requested Amount (INR):   {requested_amount}
 Requested Tenure:         {requested_tenure} months
 
+Analyzers that ran:      {analyzers_ran}
+Analyzers that were skipped: {analyzers_skipped}
+
 Credit Score Data:  {credit_score_data}
 Public Record Data: {public_record_data}
 Utilization Data:   {utilization_data}
@@ -40,6 +43,14 @@ Exposure Data:      {exposure_data}
 Behavior Data:      {behavior_data}
 Inquiry Data:       {inquiry_data}
 Income Data:        {income_data}
+
+When an analyzer is listed under "Analyzers that were skipped", its *_data
+slot above reads "(skipped — analyzer not selected by bank)".
+- Do NOT invent or infer any values for skipped analyzers.
+- Do NOT reference their fields in `explanation` or `reasoning_steps`.
+- If you need to acknowledge the absence, say "<analyzer name> was not run".
+- The Step 1 hard-decline triggers below are authoritative — only mention
+  triggers that actually fired (already listed in "Step 1 outcome").
 
 ---------------------------------------
 HOW THE PRE-COMPUTED VALUES WERE DERIVED  (reference only — do NOT re-derive)

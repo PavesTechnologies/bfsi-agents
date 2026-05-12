@@ -21,6 +21,13 @@ const ALL_ANALYZERS = [
   { key: 'income', label: 'Income & DTI' },
 ]
 
+// Mandatory analyzers anchor the deterministic decision math:
+//   credit_score  → base_limit_band (caps max approved amount)
+//   public_record → hard_decline_flag (Step 1b: bankruptcy / wilful default / write-off)
+//   income        → affordability_flag (Step 1c: DTI gate)
+// These are always run; their checkboxes render locked/disabled.
+const MANDATORY_ANALYZERS = new Set<string>(['credit_score', 'public_record', 'income'])
+
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between py-2 border-b last:border-0">
@@ -46,9 +53,13 @@ export default function ApplicationReviewPage() {
   const [selectedAnalyzers, setSelectedAnalyzers] = useState<string[]>(ALL_ANALYZERS.map((a) => a.key))
   const [analyzersInitialized, setAnalyzersInitialized] = useState(false)
 
-  // When app loads, initialize from saved value if present
+  // When app loads, initialize from saved value if present, and always merge
+  // in the mandatory analyzers (defends against stale persisted rows that
+  // predate the mandatory-set decision).
   if (app && !analyzersInitialized) {
-    setSelectedAnalyzers(app.active_analyzers ?? ALL_ANALYZERS.map((a) => a.key))
+    const saved = app.active_analyzers ?? ALL_ANALYZERS.map((a) => a.key)
+    const merged = Array.from(new Set<string>([...saved, ...MANDATORY_ANALYZERS]))
+    setSelectedAnalyzers(merged)
     setAnalyzersInitialized(true)
   }
 
@@ -185,26 +196,43 @@ export default function ApplicationReviewPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Risk Analyzers</CardTitle>
-            <p className="text-xs text-muted-foreground">Select which analyzers to run. Weights redistribute automatically for deselected analyzers.</p>
+            <p className="text-xs text-muted-foreground">
+              Credit Score, Public Record, and Income &amp; DTI are required — they anchor the
+              deterministic decision math. The other four can be toggled; weights redistribute
+              automatically for deselected analyzers.
+            </p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-              {ALL_ANALYZERS.map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
+              {ALL_ANALYZERS.map(({ key, label }) => {
+                const isMandatory = MANDATORY_ANALYZERS.has(key)
+                return (
+                <label
+                  key={key}
+                  className={`flex items-center gap-2 select-none ${isMandatory ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  title={isMandatory ? 'Required — anchors the deterministic decision math' : undefined}
+                >
                   <input
                     type="checkbox"
-                    checked={selectedAnalyzers.includes(key)}
-                    disabled={!canRunDecisioning}
-                    onChange={(e) =>
+                    checked={isMandatory ? true : selectedAnalyzers.includes(key)}
+                    disabled={!canRunDecisioning || isMandatory}
+                    onChange={(e) => {
+                      if (isMandatory) return
                       setSelectedAnalyzers((prev) =>
                         e.target.checked ? [...prev, key] : prev.filter((k) => k !== key),
                       )
-                    }
-                    className="h-4 w-4 rounded border-gray-300"
+                    }}
+                    className={`h-4 w-4 rounded border-gray-300 ${isMandatory ? 'opacity-70' : ''}`}
                   />
-                  <span className="text-sm">{label}</span>
+                  <span className={`text-sm ${isMandatory ? 'font-medium' : ''}`}>
+                    {label}
+                    {isMandatory && (
+                      <span className="ml-1 text-[10px] uppercase text-amber-700">required</span>
+                    )}
+                  </span>
                 </label>
-              ))}
+                )
+              })}
             </div>
             {canRunDecisioning && (
               <Button

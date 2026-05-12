@@ -35,6 +35,41 @@ def _interest_rate_for_tier(tier: str, rates: dict[str, float]) -> float:
     return float(rates.get(str(tier), 0.0))
 
 
+# Canonical analyzer order — drives the "ran vs skipped" lists fed to the
+# LLM. Mandatory analyzers (credit_score, public_record, income) always run,
+# so they always render real JSON for their *_data prompt slots.
+_ALL_ANALYZERS: list[str] = [
+    "credit_score",
+    "public_record",
+    "utilization",
+    "exposure",
+    "behavior",
+    "inquiry",
+    "income",
+]
+
+
+def _split_active(state: LoanApplicationState) -> tuple[list[str], list[str]]:
+    """Return (analyzers_that_ran, analyzers_that_were_skipped) in canonical order."""
+    active = state.get("active_analyzers")
+    if active is None:
+        return list(_ALL_ANALYZERS), []
+    ran = [a for a in _ALL_ANALYZERS if a in active]
+    skipped = [a for a in _ALL_ANALYZERS if a not in active]
+    return ran, skipped
+
+
+def _data_for_prompt(
+    state: LoanApplicationState, state_key: str, analyzer_id: str
+) -> str:
+    """Render an analyzer's data slot for the prompt. Skipped analyzers get a
+    literal sentinel string so the LLM cannot hallucinate the missing fields."""
+    active = state.get("active_analyzers")
+    if active is not None and analyzer_id not in active:
+        return "(skipped — analyzer not selected by bank)"
+    return json.dumps(state.get(state_key) or {})
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Deterministic computation helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -217,6 +252,8 @@ def decision_llm_node(state: LoanApplicationState) -> LoanApplicationState:
         else "all checks passed (tier != F, no public-record hard decline, affordability OK)"
     )
 
+    analyzers_ran, analyzers_skipped = _split_active(state)
+
     # ── 3. Build LLM inputs (pre-computed values + raw context) ──────
     inputs = {
         # Pre-computed (LLM must echo verbatim)
@@ -229,16 +266,22 @@ def decision_llm_node(state: LoanApplicationState) -> LoanApplicationState:
         "step1_outcome": step1_outcome,
         "routing_rule": pre["routing_rule"],
 
+        # Analyzer participation — drives anti-hallucination instructions in
+        # the prompt. Skipped analyzers' *_data slots below render as a
+        # literal sentinel so the LLM cannot invent missing values.
+        "analyzers_ran": ", ".join(analyzers_ran) or "(none)",
+        "analyzers_skipped": ", ".join(analyzers_skipped) or "(none)",
+
         # Raw context (so the LLM can write a meaningful explanation)
         "aggregated_risk_score": str(state.get("aggregated_risk_score", 0)),
         "aggregated_risk_tier": tier,
-        "credit_score_data": json.dumps(state.get("credit_score_data") or {}),
-        "public_record_data": json.dumps(state.get("public_record_data") or {}),
-        "utilization_data": json.dumps(state.get("utilization_data") or {}),
-        "exposure_data": json.dumps(state.get("exposure_data") or {}),
-        "behavior_data": json.dumps(state.get("behavior_data") or {}),
-        "inquiry_data": json.dumps(state.get("inquiry_data") or {}),
-        "income_data": json.dumps(state.get("income_data") or {}),
+        "credit_score_data": _data_for_prompt(state, "credit_score_data", "credit_score"),
+        "public_record_data": _data_for_prompt(state, "public_record_data", "public_record"),
+        "utilization_data": _data_for_prompt(state, "utilization_data", "utilization"),
+        "exposure_data": _data_for_prompt(state, "exposure_data", "exposure"),
+        "behavior_data": _data_for_prompt(state, "behavior_data", "behavior"),
+        "inquiry_data": _data_for_prompt(state, "inquiry_data", "inquiry"),
+        "income_data": _data_for_prompt(state, "income_data", "income"),
         "requested_amount": str(requested_amount),
         "requested_tenure": str(requested_tenure),
 

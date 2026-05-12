@@ -7,7 +7,12 @@ disbursement agent and the orchestrator.
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+# Anchors of the deterministic decision math. Must be present whenever the
+# caller passes an explicit `active_analyzers` list.
+_MANDATORY_ANALYZERS: frozenset[str] = frozenset({"credit_score", "public_record", "income"})
 
 
 class UnderwritingRequest(BaseModel):
@@ -89,9 +94,23 @@ class IndianUnderwritingRequest(BaseModel):
         description=(
             "Subset of analyzers to run. None means run all. "
             "Valid keys: credit_score, public_record, utilization, "
-            "exposure, behavior, inquiry, income."
+            "exposure, behavior, inquiry, income. "
+            "credit_score, public_record, and income are mandatory when "
+            "the list is provided."
         ),
     )
+
+    @field_validator("active_analyzers")
+    @classmethod
+    def _enforce_mandatory(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None:
+            return v
+        missing = _MANDATORY_ANALYZERS - set(v)
+        if missing:
+            raise ValueError(
+                f"Mandatory analyzers cannot be deselected: {sorted(missing)}"
+            )
+        return v
 
 
 class LoanDetails(BaseModel):

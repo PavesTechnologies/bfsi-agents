@@ -12,6 +12,9 @@ APPLICANT PROFILE
 
 ---------------------------------------
 
+Analyzers that ran:      {analyzers_ran}
+Analyzers that were skipped: {analyzers_skipped}
+
 Risk Tier: {risk_tier}
 Credit Score Band: {score_band}
 Base Lending Limit: {base_limit}
@@ -22,6 +25,12 @@ Affordability Flag: {affordability_flag}
 
 Utilization Risk: {utilization_risk}
 Behavior Risk: {behavior_risk}
+
+Any field above whose value reads "(skipped — analyzer not selected by bank)"
+indicates the bank chose not to run that analyzer for this application.
+- Do NOT invent or infer that field's value.
+- Compute the options using only the fields with real values.
+- The counter_offer_logic explanation should NOT cite skipped analyzers.
 
 ---------------------------------------
 

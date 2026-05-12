@@ -4,6 +4,8 @@ Affordability-Based Restructuring Logic
 """
 
 from datetime import datetime
+from typing import Any
+
 from langchain_core.output_parsers import PydanticOutputParser
 
 from src.core.telemetry import track_node
@@ -13,6 +15,41 @@ from src.utils.audit_decorator import audit_node
 from src.services.llm_executor import execute_llm
 from src.services.counter_offer_model.counter_offer_parser import CounterOfferOutput
 from src.services.counter_offer_model.counter_offer_prompt import COUNTER_OFFER_PROMPT
+
+
+_ALL_ANALYZERS: list[str] = [
+    "credit_score",
+    "public_record",
+    "utilization",
+    "exposure",
+    "behavior",
+    "inquiry",
+    "income",
+]
+_SKIPPED_SENTINEL = "(skipped — analyzer not selected by bank)"
+
+
+def _split_active(state: LoanApplicationState) -> tuple[list[str], list[str]]:
+    active = state.get("active_analyzers")
+    if active is None:
+        return list(_ALL_ANALYZERS), []
+    ran = [a for a in _ALL_ANALYZERS if a in active]
+    skipped = [a for a in _ALL_ANALYZERS if a not in active]
+    return ran, skipped
+
+
+def _scalar_for_prompt(
+    state: LoanApplicationState,
+    analyzer_id: str,
+    value: Any,
+    default: Any,
+) -> str:
+    """Render a single scalar for the counter-offer prompt. Skipped analyzers
+    emit a literal sentinel string so the LLM knows the field is absent."""
+    active = state.get("active_analyzers")
+    if active is not None and analyzer_id not in active:
+        return _SKIPPED_SENTINEL
+    return str(value if value is not None else default)
 
 
 def _build_fallback_counter_offer(state: LoanApplicationState) -> CounterOfferOutput:
@@ -80,17 +117,30 @@ def counter_offer_node(state: LoanApplicationState) -> LoanApplicationState:
     # ==================================================
     # 2️⃣ Prepare LLM Inputs
     # ==================================================
+    # credit_score, public_record, income are mandatory → always real values.
+    # utilization, exposure, behavior are optional → render the sentinel when
+    # the bank skipped them so the LLM doesn't anchor on a fake default.
+    analyzers_ran, analyzers_skipped = _split_active(state)
+
     inputs = {
         "risk_tier": str(state.get("aggregated_risk_tier", "D")),
         "score_band": str(credit_score_data.get("score_band", "FAIR")),
         "base_limit": str(credit_score_data.get("base_limit_band", 20000)),
         "estimated_dti": str(income_data.get("estimated_dti", 0)),
-        "monthly_obligations": str(exposure_data.get("monthly_obligation_estimate", 0)),
         "affordability_flag": str(income_data.get("affordability_flag", False)),
-        "utilization_risk": str(utilization_data.get("utilization_risk", "HIGH")),
-        "behavior_risk": str(behavior_data.get("behavior_risk", "FAIR")),
+        "monthly_obligations": _scalar_for_prompt(
+            state, "exposure", exposure_data.get("monthly_obligation_estimate"), 0,
+        ),
+        "utilization_risk": _scalar_for_prompt(
+            state, "utilization", utilization_data.get("utilization_risk"), "HIGH",
+        ),
+        "behavior_risk": _scalar_for_prompt(
+            state, "behavior", behavior_data.get("behavior_risk"), "FAIR",
+        ),
         "requested_amount": str(user_request.get("amount", 0)),
         "requested_tenure": str(user_request.get("tenure", 0)),
+        "analyzers_ran": ", ".join(analyzers_ran) or "(none)",
+        "analyzers_skipped": ", ".join(analyzers_skipped) or "(none)",
         "format_instructions": counter_offer_output_parser.get_format_instructions(),
     }
 
