@@ -2,6 +2,7 @@
 RAG ingestion service: parses uploaded PDFs, chunks them,
 embeds with sentence-transformers, and upserts into Qdrant.
 """
+import asyncio
 import uuid
 import logging
 import os
@@ -45,6 +46,33 @@ class RagIngestionService:
         if len(content) > 50 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="File too large (max 50 MB)")
 
+        # Serialize concurrent uploads to the same collection — only one ingestion at a time.
+        in_flight = await self.db.execute(
+            select(RagDocument).where(
+                RagDocument.collection_name == collection_name,
+                RagDocument.status.in_(("PENDING", "PROCESSING")),
+            )
+        )
+        if in_flight.scalars().first() is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="An ingestion is already in progress for this collection. Wait for it to finish.",
+            )
+
+        # Auto-derive lineage: if caller didn't specify replace_id, point at the current ACTIVE row.
+        resolved_replace_id: Optional[uuid.UUID]
+        if replace_id:
+            resolved_replace_id = uuid.UUID(replace_id)
+        else:
+            current_active = await self.db.execute(
+                select(RagDocument).where(
+                    RagDocument.collection_name == collection_name,
+                    RagDocument.status == "ACTIVE",
+                ).order_by(RagDocument.created_at.desc())
+            )
+            active_row = current_active.scalars().first()
+            resolved_replace_id = active_row.id if active_row else None
+
         storage_path = await self._store_file(content, file.filename)
 
         doc = RagDocument(
@@ -56,7 +84,7 @@ class RagIngestionService:
             mime_type="application/pdf",
             status="PENDING",
             uploaded_by=uuid.UUID(user_id),
-            replaced_document_id=uuid.UUID(replace_id) if replace_id else None,
+            replaced_document_id=resolved_replace_id,
         )
         self.db.add(doc)
         await self.db.flush()
@@ -129,5 +157,17 @@ class RagIngestionService:
             raise HTTPException(status_code=404, detail="Document not found")
         if doc.status == "PROCESSING":
             raise HTTPException(status_code=409, detail="Cannot delete a document currently being processed")
+
+        was_active = doc.status == "ACTIVE"
         doc.status = "DELETED"
+        doc.qdrant_point_ids = None
         await self.db.flush()
+
+        if was_active:
+            # Deleting the only active doc in a collection should leave Qdrant empty too.
+            from src.workers.rag_worker import _get_qdrant_client, _wipe_collection
+            try:
+                client = _get_qdrant_client()
+                await asyncio.to_thread(_wipe_collection, client, doc.collection_name)
+            except Exception as exc:
+                logger.warning(f"Failed to wipe Qdrant collection {doc.collection_name} on delete: {exc}")

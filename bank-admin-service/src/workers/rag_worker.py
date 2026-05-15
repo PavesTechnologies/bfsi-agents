@@ -11,6 +11,7 @@ Pipeline:
   6. Update RagDocument + RagIngestionJob status
   7. If replacing an old document, delete its Qdrant points
 """
+import asyncio
 import uuid
 import logging
 import datetime
@@ -83,13 +84,16 @@ def _embed_chunks(chunks: list[str]) -> list[list[float]]:
     return embeddings.tolist()
 
 
-def _ensure_collection(client: QdrantClient, collection_name: str) -> None:
-    existing = [c.name for c in client.get_collections().collections]
-    if collection_name not in existing:
-        client.create_collection(
-            collection_name=collection_name,
-            vectors_config=VectorParams(size=VECTOR_DIM, distance=Distance.COSINE),
-        )
+def _wipe_collection(client: QdrantClient, collection_name: str) -> None:
+    """Delete the collection if it exists and recreate it empty."""
+    try:
+        client.delete_collection(collection_name=collection_name)
+    except Exception as exc:
+        logger.info(f"delete_collection({collection_name}) skipped: {exc}")
+    client.create_collection(
+        collection_name=collection_name,
+        vectors_config=VectorParams(size=VECTOR_DIM, distance=Distance.COSINE),
+    )
 
 
 async def run_ingestion(document_id: str) -> None:
@@ -116,10 +120,13 @@ async def run_ingestion(document_id: str) -> None:
         doc.status = "PROCESSING"
         await db.commit()
 
+        wiped = False
         try:
             logger.info(f"Starting ingestion for document {document_id} → {doc.collection_name}")
 
-            pages = _load_pdf_text(doc.storage_path)
+            # PDF parsing is sync/IO-bound — push it off the event loop so the
+            # API stays responsive (job-status polling, document listing, etc.).
+            pages = await asyncio.to_thread(_load_pdf_text, doc.storage_path)
             all_chunks: list[str] = []
             chunk_meta: list[dict] = []
 
@@ -132,12 +139,16 @@ async def run_ingestion(document_id: str) -> None:
             job.progress_pct = 20
             await db.commit()
 
-            embeddings = _embed_chunks(all_chunks)
+            # Embedding is the heavy CPU work — must run in a thread so the
+            # event loop is free to serve polling requests during the ~tens of
+            # seconds it takes.
+            embeddings = await asyncio.to_thread(_embed_chunks, all_chunks)
             job.progress_pct = 60
             await db.commit()
 
             client = _get_qdrant_client()
-            _ensure_collection(client, doc.collection_name)
+            wiped = True
+            await asyncio.to_thread(_wipe_collection, client, doc.collection_name)
 
             point_ids = []
             points = []
@@ -152,19 +163,26 @@ async def run_ingestion(document_id: str) -> None:
 
             batch_size = 100
             for i in range(0, len(points), batch_size):
-                client.upsert(collection_name=doc.collection_name, points=points[i:i + batch_size])
+                batch = points[i:i + batch_size]
+                await asyncio.to_thread(
+                    client.upsert, collection_name=doc.collection_name, points=batch
+                )
 
             job.progress_pct = 90
             await db.commit()
 
-            # Delete old document's vectors if replacing
-            if doc.replaced_document_id:
-                old_result = await db.execute(select(RagDocument).where(RagDocument.id == doc.replaced_document_id))
-                old_doc = old_result.scalar_one_or_none()
-                if old_doc and old_doc.qdrant_point_ids:
-                    client.delete(collection_name=doc.collection_name, points_selector=old_doc.qdrant_point_ids)
-                if old_doc:
-                    old_doc.status = "REPLACED"
+            # Mark any previously ACTIVE rows in this collection as REPLACED — their
+            # Qdrant points are gone because we just wiped the collection.
+            prior_active = await db.execute(
+                select(RagDocument).where(
+                    RagDocument.collection_name == doc.collection_name,
+                    RagDocument.status == "ACTIVE",
+                    RagDocument.id != doc.id,
+                )
+            )
+            for old_doc in prior_active.scalars().all():
+                old_doc.status = "REPLACED"
+                old_doc.qdrant_point_ids = None
 
             doc.status = "ACTIVE"
             doc.qdrant_point_ids = point_ids
@@ -181,6 +199,22 @@ async def run_ingestion(document_id: str) -> None:
             logger.exception(f"Ingestion failed for document {document_id}: {e}")
             doc.status = "FAILED"
             job.status = "FAILED"
-            job.error_message = str(e)
+            err = str(e)
+            if wiped:
+                # Collection was wiped before the upsert failed — prior ACTIVE rows
+                # no longer reflect reality. Mark them REPLACED so the DB doesn't
+                # claim queryability for vectors that don't exist.
+                stale = await db.execute(
+                    select(RagDocument).where(
+                        RagDocument.collection_name == doc.collection_name,
+                        RagDocument.status == "ACTIVE",
+                        RagDocument.id != doc.id,
+                    )
+                )
+                for old_doc in stale.scalars().all():
+                    old_doc.status = "REPLACED"
+                    old_doc.qdrant_point_ids = None
+                err += " | Collection was wiped; previous document's vectors are no longer queryable."
+            job.error_message = err
 
         await db.commit()

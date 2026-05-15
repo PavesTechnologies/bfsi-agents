@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Upload, RefreshCw, Trash2, FileText } from 'lucide-react'
+import { Upload, RefreshCw, Trash2, FileText, AlertTriangle } from 'lucide-react'
 import { documentsApi, type RagDocument } from '@/api/documents'
 import { apiClient } from '@/api/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,6 +14,12 @@ import { formatDate } from '@/lib/utils'
 import { toast } from '@/components/ui/toaster'
 
 const COLLECTIONS = ['rbi_guidelines', 'bank_policies']
+
+const TAB_LABELS: Record<string, string> = {
+  rbi_guidelines: 'RBI Guidelines',
+  bank_policies: 'Bank Policies',
+  source_files: 'Source Files',
+}
 
 // Source file helpers — physical files on decisioning agent disk
 interface SourceFile { filename: string; size_bytes: number; modified_at: number }
@@ -113,11 +119,11 @@ function SourceFilesTab() {
   )
 }
 
-function UploadModal({ replaceDoc, onClose }: { replaceDoc?: RagDocument; onClose: () => void }) {
+function UploadModal({ replaceDoc, collectionContext, onClose }: { replaceDoc?: RagDocument; collectionContext?: string; onClose: () => void }) {
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
-  const [collection, setCollection] = useState(replaceDoc?.collection_name ?? 'rbi_guidelines')
+  const [collection] = useState(replaceDoc?.collection_name ?? collectionContext ?? 'rbi_guidelines')
   const [docName, setDocName] = useState(replaceDoc?.document_name ?? '')
   const [jobId, setJobId] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
@@ -134,41 +140,55 @@ function UploadModal({ replaceDoc, onClose }: { replaceDoc?: RagDocument; onClos
     onError: (e: any) => toast({ title: 'Upload failed', description: e.response?.data?.detail || String(e), variant: 'destructive' }),
   })
 
-  // Poll job status
+  // Poll job status — keep retrying through transient network errors so we
+  // don't lose the dialog if a single poll request fails (CORS preflight,
+  // brief network hiccup, etc.).
   useEffect(() => {
     if (!jobId) return
+    let stopped = false
     const interval = setInterval(async () => {
+      if (stopped) return
       try {
         const job = await documentsApi.getJob(jobId)
         setProgress(job.progress_pct)
         if (job.status === 'COMPLETED') {
+          stopped = true
           clearInterval(interval)
           queryClient.invalidateQueries({ queryKey: ['documents'] })
           toast({ title: 'Ingestion complete', description: `Document is now active in Qdrant.` })
           onClose()
         } else if (job.status === 'FAILED') {
+          stopped = true
           clearInterval(interval)
           toast({ title: 'Ingestion failed', description: job.error_message ?? 'Unknown error', variant: 'destructive' })
         }
-      } catch { clearInterval(interval) }
+      } catch (e) {
+        // Swallow transient errors — keep polling. The interval is cleared
+        // either on COMPLETED/FAILED above or on unmount via the cleanup.
+        console.warn('Job poll failed, will retry:', e)
+      }
     }, 3000)
-    return () => clearInterval(interval)
+    return () => { stopped = true; clearInterval(interval) }
   }, [jobId])
 
   return (
     <DialogContent className="max-w-md">
       <DialogHeader>
-        <DialogTitle>{replaceDoc ? 'Replace Document' : 'Upload Document'}</DialogTitle>
+        <DialogTitle>Upload / Replace PDF</DialogTitle>
       </DialogHeader>
       <div className="space-y-4">
-        {!replaceDoc && (
-          <div className="space-y-1">
-            <Label>Collection</Label>
-            <select value={collection} onChange={(e) => setCollection(e.target.value)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
-              {COLLECTIONS.map((c) => <option key={c} value={c}>{c.replace('_', ' ')}</option>)}
-            </select>
+        <div className="space-y-1">
+          <Label>Collection</Label>
+          <div className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm flex items-center font-medium">
+            {TAB_LABELS[collection] ?? collection.replace(/_/g, ' ')}
           </div>
-        )}
+        </div>
+        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+          <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+          <p className="text-xs text-destructive">
+            Uploading will replace the existing PDF in this collection. The previous document's vectors will be permanently removed from the search index. This cannot be undone.
+          </p>
+        </div>
         <div className="space-y-1">
           <Label>Document Name</Label>
           <Input value={docName} onChange={(e) => setDocName(e.target.value)} placeholder="e.g. RBI Guidelines 2024" />
@@ -198,7 +218,7 @@ function UploadModal({ replaceDoc, onClose }: { replaceDoc?: RagDocument; onClos
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
         <Button onClick={() => mutation.mutate()} disabled={!file || !docName.trim() || mutation.isPending || !!jobId}>
-          {mutation.isPending ? 'Uploading…' : 'Upload'}
+          {mutation.isPending ? 'Uploading…' : 'Upload & Replace'}
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -226,12 +246,6 @@ export default function DocumentsPage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['documents'] }); toast({ title: 'Document deleted' }) },
     onError: (e: any) => toast({ title: 'Delete failed', description: e.response?.data?.detail, variant: 'destructive' }),
   })
-
-  const TAB_LABELS: Record<string, string> = {
-    rbi_guidelines: 'RBI Guidelines',
-    bank_policies: 'Bank Policies',
-    source_files: 'Source Files',
-  }
 
   return (
     <div className="space-y-4">
@@ -317,7 +331,11 @@ export default function DocumentsPage() {
 
       <Dialog open={uploading || !!replacing} onOpenChange={(open) => { if (!open) { setUploading(false); setReplacing(null) } }}>
         {(uploading || replacing) && (
-          <UploadModal replaceDoc={replacing ?? undefined} onClose={() => { setUploading(false); setReplacing(null) }} />
+          <UploadModal
+            replaceDoc={replacing ?? undefined}
+            collectionContext={!isSourceFiles ? activeTab : undefined}
+            onClose={() => { setUploading(false); setReplacing(null) }}
+          />
         )}
       </Dialog>
     </div>

@@ -54,6 +54,8 @@ async def replace_document(
     current_user: dict = Depends(_replacer),
     db: AsyncSession = Depends(get_db),
 ):
+    # Functionally equivalent to POST /documents/ — the ingestion worker now
+    # always wipes & re-creates the target collection. Kept for UI compatibility.
     service = RagIngestionService(db)
     old_doc = await service.get_document(document_id)
     doc, job = await service.upload_document(file, old_doc.collection_name, document_name, current_user["user_id"], replace_id=document_id)
