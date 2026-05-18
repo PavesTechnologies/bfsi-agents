@@ -2,11 +2,22 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { TrendingUp, CheckCircle, XCircle, RefreshCw, AlertTriangle } from 'lucide-react'
 import { applicationsApi } from '@/api/applications'
+import { pipelineApi, type LoanApplicationSummary } from '@/api/pipeline'
 import { rulesApi } from '@/api/rules'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DecisionBadge, RiskTierBadge } from '@/components/common/StatusBadge'
+import { PipelineStatusBadge } from '@/components/common/StatusBadge'
 import { formatCurrency, formatDate, formatPercent } from '@/lib/utils'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+
+const POST_DECISION_STATUSES = [
+  'AWAITING_APPLICANT_RESPONSE',
+  'AWAITING_SIGNATURE',
+  'SIGNATURE_COMPLETE',
+  'DISBURSEMENT_IN_PROGRESS',
+  'DISBURSED',
+  'BANK_DECLINED',
+  'CANCELLED',
+]
 
 function KPICard({ title, value, sub, icon: Icon, color }: { title: string; value: string | number; sub?: string; icon: any; color: string }) {
   return (
@@ -31,7 +42,14 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const { data: stats, isLoading: statsLoading } = useQuery({ queryKey: ['dashboard-stats'], queryFn: () => applicationsApi.dashboardStats() })
   const { data: volumeData } = useQuery({ queryKey: ['daily-volume'], queryFn: () => applicationsApi.dailyVolume(14) })
-  const { data: recentApps } = useQuery({ queryKey: ['recent-applications'], queryFn: () => applicationsApi.list({ page: 1, page_size: 8 }) })
+  const { data: recentApps } = useQuery({
+    queryKey: ['dashboard-recent-pipeline'],
+    queryFn: () => pipelineApi.list({ page: 1, page_size: 8, statuses: POST_DECISION_STATUSES }),
+    refetchInterval: 15000,
+  })
+
+  const finalAmount = (a: LoanApplicationSummary) => a.bank_approved_amount ?? a.llm_approved_amount
+  const finalDecision = (a: LoanApplicationSummary) => a.bank_final_decision ?? a.llm_decision
 
   if (statsLoading) return <div className="flex items-center justify-center h-64"><div className="text-muted-foreground">Loading dashboard…</div></div>
 
@@ -93,27 +111,45 @@ export default function DashboardPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Application ID</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Application</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Decision</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Risk Tier</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Tier</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500">Amount</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Date</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Decided</th>
                 </tr>
               </thead>
               <tbody>
-                {recentApps?.items.map((app) => (
-                  <tr
-                    key={app.application_id}
-                    className="border-b hover:bg-gray-50 cursor-pointer"
-                    onClick={() => navigate(`/applications/${app.application_id}`)}
-                  >
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{app.application_id}</td>
-                    <td className="px-4 py-3"><DecisionBadge decision={app.decision} /></td>
-                    <td className="px-4 py-3"><RiskTierBadge tier={app.risk_tier} /></td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(app.approved_amount)}</td>
-                    <td className="px-4 py-3 text-gray-500">{formatDate(app.created_at)}</td>
-                  </tr>
-                ))}
+                {recentApps?.items.map((app) => {
+                  const decision = finalDecision(app)
+                  const amount = finalAmount(app)
+                  return (
+                    <tr
+                      key={app.id}
+                      className="border-b hover:bg-gray-50 cursor-pointer"
+                      onClick={() => navigate(`/pipeline/${app.id}`)}
+                    >
+                      <td className="px-4 py-3">
+                        <p className="font-mono text-xs">{app.external_application_id.slice(0, 8)}…</p>
+                        {app.loan_purpose && <p className="text-xs text-muted-foreground">{app.loan_purpose}</p>}
+                      </td>
+                      <td className="px-4 py-3"><PipelineStatusBadge status={app.pipeline_status} /></td>
+                      <td className="px-4 py-3">
+                        {decision ? (
+                          <span className={`text-xs font-medium ${decision === 'APPROVE' ? 'text-green-600' : decision === 'DECLINE' ? 'text-red-600' : 'text-amber-600'}`}>
+                            {decision}
+                          </span>
+                        ) : <span className="text-muted-foreground text-xs">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-xs">{app.llm_risk_tier ? `Tier ${app.llm_risk_tier}` : '—'}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(amount)}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(app.bank_decided_at ?? app.updated_at)}</td>
+                    </tr>
+                  )
+                })}
+                {recentApps?.items.length === 0 && (
+                  <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">No applications found</td></tr>
+                )}
               </tbody>
             </table>
           </div>
