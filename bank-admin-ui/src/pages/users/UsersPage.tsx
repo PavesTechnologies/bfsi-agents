@@ -13,6 +13,21 @@ import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'
 import { toast } from '@/components/ui/toaster'
 
+function formatApiError(err: any): string {
+  const detail = err?.response?.data?.detail
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail
+      .map((d) => {
+        const field = Array.isArray(d?.loc) ? d.loc.filter((p: any) => p !== 'body').join('.') : ''
+        const msg = d?.msg ?? 'Invalid value'
+        return field ? `${field}: ${msg}` : msg
+      })
+      .join('; ')
+  }
+  return err?.message ?? 'Something went wrong'
+}
+
 function UserModal({ user, onClose }: { user?: UserOut; onClose: () => void }) {
   const queryClient = useQueryClient()
   const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: () => usersApi.roles() })
@@ -33,7 +48,7 @@ function UserModal({ user, onClose }: { user?: UserOut; onClose: () => void }) {
       toast({ title: user ? 'User updated' : 'User created' })
       onClose()
     },
-    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.detail, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Error', description: formatApiError(e), variant: 'destructive' }),
   })
 
   return (
@@ -71,7 +86,13 @@ function UserModal({ user, onClose }: { user?: UserOut; onClose: () => void }) {
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+        <Button
+          onClick={() => mutation.mutate()}
+          disabled={
+            mutation.isPending ||
+            (!user && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) || form.password.length < 1 || !form.full_name.trim()))
+          }
+        >
           {mutation.isPending ? 'Saving…' : user ? 'Save Changes' : 'Create User'}
         </Button>
       </DialogFooter>
