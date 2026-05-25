@@ -4,11 +4,13 @@
 $RepoRoot = $PSScriptRoot
 
 $Services = @(
-    @{ Name = "intake_agent";      Path = "agents\intake_agent" }
-    @{ Name = "kyc_agent";         Path = "agents\kyc_agent" }
-    @{ Name = "decisioning_agent"; Path = "agents\decisioning_agent" }
-    @{ Name = "disbursment_agent"; Path = "agents\disbursment_agent" }
-    @{ Name = "orchestrator";      Path = "orchestrator" }
+    @{ Name = "intake_agent";      Path = "agents\intake_agent";  Cmd = "poetry run dev" }
+    @{ Name = "kyc_agent";         Path = "agents\kyc_agent";     Cmd = "poetry run dev" }
+    @{ Name = "decisioning_agent"; Path = "agents\decisioning_agent"; Cmd = "poetry run dev" }
+    @{ Name = "disbursment_agent"; Path = "agents\disbursment_agent"; Cmd = "poetry run dev" }
+    @{ Name = "orchestrator";      Path = "orchestrator";         Cmd = "poetry run dev" }
+    @{ Name = "bank-admin-service"; Path = "bank-admin-service";  Cmd = "poetry run dev" }
+    @{ Name = "bank-admin-ui";     Path = "bank-admin-ui";        Cmd = "npm run dev" }
 )
 
 $UseWT = Get-Command wt -ErrorAction SilentlyContinue
@@ -18,11 +20,11 @@ if ($UseWT) {
 
     $first = $Services[0]
     $firstDir = Join-Path $RepoRoot $first.Path
-    $wtArgs = "new-tab --title `"$($first.Name)`" --startingDirectory `"$firstDir`" cmd /k poetry run dev"
+    $wtArgs = "new-tab --title `"$($first.Name)`" --startingDirectory `"$firstDir`" cmd /k $($first.Cmd)"
 
     foreach ($svc in $Services[1..($Services.Length - 1)]) {
         $dir = Join-Path $RepoRoot $svc.Path
-        $wtArgs += " ; new-tab --title `"$($svc.Name)`" --startingDirectory `"$dir`" cmd /k poetry run dev"
+        $wtArgs += " ; new-tab --title `"$($svc.Name)`" --startingDirectory `"$dir`" cmd /k $($svc.Cmd)"
     }
 
     Start-Process wt -ArgumentList $wtArgs
@@ -31,7 +33,7 @@ if ($UseWT) {
     foreach ($svc in $Services) {
         $dir = Join-Path $RepoRoot $svc.Path
         Write-Host "Starting $($svc.Name)..."
-        Start-Process cmd -ArgumentList "/k poetry run dev" -WorkingDirectory $dir
+        Start-Process cmd -ArgumentList "/k $($svc.Cmd)" -WorkingDirectory $dir
     }
 }
 
