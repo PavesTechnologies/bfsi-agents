@@ -1,108 +1,94 @@
 COUNTER_OFFER_PROMPT = """
+You are writing plain-language justifications for a bank loan restructuring engine.
 
-You are a loan restructuring engine used in a bank underwriting system.
-
-The applicant's original loan request was not approved as-is. Your task is to generate 2-3 viable alternative loan options that the applicant CAN afford based on their financial profile.
-
-You MUST follow the restructuring policy exactly and return ONLY structured JSON.
-
----------------------------------------
-
-APPLICANT PROFILE
+All financial figures have already been computed by the underwriting system and are
+provided below. Your ONLY job is to write the six text fields listed in the task
+section. Do NOT recompute, restate differently, or invent any numbers.
 
 ---------------------------------------
-
-Analyzers that ran:      {analyzers_ran}
-Analyzers that were skipped: {analyzers_skipped}
-
-Risk Tier: {risk_tier}
-Credit Score Band: {score_band}
-Base Lending Limit: {base_limit}
-
-Estimated DTI: {estimated_dti}
-Monthly Obligations: {monthly_obligations}
-Affordability Flag: {affordability_flag}
-
-Utilization Risk: {utilization_risk}
-Behavior Risk: {behavior_risk}
-
-Any field above whose value reads "(skipped — analyzer not selected by bank)"
-indicates the bank chose not to run that analyzer for this application.
-- Do NOT invent or infer that field's value.
-- Compute the options using only the fields with real values.
-- The counter_offer_logic explanation should NOT cite skipped analyzers.
-
+APPLICANT FINANCIAL PROFILE
 ---------------------------------------
 
-ORIGINAL REQUEST (REJECTED)
+Monthly Income:                {monthly_income}
+Existing Monthly Obligations:  {existing_monthly_obligations}
+Maximum Affordable EMI:        {max_affordable_emi}
+Estimated DTI:                 {estimated_dti}
+Risk Tier:                     {risk_tier}
+Credit Score Band:             {score_band}
+Qualifying Cap:                {qualifying_cap}
+Requested Amount:              {requested_amount}
+Requested Tenure (months):     {requested_tenure}
+
+Analyzers that ran:     {analyzers_ran}
+Analyzers that skipped: {analyzers_skipped}
+
+IMPORTANT: Do NOT cite any skipped analyzer in your justification text.
+Only reference data from analyzers that ran.
 
 ---------------------------------------
-
-Requested Amount: {requested_amount}
-Requested Tenure (months): {requested_tenure}
-
+PRE-COMPUTED COUNTER OFFERS
 ---------------------------------------
 
-RESTRUCTURING POLICY
+CO1 — Reduced Amount, Same Tenure
+  Amount:           {co1_amount}
+  Tenure:           {co1_tenure} months
+  Interest Rate:    {co1_rate}%
+  Monthly EMI:      {co1_emi}
+  Disbursement:     {co1_disbursement}
+  Total Repaid:     {co1_total}
+  Headroom:         {co1_headroom_pct}% below affordability ceiling
+
+CO2 — Full Requested Amount, Extended Tenure
+  Feasible:         {co2_feasible}
+  Amount:           {co2_amount}
+  Tenure:           {co2_tenure} months  (minimum tenure computed from applicant income)
+  Interest Rate:    {co2_rate}%
+  Monthly EMI:      {co2_emi}
+  Disbursement:     {co2_disbursement}
+  Total Repaid:     {co2_total}
+  Headroom:         {co2_headroom_pct}%
+
+CO3 — Balanced Option (Partial Reduction + Partial Extension)
+  Amount:           {co3_amount}
+  Tenure:           {co3_tenure} months
+  Interest Rate:    {co3_rate}%
+  Monthly EMI:      {co3_emi}
+  Disbursement:     {co3_disbursement}
+  Total Repaid:     {co3_total}
+  Headroom:         {co3_headroom_pct}%
+
+Recommended option:            {recommended_option_id}
+System recommendation reason:  {recommendation_reason}
 
 ---------------------------------------
-
-Step 1: Determine the maximum affordable EMI
-- If income data is available, max_affordable_emi = (monthly_income * 0.40) - existing_monthly_obligations
-- If income is unknown, estimate conservatively using base_limit / 60
-
-Step 2: Interest Rate by Tier
-- Tier A → 7.5%
-- Tier B → 10.0%
-- Tier C → 13.5%
-- Tier D → 18.0%
-
-Step 3: Generate Options (2-3 options)
-
-Option 1 - Reduced Amount, Same Tenure:
-- Keep the requested tenure
-- Reduce the loan amount so that the EMI fits within max_affordable_emi
-- Calculate: proposed_amount = max_affordable_emi * ((1 - (1 + r)^-n) / r), where r = monthly interest rate, n = tenure in months
-- Calculate disbursement_amount = proposed_amount - (proposed_amount * 0.02)
-
-Option 2 - Same or Reduced Amount, Longer Tenure:
-- Extend the tenure (e.g., to 48 or 60 months) to reduce EMI
-- Use the base lending limit as the proposed amount (if it fits affordability)
-- Calculate disbursement_amount = proposed_amount - (proposed_amount * 0.02)
-
-Option 3 (if feasible) - Minimum Viable Loan:
-- Offer the smallest practical loan amount (e.g., 50% of base limit) with comfortable tenure
-- Calculate disbursement_amount = proposed_amount - (proposed_amount * 0.02)
-
-Step 4: For each option calculate:
-- monthly_payment_emi using standard EMI formula
-- total_repayment = monthly_payment_emi * proposed_tenure_months
-- disbursement_amount = proposed_amount - (proposed_amount * 0.02)
-
+YOUR TASK — WRITE THESE SIX FIELDS ONLY
 ---------------------------------------
 
-TASK
+1. counter_offer_logic
+   2-3 sentences. Why was the original loan request not approved?
+   Reference the applicant's qualifying cap, DTI, and income in plain language.
+   No jargon. Avoid "algorithm", "model", "system".
 
----------------------------------------
+2. co1_justification
+   2 sentences. Why is CO1 — the reduced amount at the original tenure —
+   appropriate for this applicant's financial profile?
 
-1. Calculate the original_request_dti from the profile data
-2. Determine the max_affordable_emi
-3. Explain the counter_offer_logic (why original was rejected, how alternatives were built)
-4. Generate 2-3 loan restructuring options with all pricing details
-5. Estimate a confidence_score between 0 and 1
+3. co2_justification
+   2 sentences. Why does CO2's extended tenure make the full requested amount
+   affordable for this applicant?
+   If co2_feasible is false, explain in plain language why the full requested
+   amount cannot be supported even at the maximum allowed repayment period.
 
----------------------------------------
+4. co3_justification
+   2 sentences. Why does CO3's combination of partial amount reduction and
+   moderate tenure extension serve this applicant better than the two extremes?
 
-OUTPUT FORMAT
+5. recommendation_rationale
+   1 sentence. Why is {recommended_option_id} the best fit for this profile?
 
----------------------------------------
-
-Return ONLY structured JSON using the schema below.
+6. confidence_score
+   A decimal between 0.0 and 1.0 reflecting how clearly the financial data
+   supports these restructured offers.
 
 {format_instructions}
-
-DO NOT include explanations outside the JSON.
-DO NOT include additional fields.
-DO NOT include markdown.
-
 """

@@ -38,6 +38,9 @@ class Permission(str, Enum):
     # Loan pipeline (HITL)
     APPROVE_LOAN = "approve_loan"
 
+    # Counter offer review
+    REVIEW_COUNTER_OFFERS = "review_counter_offers"
+
 
 ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
     Role.SUPER_ADMIN: set(Permission),  # all permissions
@@ -48,12 +51,14 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
         Permission.VIEW_DOCUMENTS,
         Permission.UPLOAD_DOCUMENTS,
         Permission.APPROVE_LOAN,
+        Permission.REVIEW_COUNTER_OFFERS,
     },
     Role.UNDERWRITER: {
         Permission.VIEW_APPLICATIONS,
         Permission.VIEW_RULES,
         Permission.VIEW_DOCUMENTS,
         Permission.APPROVE_LOAN,
+        Permission.REVIEW_COUNTER_OFFERS,
     },
     Role.COMPLIANCE_OFFICER: {
         Permission.VIEW_APPLICATIONS,

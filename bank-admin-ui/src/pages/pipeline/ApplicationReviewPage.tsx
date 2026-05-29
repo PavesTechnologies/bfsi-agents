@@ -369,6 +369,26 @@ export default function ApplicationReviewPage() {
         </Card>
       )}
 
+      {/* Counter Offer Review CTA */}
+      {app.pipeline_status === 'COUNTER_OFFER_REVIEW' && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardHeader>
+            <CardTitle className="text-base text-amber-800">Counter Offer Review Required</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-amber-700 mb-4">
+              The LLM has generated counter offers for this application. Review, edit if needed, and publish them to the applicant.
+            </p>
+            <Button
+              onClick={() => navigate(`/pipeline/${id}/counter-offers`)}
+              className="gap-2 bg-amber-600 hover:bg-amber-700"
+            >
+              Review Counter Offers
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Bank Decision Form */}
       {canSubmitDecision && (
         <Card>

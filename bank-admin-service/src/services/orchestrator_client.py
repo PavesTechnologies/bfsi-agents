@@ -48,3 +48,20 @@ class OrchestratorClient:
                 json=payload,
             )
             resp.raise_for_status()
+
+    async def notify_counter_offers_published(
+        self,
+        external_application_id: str,
+        current_options: List[Any],
+    ) -> None:
+        """Push a BANK_COUNTER_OFFERS_PUBLISHED SSE event to the applicant's stream.
+
+        Called after a bank employee publishes counter offers so the applicant
+        frontend receives the offer list and can present the selection UI.
+        """
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{self._base}/internal/counter-offers-published/{external_application_id}",
+                json={"current_options": current_options},
+            )
+            resp.raise_for_status()

@@ -76,20 +76,32 @@ class FinalDecision(TypedDict):
     reasoning_steps: List[str]
 
 class LoanTermOption(TypedDict):
-    option_id: str          # e.g., "OPT_LOWER_AMT" or "OPT_LONGER_TERM"
-    description: str        # "Keep 36 months, reduce amount to ₹30L"
+    option_id: str                 # "CO1" | "CO2" | "CO3"
+    label: str                     # "Reduced Amount" | "Extended Tenure" | "Balanced Option"
     proposed_amount: float
     proposed_tenure_months: int
     proposed_interest_rate: float
-    disbursement_amount: float     # Amount after deducting origination fee
     monthly_payment_emi: float
+    disbursement_amount: float     # Amount after deducting origination fee
     total_repayment: float
+    affordability_headroom_pct: float  # % below affordability ceiling
+    is_recommended: bool
+    feasible: bool                 # False only for CO2 when infeasible
+    justification: str             # LLM-generated rationale
 
 class CounterOfferMetrics(TypedDict):
-    original_request_dti: float      # The DTI that caused the rejection
-    max_affordable_emi: float        # The ceiling calculated by the agent
-    counter_offer_logic: str         # "User DTI was 45%, limit is 40%. Reduced principal."
-    generated_options: List[LoanTermOption] # List of possible restructuring options
+    original_request_dti: float
+    max_affordable_emi: float
+    monthly_income: float
+    existing_monthly_obligations: float
+    qualifying_cap: float              # max_approved_amount from decision node
+    counter_offer_logic: str           # LLM: why original was rejected
+    generated_options: List[LoanTermOption]
+    recommended_option_id: str         # "CO1" | "CO2" | "CO3"
+    recommendation_rationale: str      # LLM: why this option is recommended
+    confidence_score: float
+    expires_at: str                    # ISO timestamp, 10 days from generation
+    timestamp: str
 
 class LoanApplicationState(TypedDict):
     # --- 1. Raw Inputs (From KYC/Intake) ---

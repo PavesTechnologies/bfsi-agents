@@ -552,16 +552,208 @@ class PipelineService:
             )
             raise RuntimeError(f"Failed to save decisioning result to bank-admin: {exc}") from exc
 
+        # ── Branch on decision: COUNTER_OFFER gets its own pause phase ──────────
+        decision = uw_data.get("decision")
+        if decision == "COUNTER_OFFER" and co_raw:
+            # Persist the structured counter-offer session in bank-admin so the
+            # bank employee can review, edit, and publish it via the UI.
+            try:
+                co_session_resp = await self.http_client.post(
+                    f"{AgentConfig.BANK_ADMIN_URL}/api/v1/counter-offers/internal",
+                    json={
+                        "external_application_id": application_id,
+                        "counter_offer_data": co_raw,
+                    },
+                )
+                self._raise_for_status_with_detail(
+                    co_session_resp, "Bank-admin create counter-offer session"
+                )
+            except Exception as exc:
+                # Non-fatal: the decisioning result is already saved; log and continue.
+                print(f"Warning: Could not create counter-offer session in bank-admin: {exc}")
+
+            save_state(
+                application_id,
+                {
+                    "phase": "AWAITING_COUNTER_OFFER_REVIEW",
+                    "kyc_data": state.get("kyc_data"),
+                    "raw_application": raw_application,
+                    "uw_data": uw_data,
+                    "uw_raw": uw_raw,
+                },
+            )
+            await self._emit_progress(
+                application_id=application_id,
+                progress_callback=progress_callback,
+                event=PipelineEvent.COUNTER_OFFER_REVIEW_STARTED,
+                stage=PipelineStage.DECISIONING,
+                status="pending",
+                message="Counter offers generated — bank employee review in progress",
+                details={"decision": decision},
+                is_terminal=False,
+            )
+        else:
+            # APPROVE or DECLINE — bank employee takes the final decision normally.
+            save_state(
+                application_id,
+                {
+                    "phase": "AWAITING_BANK_DECISION",
+                    "kyc_data": state.get("kyc_data"),
+                    "raw_application": raw_application,
+                    "uw_data": uw_data,
+                    "uw_raw": uw_raw,
+                    "counter_offer_options": counter_offer_options,
+                },
+            )
+
+    async def counter_offers_published(
+        self,
+        application_id: str,
+        current_options: List[Any],
+        progress_callback: Optional[ProgressCallback] = None,
+    ) -> None:
+        """Called when bank employee publishes counter offers to the applicant.
+
+        Transitions phase to AWAITING_COUNTER_OFFER_SELECTION and pushes a
+        BANK_COUNTER_OFFERS_PUBLISHED SSE event so the applicant frontend can
+        display the offer cards.
+        """
+        state = get_state(application_id)
+        if not state or state.get("phase") != "AWAITING_COUNTER_OFFER_REVIEW":
+            raise ValueError(
+                f"No counter-offer review in progress for application {application_id}"
+            )
+
         save_state(
             application_id,
             {
-                "phase": "AWAITING_BANK_DECISION",
-                "kyc_data": state.get("kyc_data"),
-                "raw_application": raw_application,
-                "uw_data": uw_data,
-                "uw_raw": uw_raw,
-                "counter_offer_options": counter_offer_options,
+                **state,
+                "phase": "AWAITING_COUNTER_OFFER_SELECTION",
+                "published_options": current_options,
             },
+        )
+
+        await self._emit_progress(
+            application_id=application_id,
+            progress_callback=progress_callback,
+            event=PipelineEvent.BANK_COUNTER_OFFERS_PUBLISHED,
+            stage=PipelineStage.DECISIONING,
+            status="pending",
+            message="Bank has published counter offers — please select one to proceed",
+            details={"current_options": current_options},
+            is_terminal=False,
+        )
+
+    async def applicant_select_counter_offer(
+        self,
+        application_id: str,
+        option_id: str,
+        progress_callback: Optional[ProgressCallback] = None,
+    ) -> None:
+        """Applicant selects one of the bank-published counter offer options."""
+        state = get_state(application_id)
+        if not state or state.get("phase") != "AWAITING_COUNTER_OFFER_SELECTION":
+            raise ValueError(
+                f"No published counter offers awaiting selection for application {application_id}"
+            )
+
+        published_options = state.get("published_options", [])
+        selected = next(
+            (o for o in published_options if o.get("option_id") == option_id), None
+        )
+        if not selected:
+            raise ValueError(
+                f"Option {option_id!r} not found in published offers for application {application_id}"
+            )
+
+        # Record acceptance on the counter_offer_session and advance app to AWAITING_SIGNATURE
+        try:
+            resp = await self.http_client.post(
+                f"{AgentConfig.BANK_ADMIN_URL}/api/v1/counter-offers/internal"
+                f"/by-external/{application_id}/applicant-accept",
+                json={"option_id": option_id},
+            )
+            self._raise_for_status_with_detail(resp, "Bank-admin record applicant counter-offer acceptance")
+        except Exception as exc:
+            raise RuntimeError(
+                f"Failed to record counter-offer selection in bank-admin: {exc}"
+            ) from exc
+
+        # Merge the selected offer's terms into uw_data so submit_signature can use them
+        uw_data = dict(state.get("uw_data") or {})
+        uw_data["approved_amount"] = selected["proposed_amount"]
+        uw_data["interest_rate"] = selected["proposed_interest_rate"]
+        uw_data["approved_tenure_months"] = selected["proposed_tenure_months"]
+        uw_data["monthly_emi"] = selected["monthly_payment_emi"]
+        uw_data["disbursement_amount"] = selected.get("disbursement_amount")
+
+        save_state(
+            application_id,
+            {
+                **state,
+                "phase": "AWAITING_SIGNATURE",
+                "uw_data": uw_data,
+                "approved_amount": selected["proposed_amount"],
+                "interest_rate": selected["proposed_interest_rate"],
+                "tenure_months": selected["proposed_tenure_months"],
+                "monthly_emi": selected["monthly_payment_emi"],
+            },
+        )
+
+        await self._emit_progress(
+            application_id=application_id,
+            progress_callback=progress_callback,
+            event=PipelineEvent.COUNTER_OFFER_ACCEPTED,
+            stage=PipelineStage.DECISIONING,
+            status="completed",
+            message=f"Counter offer {option_id} accepted — please sign the loan agreement",
+            details={"selected_option_id": option_id},
+            is_terminal=False,
+        )
+        await self._emit_progress(
+            application_id=application_id,
+            progress_callback=progress_callback,
+            event=PipelineEvent.AWAITING_SIGNATURE,
+            stage=PipelineStage.DISBURSEMENT,
+            status="pending",
+            message="Awaiting digital signature on loan agreement",
+            is_terminal=False,
+        )
+
+    async def applicant_decline_all_counter_offers(
+        self,
+        application_id: str,
+        progress_callback: Optional[ProgressCallback] = None,
+    ) -> None:
+        """Applicant rejects every bank-published counter offer — terminates the pipeline."""
+        state = get_state(application_id)
+        if not state or state.get("phase") != "AWAITING_COUNTER_OFFER_SELECTION":
+            raise ValueError(
+                f"No published counter offers awaiting selection for application {application_id}"
+            )
+
+        # Mark session declined and cancel the application in bank-admin
+        try:
+            resp = await self.http_client.post(
+                f"{AgentConfig.BANK_ADMIN_URL}/api/v1/counter-offers/internal"
+                f"/by-external/{application_id}/applicant-decline",
+            )
+            self._raise_for_status_with_detail(resp, "Bank-admin record applicant counter-offer decline")
+        except Exception as exc:
+            raise RuntimeError(
+                f"Failed to record counter-offer decline in bank-admin: {exc}"
+            ) from exc
+
+        clear_state(application_id)
+
+        await self._emit_progress(
+            application_id=application_id,
+            progress_callback=progress_callback,
+            event=PipelineEvent.COUNTER_OFFER_ALL_DECLINED,
+            stage=PipelineStage.DECISIONING,
+            status="completed",
+            message="Applicant declined all counter offers — application closed",
+            is_terminal=True,
         )
 
     async def notify_applicant_of_bank_decision(

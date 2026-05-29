@@ -27,3 +27,12 @@ class ResumeWithOfferRequest(BaseModel):
 class ConfirmApprovalRequest(BaseModel):
     application_id: str
     accepted: bool = Field(description="Must be true to proceed with disbursement")
+
+
+class SelectCounterOfferRequest(BaseModel):
+    option_id: str = Field(description="CO1 | CO2 | CO3 | custom-<id>")
+
+
+class CounterOffersPublishedPayload(BaseModel):
+    """Body sent by bank-admin when bank employee publishes counter offers."""
+    current_options: list = Field(description="The published offer list (current_options from the session)")

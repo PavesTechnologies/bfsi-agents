@@ -15,7 +15,9 @@ from pydantic import BaseModel
 from src.models.pipeline import (
     ApplicationTriggerRequest,
     ConfirmApprovalRequest,
+    CounterOffersPublishedPayload,
     ResumeWithOfferRequest,
+    SelectCounterOfferRequest,
 )
 from src.services.pipeline_service import PipelineService
 
@@ -417,6 +419,69 @@ async def pipeline_signature(application_id: str, request: SignatureRequest):
     finally:
         await service.close()
     return {"status": "DISBURSED", "application_id": application_id, "disbursement_receipt": result}
+
+
+@router.post("/pipeline/{application_id}/select-counter-offer")
+async def pipeline_select_counter_offer(application_id: str, request: SelectCounterOfferRequest):
+    """Applicant selects one of the bank-published counter offers — advances to signature."""
+    service = PipelineService()
+    try:
+        await service.applicant_select_counter_offer(
+            application_id=application_id,
+            option_id=request.option_id,
+            progress_callback=lambda event: _publish_event(application_id, event),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await service.close()
+    return {"status": "AWAITING_SIGNATURE", "application_id": application_id}
+
+
+@router.post("/pipeline/{application_id}/decline-all-offers")
+async def pipeline_decline_all_offers(application_id: str):
+    """Applicant rejects every bank-published counter offer — terminates the pipeline."""
+    service = PipelineService()
+    try:
+        await service.applicant_decline_all_counter_offers(
+            application_id=application_id,
+            progress_callback=lambda event: _publish_event(application_id, event),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await service.close()
+    return {"status": "COUNTER_OFFER_ALL_DECLINED", "application_id": application_id}
+
+
+@router.post("/internal/counter-offers-published/{application_id}")
+async def internal_counter_offers_published(
+    application_id: str,
+    request: CounterOffersPublishedPayload,
+):
+    """Called by bank-admin when the bank employee publishes counter offers.
+
+    Pushes a BANK_COUNTER_OFFERS_PUBLISHED SSE event to the applicant's stream
+    and transitions the pipeline state to AWAITING_COUNTER_OFFER_SELECTION.
+    """
+    service = PipelineService()
+    try:
+        await service.counter_offers_published(
+            application_id=application_id,
+            current_options=request.current_options,
+            progress_callback=lambda event: _publish_event(application_id, event),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await service.close()
+    return {"status": "counter_offers_published", "application_id": application_id}
 
 
 @router.get("/pipeline/{application_id}/status")
