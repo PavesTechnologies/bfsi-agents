@@ -37,6 +37,31 @@ def compute_max_principal(max_emi: float, monthly_rate: float, months: int) -> f
     return round(max_emi * (factor - 1) / (monthly_rate * factor), 2)
 
 
+def compute_max_affordable_emi(
+    monthly_income: float,
+    existing_obligations: float,
+    foir_pct: float,
+    min_disposable_pct: float,
+) -> float:
+    """Income-driven affordability ceiling (max EMI the applicant can service).
+
+        gross_capacity = monthly_income × foir_pct / 100      (tier-driven FOIR)
+        disposable     = gross_capacity − existing_obligations
+        floor          = monthly_income × min_disposable_pct / 100
+        result         = max(disposable, floor)
+
+    The floor guarantees the ceiling is never ≤ 0 for an applicant who has
+    income, even when existing obligations are high. Returns 0.0 only when
+    monthly_income ≤ 0 (no income on file → cannot assess affordability).
+    """
+    if monthly_income <= 0:
+        return 0.0
+    gross_capacity = monthly_income * foir_pct / 100.0
+    disposable = gross_capacity - existing_obligations
+    floor = monthly_income * min_disposable_pct / 100.0
+    return round(max(disposable, floor), 2)
+
+
 def compute_co2_tenure(
     principal: float, annual_rate: float, max_emi: float
 ) -> tuple[bool, int]:

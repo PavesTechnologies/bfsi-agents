@@ -109,4 +109,23 @@ export const counterOffersApi = {
     apiClient
       .get<EditLogEntry[]>(`/counter-offers/${sessionId}/edit-log`)
       .then((r) => r.data),
+
+  // Bank-initiated offer on a DECLINED application. Seeds a DRAFT session the
+  // bank can edit/publish from the standard Counter-Offer Review page.
+  createManualOffer: (
+    applicationId: string,
+    payload?: {
+      proposed_amount?: number
+      proposed_tenure_months?: number
+      proposed_interest_rate?: number
+      label?: string
+      justification?: string
+    },
+  ) =>
+    apiClient
+      .post<{ session_id: string; status: string }>(
+        `/counter-offers/applications/${applicationId}/manual-offer`,
+        payload ?? {},
+      )
+      .then((r) => r.data),
 }

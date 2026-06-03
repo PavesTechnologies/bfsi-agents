@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Play, CheckCircle, XCircle, Zap } from 'lucide-react'
 import { pipelineApi } from '@/api/pipeline'
+import { counterOffersApi } from '@/api/counterOffers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -114,6 +115,17 @@ export default function ApplicationReviewPage() {
       queryClient.invalidateQueries({ queryKey: ['pipeline-app', id] })
       queryClient.invalidateQueries({ queryKey: ['pipeline-apps'] })
       toast({ title: 'Decision submitted', description: 'Applicant has been notified.' })
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.detail, variant: 'destructive' }),
+  })
+
+  const createManualOfferMutation = useMutation({
+    mutationFn: () => counterOffersApi.createManualOffer(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pipeline-app', id] })
+      queryClient.invalidateQueries({ queryKey: ['pipeline-apps'] })
+      toast({ title: 'Offer created', description: 'Review and publish it to the applicant.' })
+      navigate(`/pipeline/${id}/counter-offers`)
     },
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.detail, variant: 'destructive' }),
   })
@@ -474,6 +486,31 @@ export default function ApplicationReviewPage() {
             )}
             {app.bank_override_reason && <InfoRow label="Override Reason" value={app.bank_override_reason} />}
             <InfoRow label="Decided At" value={formatDate(app.bank_decided_at)} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Manual offer on a declined application */}
+      {(app.pipeline_status === 'BANK_DECLINED'
+        || app.bank_final_decision === 'DECLINE'
+        || (app.llm_decision === 'DECLINE' && app.pipeline_status !== 'COUNTER_OFFER_REVIEW')) && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardHeader>
+            <CardTitle className="text-base text-amber-800">Make a Manual Offer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-amber-700 mb-4">
+              This application was declined. You can still prepare and send a counter offer to the
+              applicant — a draft offer will be created from the applicant's profile that you can edit
+              before publishing.
+            </p>
+            <Button
+              onClick={() => createManualOfferMutation.mutate()}
+              disabled={createManualOfferMutation.isPending}
+              className="gap-2 bg-amber-600 hover:bg-amber-700"
+            >
+              {createManualOfferMutation.isPending ? 'Creating…' : 'Create Offer'}
+            </Button>
           </CardContent>
         </Card>
       )}

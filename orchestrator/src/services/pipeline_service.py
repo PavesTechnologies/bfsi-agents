@@ -13,7 +13,6 @@ from shared.data_mappers import (
     map_intake_to_indian_underwriting,
 )
 
-HARDCODED_MONTHLY_INCOME = 75000.0
 from shared.pipeline_events import PipelineEvent, PipelineStage
 from src.config import AgentConfig
 from src.store.pipeline_state_store import clear_state, get_state, save_state
@@ -163,7 +162,7 @@ class PipelineService:
             applicant=applicant_data,
             requested_amount=self._extract_requested_amount(raw_application),
             requested_tenure_months=self._extract_requested_tenure(raw_application),
-            monthly_income=HARDCODED_MONTHLY_INCOME,
+            monthly_income=self._extract_monthly_income(applicant_data),
         )
         print(json.dumps(underwriting_payload, indent=2))
 
@@ -477,7 +476,7 @@ class PipelineService:
             applicant=applicant_data,
             requested_amount=self._extract_requested_amount(raw_application),
             requested_tenure_months=self._extract_requested_tenure(raw_application),
-            monthly_income=HARDCODED_MONTHLY_INCOME,
+            monthly_income=self._extract_monthly_income(applicant_data),
         )
         if active_analyzers is not None:
             underwriting_payload["active_analyzers"] = active_analyzers
@@ -642,6 +641,25 @@ class PipelineService:
             message="Bank has published counter offers — please select one to proceed",
             details={"current_options": current_options},
             is_terminal=False,
+        )
+
+    async def manual_counter_offer_init(
+        self,
+        application_id: str,
+        progress_callback: Optional[ProgressCallback] = None,
+    ) -> None:
+        """Re-open a declined application for a bank-initiated manual counter offer.
+
+        A bank-declined application keeps its in-memory pipeline state (uw_data /
+        raw_application / kyc_data) with phase BANK_DECLINED. This flips the phase
+        back to AWAITING_COUNTER_OFFER_REVIEW so the standard publish → select →
+        signature flow applies unchanged. If no state survives (e.g. orchestrator
+        restarted), a minimal state is created — enough for the offer/select path.
+        """
+        state = get_state(application_id) or {}
+        save_state(
+            application_id,
+            {**state, "phase": "AWAITING_COUNTER_OFFER_REVIEW"},
         )
 
     async def applicant_select_counter_offer(
@@ -1124,6 +1142,44 @@ class PipelineService:
     @staticmethod
     def _extract_requested_tenure(raw_application: Dict[str, Any]) -> int:
         return int(raw_application.get("requested_term_months") or 36)
+
+    @staticmethod
+    def _extract_monthly_income(applicant_data: Dict[str, Any]) -> float:
+        """Extract gross monthly income from the applicant's intake data.
+
+        Priority:
+          1. employment.gross_monthly_income  (primary salary from the intake form)
+          2. sum of incomes[].monthly_amount   (itemized income records)
+          3. 0.0  (no income on file → decision agent treats this as insolvent)
+
+        `employment` is an optional single object in the intake schema, but a
+        list shape is tolerated defensively so a payload-shape change cannot
+        reintroduce the `KeyError(0)` crash (dict[0] on a single-object dict).
+        """
+        employment = applicant_data.get("employment")
+        if isinstance(employment, list):
+            employment = employment[0] if employment else None
+        if isinstance(employment, dict):
+            val = employment.get("gross_monthly_income")
+            try:
+                if val is not None and float(val) > 0:
+                    return float(val)
+            except (TypeError, ValueError):
+                pass
+
+        incomes = applicant_data.get("incomes") or []
+        if isinstance(incomes, list):
+            total = 0.0
+            for inc in incomes:
+                if isinstance(inc, dict):
+                    try:
+                        total += float(inc.get("monthly_amount") or 0.0)
+                    except (TypeError, ValueError):
+                        continue
+            if total > 0:
+                return total
+
+        return 0.0
 
     def _normalize_underwriting_response(self, uw_data: Dict[str, Any]) -> Dict[str, Any]:
         """Normalize underwriting output into a single orchestrator-friendly shape."""

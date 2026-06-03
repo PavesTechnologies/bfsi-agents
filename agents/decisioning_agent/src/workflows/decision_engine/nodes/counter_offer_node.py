@@ -26,7 +26,10 @@ from src.core.telemetry import track_node
 from src.services.rules_db import MissingRuleError
 from src.utils.audit_decorator import audit_node
 from src.services.llm_executor import execute_llm
-from src.services.counter_offer_model.co_math import compute_emi
+from src.services.counter_offer_model.co_math import (
+    compute_emi,
+    compute_max_affordable_emi,
+)
 from src.services.counter_offer_model.counter_offer_parser import (
     CounterOfferOption,
     CounterOfferOutput,
@@ -41,6 +44,11 @@ from src.workflows.decision_state import LoanApplicationState
 _DEFAULT_MAX_TENURE_MONTHS = 84
 _DEFAULT_ORIGINATION_FEE_PCT = 0.02
 _DEFAULT_TIER_RATES: dict[str, float] = {"A": 7.5, "B": 10.0, "C": 13.5, "D": 18.0}
+
+# Income-eligibility defaults — must mirror decision_llm_node so the counter
+# offer's affordability ceiling matches the one used in the decision.
+_DEFAULT_FOIR_BY_TIER: dict[str, float] = {"A": 60, "B": 55, "C": 50, "D": 45, "F": 40}
+_DEFAULT_MIN_DISPOSABLE_PCT: float = 10.0
 
 _ALL_ANALYZERS = [
     "credit_score", "public_record", "utilization",
@@ -400,10 +408,18 @@ def counter_offer_node(state: LoanApplicationState) -> LoanApplicationState:
     origination_fee_pct = float(decision_rules.get("origination_fee_pct", _DEFAULT_ORIGINATION_FEE_PCT))
     max_tenure          = int(decision_rules.get("max_tenure_months", _DEFAULT_MAX_TENURE_MONTHS))
 
-    # Affordability ceiling: 40% of income minus existing obligations.
-    # Can be ≤ 0 when CIBIL obligations already exceed the 40% income threshold.
-    # Used for feasibility checks, headroom display, and LLM context.
-    raw_max_affordable_emi = (monthly_income * 0.40) - monthly_obligations
+    # Affordability ceiling: tier-driven FOIR % of income minus existing
+    # obligations, floored at min_disposable_pct% of income (never ≤ 0 when
+    # income > 0). Uses the SAME helper + rules as the decision node so the
+    # counter offer's feasibility checks match the qualifying cap exactly.
+    foir_by_tier        = decision_rules.get("foir_threshold_by_tier") or _DEFAULT_FOIR_BY_TIER
+    foir_pct            = float(foir_by_tier.get(tier, _DEFAULT_FOIR_BY_TIER.get(tier, 40)))
+    min_disposable_pct  = float(
+        decision_rules.get("min_disposable_income_pct", _DEFAULT_MIN_DISPOSABLE_PCT)
+    )
+    raw_max_affordable_emi = compute_max_affordable_emi(
+        monthly_income, monthly_obligations, foir_pct, min_disposable_pct
+    )
 
     # ── 2. Compute all three offers (Python — deterministic) ─────────────
     co1 = _compute_co1(

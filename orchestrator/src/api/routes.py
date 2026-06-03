@@ -484,6 +484,23 @@ async def internal_counter_offers_published(
     return {"status": "counter_offers_published", "application_id": application_id}
 
 
+@router.post("/internal/counter-offer-manual-init/{application_id}")
+async def internal_counter_offer_manual_init(application_id: str):
+    """Called by bank-admin when a bank employee starts a manual counter offer
+    on a declined application. Re-opens the pipeline state for offer review so the
+    standard publish → select → signature flow applies."""
+    service = PipelineService()
+    try:
+        await service.manual_counter_offer_init(application_id=application_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await service.close()
+    return {"status": "manual_counter_offer_init", "application_id": application_id}
+
+
 @router.get("/pipeline/{application_id}/status")
 async def pipeline_status(application_id: str):
     """Return the current in-memory pipeline state for an application."""

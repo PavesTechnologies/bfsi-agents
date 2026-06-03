@@ -79,6 +79,20 @@ class CounterOfferSessionCreateInternal(BaseModel):
     counter_offer_data: Dict[str, Any]
 
 
+class ManualOfferCreateRequest(BaseModel):
+    """Bank-initiated manual offer on a DECLINED application.
+
+    All fields optional — the server seeds a sensible first option from the
+    application's stored data when omitted. The bank then edits/adds options on
+    the standard Counter-Offer Review page before publishing.
+    """
+    proposed_amount: Optional[float] = Field(None, gt=0)
+    proposed_tenure_months: Optional[int] = Field(None, gt=0)
+    proposed_interest_rate: Optional[float] = Field(None, gt=0)
+    label: Optional[str] = None
+    justification: Optional[str] = None
+
+
 class EditLogEntryResponse(BaseModel):
     id: uuid.UUID
     session_id: uuid.UUID

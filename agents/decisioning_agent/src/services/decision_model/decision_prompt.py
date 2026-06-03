@@ -59,15 +59,21 @@ HOW THE PRE-COMPUTED VALUES WERE DERIVED  (reference only — do NOT re-derive)
     (a) aggregated_risk_tier == "F"
     (b) public_record_data.hard_decline_flag == True
     (c) income_data.affordability_flag == False
-- Step 2 interest rate by tier: A=9.5, B=12.0, C=15.5, D=20.0
-- Step 3 max_approved_amount = base_limit_band
-                              × public_record_adjustment_factor
-                              × utilization_adjustment_factor
-                              × inquiry_penalty_factor
+- Step 2 interest rate by tier (per bank policy, varies by tier): A < B < C < D
+- Step 3 max_approved_amount is income-driven (NOT a flat credit-band limit):
+    (a) max affordable EMI = FOIR(tier)% of monthly income − existing monthly
+        obligations, floored at a minimum % of income (so it is never zero)
+    (b) back-solve the largest principal whose EMI fits that ceiling, at the
+        tier interest rate over the requested tenure
+    (c) multiply by the public-record, utilization, and inquiry adjustment factors
+    (d) cap at a tier-based multiple of annual income
+    → max_approved_amount = min(step-c amount, income-multiple ceiling)
 - Step 4 routing:
-    - Any Step 1 trigger fired                → DECLINE
-    - Else if requested_amount <= max         → APPROVE,        disbursement = approved × (1 - origination_fee)
-    - Else                                    → COUNTER_OFFER
+    - Any Step 1 trigger fired                          → DECLINE
+    - Else if max_approved_amount <= 0                  → DECLINE (no qualifying capacity)
+    - Else if requested_amount <= max                   → APPROVE, disbursement = approved × (1 − origination_fee)
+    - Else if requested_amount <= max × (1 + overage%)  → COUNTER_OFFER
+    - Else (requested far exceeds the cap)              → DECLINE
 
 ---------------------------------------
 TASK

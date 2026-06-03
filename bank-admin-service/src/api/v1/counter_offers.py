@@ -18,6 +18,7 @@ from src.schemas.counter_offer import (
     CounterOfferSessionCreateInternal,
     CounterOfferSessionResponse,
     EditLogEntryResponse,
+    ManualOfferCreateRequest,
     OfferOptionCreateRequest,
     OfferOptionUpdateRequest,
     RecommendRequest,
@@ -111,6 +112,36 @@ async def get_edit_log(
     """Full chronological audit trail for a counter offer session."""
     logs = await CounterOfferService(db).get_edit_log(session_id)
     return [EditLogEntryResponse.model_validate(entry) for entry in logs]
+
+
+# ── Bank-initiated manual offer on a declined application ─────────────────────
+
+@router.post("/applications/{application_id}/manual-offer", status_code=201)
+async def create_manual_offer(
+    application_id: uuid.UUID,
+    payload: ManualOfferCreateRequest,
+    current_user: dict = Depends(_reviewer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a bank-initiated counter offer for a DECLINED application.
+
+    Seeds a DRAFT session with one editable option, moves the application into
+    COUNTER_OFFER_REVIEW, and re-opens the orchestrator pipeline. The bank then
+    edits/adds options and publishes via the standard endpoints. Returns the new
+    session id so the UI can navigate to the Counter-Offer Review page.
+    """
+    service = CounterOfferService(db)
+    session = await service.create_manual_session(
+        str(application_id), current_user["user_id"], payload
+    )
+    await AuditService(db).log(
+        "COUNTER_OFFER_MANUAL_CREATED",
+        user_id=current_user["user_id"],
+        resource_type="counter_offer_session",
+        resource_id=str(session.id),
+        after={"application_id": str(application_id), "status": session.status},
+    )
+    return {"session_id": str(session.id), "status": session.status}
 
 
 # ── Bank-employee edit endpoints (REVIEW_COUNTER_OFFERS required) ─────────────

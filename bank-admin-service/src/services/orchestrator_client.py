@@ -49,6 +49,19 @@ class OrchestratorClient:
             )
             resp.raise_for_status()
 
+    async def notify_manual_counter_offer_init(
+        self,
+        external_application_id: str,
+    ) -> None:
+        """Ask the orchestrator to re-open a declined application for a bank-initiated
+        manual counter offer (sets the pipeline phase to AWAITING_COUNTER_OFFER_REVIEW)
+        so the standard publish → select flow applies."""
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{self._base}/internal/counter-offer-manual-init/{external_application_id}",
+            )
+            resp.raise_for_status()
+
     async def notify_counter_offers_published(
         self,
         external_application_id: str,

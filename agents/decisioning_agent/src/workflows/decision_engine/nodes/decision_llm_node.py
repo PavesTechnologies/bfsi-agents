@@ -15,12 +15,25 @@ from typing import Any
 from langchain_core.output_parsers import PydanticOutputParser
 
 from src.core.telemetry import track_node
+from src.services.counter_offer_model.co_math import (
+    compute_max_affordable_emi,
+    compute_max_principal,
+)
 from src.services.decision_model.decision_parser import DecisionOutput
 from src.services.decision_model.decision_prompt import DECISION_PROMPT
 from src.services.llm_executor import execute_llm
 from src.services.rules_db import MissingRuleError
 from src.utils.audit_decorator import audit_node
 from src.workflows.decision_state import LoanApplicationState
+
+
+# Code-baked defaults for the income-eligibility rules (migration 005/006).
+# Used only when a rule is absent from the DB so the engine never crashes or
+# zeroes out in an environment that hasn't been migrated yet.
+_DEFAULT_FOIR_BY_TIER: dict[str, float] = {"A": 60, "B": 55, "C": 50, "D": 45, "F": 40}
+_DEFAULT_INCOME_MULTIPLE_BY_TIER: dict[str, float] = {"A": 24, "B": 20, "C": 15, "D": 10, "F": 0}
+_DEFAULT_MIN_DISPOSABLE_PCT: float = 10.0
+_DEFAULT_COUNTER_OFFER_OVERAGE_PCT: float = 30.0
 
 
 def _decision_rules(state: LoanApplicationState) -> dict[str, Any]:
@@ -77,22 +90,75 @@ def _data_for_prompt(
 
 def _compute_max_approved_amount(state: LoanApplicationState) -> float:
     """
-    max_approved_amount = base_limit_band
-                          × public_record_adjustment_factor
-                          × utilization_adjustment_factor
-                          × inquiry_penalty_factor
+    Income-driven qualifying cap (replaces the old flat base_limit_band approach).
+
+      1. max_affordable_emi = FOIR(tier)% of monthly income − existing obligations,
+         floored at min_disposable_pct% of income (never ≤ 0 when income > 0).
+      2. principal_from_emi = largest loan whose EMI ≤ that ceiling, at the tier
+         interest rate over the requested tenure (reducing-balance back-solve).
+      3. adjusted = principal_from_emi × public-record × utilization × inquiry
+         factors (the existing credit-profile multipliers).
+      4. income_ceiling = monthly income × 12 × income-multiple(tier).
+      max_approved = min(adjusted, income_ceiling).
+
+    Returns 0.0 when monthly income or requested tenure is missing/zero — the
+    caller treats a 0 cap as a decline (no qualifying capacity).
     """
-    credit = state.get("credit_score_data") or {}
-    public = state.get("public_record_data") or {}
-    util = state.get("utilization_data") or {}
-    inquiry = state.get("inquiry_data") or {}
+    decision_rules = _decision_rules(state)
+    tier = str(state.get("aggregated_risk_tier") or "F")
 
-    base_limit = float(credit.get("base_limit_band") or 0)
-    pr_factor = float(public.get("public_record_adjustment_factor") or 1.0)
-    util_factor = float(util.get("utilization_adjustment_factor") or 1.0)
-    inq_factor = float(inquiry.get("inquiry_penalty_factor") or 1.0)
+    monthly_income = float(
+        (state.get("bank_statement_summary") or {}).get("monthly_income", 0) or 0
+    )
+    existing_obligations = float(
+        (state.get("exposure_data") or {}).get("monthly_obligation_estimate", 0) or 0
+    )
+    requested_tenure = int((state.get("user_request") or {}).get("tenure", 0) or 0)
 
-    return round(base_limit * pr_factor * util_factor * inq_factor, 2)
+    if monthly_income <= 0 or requested_tenure <= 0:
+        return 0.0
+
+    # Step 1 — tier-driven FOIR affordability ceiling (with floor).
+    foir_by_tier = decision_rules.get("foir_threshold_by_tier") or _DEFAULT_FOIR_BY_TIER
+    foir_pct = float(foir_by_tier.get(tier, _DEFAULT_FOIR_BY_TIER.get(tier, 40)))
+    min_disposable_pct = float(
+        decision_rules.get("min_disposable_income_pct", _DEFAULT_MIN_DISPOSABLE_PCT)
+    )
+    max_affordable_emi = compute_max_affordable_emi(
+        monthly_income, existing_obligations, foir_pct, min_disposable_pct
+    )
+    if max_affordable_emi <= 0:
+        return 0.0
+
+    # Step 2 — back-solve the largest principal that fits the EMI ceiling.
+    tier_rate = _interest_rate_for_tier(tier, decision_rules["tier_interest_rates"])
+    monthly_rate = tier_rate / 12.0 / 100.0
+    principal_from_emi = compute_max_principal(
+        max_affordable_emi, monthly_rate, requested_tenure
+    )
+
+    # Step 3 — credit-profile factors shrink the income-derived limit.
+    pr_factor = float(
+        (state.get("public_record_data") or {}).get("public_record_adjustment_factor") or 1.0
+    )
+    util_factor = float(
+        (state.get("utilization_data") or {}).get("utilization_adjustment_factor") or 1.0
+    )
+    inq_factor = float(
+        (state.get("inquiry_data") or {}).get("inquiry_penalty_factor") or 1.0
+    )
+    adjusted = principal_from_emi * pr_factor * util_factor * inq_factor
+
+    # Step 4 — secondary ceiling: loan as a multiple of annual income.
+    multiple_by_tier = (
+        decision_rules.get("income_multiple_cap_by_tier") or _DEFAULT_INCOME_MULTIPLE_BY_TIER
+    )
+    multiple = float(
+        multiple_by_tier.get(tier, _DEFAULT_INCOME_MULTIPLE_BY_TIER.get(tier, 0))
+    )
+    income_ceiling = monthly_income * 12.0 * multiple
+
+    return round(min(adjusted, income_ceiling), 2)
 
 
 def _step1_hard_decline_triggers(state: LoanApplicationState) -> list[str]:
@@ -145,6 +211,23 @@ def _compute_decision(
 
     interest_rate = _interest_rate_for_tier(tier, tier_interest_rates)
 
+    # No qualifying capacity — income too low / obligations too high to support
+    # any loan. Not a Step 1 flag; it's derived from the income-based cap.
+    if max_approved_amount <= 0:
+        return {
+            "decision": "DECLINE",
+            "approved_amount": 0.0,
+            "approved_tenure": 0,
+            "interest_rate": 0.0,
+            "disbursement_amount": 0.0,
+            "max_approved_amount": max_approved_amount,
+            "step1_triggers": [],
+            "routing_rule": (
+                "DECLINE — no qualifying amount: income capacity insufficient "
+                "to support any loan at the requested tenure"
+            ),
+        }
+
     if requested_amount <= max_approved_amount:
         return {
             "decision": "APPROVE",
@@ -160,18 +243,41 @@ def _compute_decision(
             ),
         }
 
-    # requested > max → counter-offer
+    # requested > max → counter-offer, UNLESS the request exceeds the cap by more
+    # than the allowed overage (then it's too far out of reach → decline).
+    overage_pct = float(
+        decision_rules.get("counter_offer_overage_pct", _DEFAULT_COUNTER_OFFER_OVERAGE_PCT)
+    )
+    overage_ceiling = round(max_approved_amount * (1 + overage_pct / 100.0), 2)
+
+    if requested_amount <= overage_ceiling:
+        return {
+            "decision": "COUNTER_OFFER",
+            "approved_amount": 0.0,
+            "approved_tenure": 0,
+            "interest_rate": interest_rate,
+            "disbursement_amount": 0.0,
+            "max_approved_amount": max_approved_amount,
+            "step1_triggers": [],
+            "routing_rule": (
+                f"RULE B: max ({max_approved_amount:.2f}) < requested "
+                f"({requested_amount:.2f}) <= overage ceiling "
+                f"({overage_ceiling:.2f} = {100 + overage_pct:.0f}% of cap) → COUNTER_OFFER"
+            ),
+        }
+
     return {
-        "decision": "COUNTER_OFFER",
+        "decision": "DECLINE",
         "approved_amount": 0.0,
         "approved_tenure": 0,
-        "interest_rate": interest_rate,
+        "interest_rate": 0.0,
         "disbursement_amount": 0.0,
         "max_approved_amount": max_approved_amount,
         "step1_triggers": [],
         "routing_rule": (
-            f"RULE B: requested ({requested_amount:.2f}) > "
-            f"max ({max_approved_amount:.2f}) → COUNTER_OFFER"
+            f"DECLINE — requested ({requested_amount:.2f}) exceeds "
+            f"{100 + overage_pct:.0f}% of the qualifying cap "
+            f"({max_approved_amount:.2f}); over the {overage_pct:.0f}% counter-offer overage limit"
         ),
     }
 
@@ -187,12 +293,14 @@ def _build_fallback_decision_result(pre: dict) -> DecisionOutput:
     routing_rule = pre["routing_rule"]
 
     if decision == "DECLINE":
-        explanation = (
-            "Application declined. Hard-decline trigger fired: "
-            + ", ".join(triggers)
-            + "."
-        )
-        reasoning = ["DETERMINISTIC DECLINE — LLM explanation unavailable."] + triggers
+        # Step 1 declines list explicit triggers; income-capacity / overage
+        # declines carry their reason in routing_rule instead.
+        reason = ", ".join(triggers) if triggers else routing_rule
+        explanation = f"Application declined. {reason}."
+        reasoning = [
+            "DETERMINISTIC DECLINE — LLM explanation unavailable.",
+            routing_rule,
+        ] + triggers
     elif decision == "APPROVE":
         explanation = (
             "Application approved per deterministic underwriting policy. "
