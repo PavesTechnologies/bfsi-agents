@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Play, CheckCircle, XCircle, Zap } from 'lucide-react'
@@ -54,15 +54,14 @@ export default function ApplicationReviewPage() {
   const [selectedAnalyzers, setSelectedAnalyzers] = useState<string[]>(ALL_ANALYZERS.map((a) => a.key))
   const [analyzersInitialized, setAnalyzersInitialized] = useState(false)
 
-  // When app loads, initialize from saved value if present, and always merge
-  // in the mandatory analyzers (defends against stale persisted rows that
-  // predate the mandatory-set decision).
-  if (app && !analyzersInitialized) {
-    const saved = app.active_analyzers ?? ALL_ANALYZERS.map((a) => a.key)
-    const merged = Array.from(new Set<string>([...saved, ...MANDATORY_ANALYZERS]))
-    setSelectedAnalyzers(merged)
-    setAnalyzersInitialized(true)
-  }
+  useEffect(() => {
+    if (app && !analyzersInitialized) {
+      const saved = app.active_analyzers ?? ALL_ANALYZERS.map((a) => a.key)
+      const merged = Array.from(new Set<string>([...saved, ...MANDATORY_ANALYZERS]))
+      setSelectedAnalyzers(merged)
+      setAnalyzersInitialized(true)
+    }
+  }, [app, analyzersInitialized])
 
   // Bank decision form
   const [decision, setDecision] = useState<'APPROVE' | 'DECLINE'>('APPROVE')
@@ -71,15 +70,14 @@ export default function ApplicationReviewPage() {
   const [tenureMonths, setTenureMonths] = useState('')
   const [overrideReason, setOverrideReason] = useState('')
 
-  // Pre-fill form when LLM results arrive
-  const prefillDecisionForm = (a: typeof app) => {
-    if (!a) return
-    if (!approvedAmount && a.llm_approved_amount) setApprovedAmount(String(a.llm_approved_amount))
-    if (!interestRate && a.llm_interest_rate) setInterestRate(String(a.llm_interest_rate))
-    if (!tenureMonths && a.llm_tenure_months) setTenureMonths(String(a.llm_tenure_months))
-    if (a.llm_decision === 'DECLINE') setDecision('DECLINE')
-  }
-  if (app?.pipeline_status === 'AWAITING_BANK_APPROVAL') prefillDecisionForm(app)
+  useEffect(() => {
+    if (app?.pipeline_status !== 'AWAITING_BANK_APPROVAL') return
+    if (!approvedAmount && app.llm_approved_amount) setApprovedAmount(String(app.llm_approved_amount))
+    if (!interestRate && app.llm_interest_rate) setInterestRate(String(app.llm_interest_rate))
+    if (!tenureMonths && app.llm_tenure_months) setTenureMonths(String(app.llm_tenure_months))
+    if (app.llm_decision === 'DECLINE') setDecision('DECLINE')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [app?.pipeline_status, app?.llm_approved_amount, app?.llm_interest_rate, app?.llm_tenure_months, app?.llm_decision])
 
   const saveAnalyzersMutation = useMutation({
     mutationFn: () => pipelineApi.saveAnalyzers(id!, selectedAnalyzers),
